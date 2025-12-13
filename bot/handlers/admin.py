@@ -22,6 +22,7 @@ ADMIN_ID = 65876198
 # Состояния для ConversationHandler
 WAITING_USER_ID = 1
 WAITING_DAYS = 2
+WAITING_BLOCK_REASON = 3
 
 user_repo = UserRepository()
 subscription_repo = SubscriptionRepository()
@@ -46,6 +47,7 @@ async def admin_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         [InlineKeyboardButton("📊 Статистика", callback_data="admin:stats")],
         [InlineKeyboardButton("👯 Рефералы", callback_data="admin:referrals")],
         [InlineKeyboardButton("🎁 Выдать Premium", callback_data="admin:give_premium")],
+        [InlineKeyboardButton("🚫 Заблокированные", callback_data="admin:blocked")],
     ]
 
     text = """🔧 Админ-панель
@@ -97,6 +99,21 @@ async def handle_admin_callback(update: Update, context: ContextTypes.DEFAULT_TY
         page = int(data.split(":")[-1])
         return await _show_referrals(query, context, page=page)
 
+    elif data == "admin:blocked":
+        return await _show_blocked_users(query, context)
+
+    elif data.startswith("admin:blocked:page:"):
+        page = int(data.split(":")[-1])
+        return await _show_blocked_users(query, context, page=page)
+
+    elif data.startswith("admin:block:"):
+        telegram_id = int(data.split(":")[-1])
+        return await _start_block_user(query, context, telegram_id)
+
+    elif data.startswith("admin:unblock:"):
+        telegram_id = int(data.split(":")[-1])
+        return await _unblock_user(query, context, telegram_id)
+
     return ConversationHandler.END
 
 
@@ -108,6 +125,7 @@ async def _show_main_menu(query, context) -> int:
         [InlineKeyboardButton("📊 Статистика", callback_data="admin:stats")],
         [InlineKeyboardButton("👯 Рефералы", callback_data="admin:referrals")],
         [InlineKeyboardButton("🎁 Выдать Premium", callback_data="admin:give_premium")],
+        [InlineKeyboardButton("🚫 Заблокированные", callback_data="admin:blocked")],
     ]
 
     await query.edit_message_text(
@@ -206,6 +224,12 @@ async def _show_user_detail(query, context, telegram_id: int) -> int:
     created = user.created_at.strftime("%d.%m.%Y") if user.created_at else "—"
     last_active = user.last_active_at.strftime("%d.%m.%Y %H:%M") if user.last_active_at else "—"
 
+    # Статус блокировки
+    block_status = ""
+    if user.is_blocked:
+        block_reason = user.block_reason or "не указана"
+        block_status = f"\n\n🚫 ЗАБЛОКИРОВАН\nПричина: {block_reason}"
+
     text = f"""👤 {name}
 
 📋 Информация:
@@ -213,7 +237,7 @@ async def _show_user_detail(query, context, telegram_id: int) -> int:
 • Telegram ID: {telegram_id}
 • Зарегистрирован: {created}
 • Последняя активность: {last_active}
-• Подписка: {plan}
+• Подписка: {plan}{block_status}
 
 📊 Сообщения (всего):
 • Всего: {stats_all['total']}
@@ -230,8 +254,21 @@ async def _show_user_detail(query, context, telegram_id: int) -> int:
 
 👯 Рефералы: {referral_count}"""
 
+    # Кнопки действий
+    if user.is_blocked:
+        block_button = InlineKeyboardButton(
+            "✅ Разблокировать",
+            callback_data=f"admin:unblock:{telegram_id}"
+        )
+    else:
+        block_button = InlineKeyboardButton(
+            "🚫 Заблокировать",
+            callback_data=f"admin:block:{telegram_id}"
+        )
+
     keyboard = [
         [InlineKeyboardButton("🎁 Выдать Premium", callback_data="admin:give_premium")],
+        [block_button],
         [InlineKeyboardButton("« К списку", callback_data="admin:users")],
         [InlineKeyboardButton("« Главное меню", callback_data="admin:back")],
     ]
@@ -522,4 +559,180 @@ async def cancel_admin(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
     """Отмена админ-операции."""
     context.user_data.clear()
     await update.message.reply_text("❌ Операция отменена")
+    return ConversationHandler.END
+
+
+async def _show_blocked_users(query, context, page: int = 1) -> int:
+    """Показать список заблокированных пользователей."""
+
+    # Аудит
+    await audit_service.log_view_blocked(query.from_user.id, page)
+
+    per_page = 10
+    users, total = await user_repo.get_blocked_users(page=page, per_page=per_page)
+
+    total_pages = max(1, (total + per_page - 1) // per_page)
+
+    lines = [f"🚫 Заблокированные ({total} всего)\n"]
+
+    if not users:
+        lines.append("Нет заблокированных пользователей")
+    else:
+        for user in users:
+            name = user.display_name or user.first_name or "—"
+            reason = user.block_reason[:30] + "..." if user.block_reason and len(user.block_reason) > 30 else (user.block_reason or "—")
+            lines.append(f"• {name} (ID: {user.telegram_id})")
+            lines.append(f"  Причина: {reason}")
+
+    # Кнопки пользователей для разблокировки
+    user_buttons = []
+    for user in users:
+        user_buttons.append(
+            InlineKeyboardButton(
+                f"✅ {user.telegram_id}",
+                callback_data=f"admin:unblock:{user.telegram_id}"
+            )
+        )
+
+    keyboard = []
+
+    # Кнопки разблокировки по 2 в ряд
+    for i in range(0, len(user_buttons), 2):
+        row = user_buttons[i:i + 2]
+        keyboard.append(row)
+
+    # Пагинация
+    nav_buttons = []
+    if page > 1:
+        nav_buttons.append(InlineKeyboardButton("◀️", callback_data=f"admin:blocked:page:{page - 1}"))
+    if total_pages > 1:
+        nav_buttons.append(InlineKeyboardButton(f"{page}/{total_pages}", callback_data="noop"))
+    if page < total_pages:
+        nav_buttons.append(InlineKeyboardButton("▶️", callback_data=f"admin:blocked:page:{page + 1}"))
+
+    if nav_buttons:
+        keyboard.append(nav_buttons)
+
+    keyboard.append([InlineKeyboardButton("« Назад", callback_data="admin:back")])
+
+    await query.edit_message_text(
+        "\n".join(lines),
+        reply_markup=InlineKeyboardMarkup(keyboard),
+    )
+    return ConversationHandler.END
+
+
+async def _start_block_user(query, context, telegram_id: int) -> int:
+    """Начать процесс блокировки пользователя."""
+
+    user = await user_repo.get_by_telegram_id(telegram_id)
+
+    if not user:
+        await query.edit_message_text("⚠️ Пользователь не найден")
+        return ConversationHandler.END
+
+    if user.is_blocked:
+        await query.edit_message_text("⚠️ Пользователь уже заблокирован")
+        return ConversationHandler.END
+
+    # Сохраняем данные для блокировки
+    context.user_data["block_target_telegram_id"] = telegram_id
+    context.user_data["block_target_name"] = user.display_name or user.first_name or "Пользователь"
+
+    await query.edit_message_text(
+        f"🚫 Блокировка пользователя\n\n"
+        f"👤 {context.user_data['block_target_name']}\n"
+        f"ID: {telegram_id}\n\n"
+        "Укажи причину блокировки:\n"
+        "(или отправь '-' для блокировки без причины)\n\n"
+        "Отправь /cancel для отмены"
+    )
+
+    return WAITING_BLOCK_REASON
+
+
+async def receive_block_reason(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """Получение причины блокировки."""
+
+    if not is_admin(update.effective_user.id):
+        return ConversationHandler.END
+
+    text = update.message.text.strip()
+
+    if text == "/cancel":
+        await update.message.reply_text("❌ Блокировка отменена")
+        context.user_data.clear()
+        return ConversationHandler.END
+
+    telegram_id = context.user_data.get("block_target_telegram_id")
+    user_name = context.user_data.get("block_target_name")
+
+    if not telegram_id:
+        await update.message.reply_text("⚠️ Ошибка. Начни сначала /admin")
+        return ConversationHandler.END
+
+    # Определяем причину
+    reason = None if text == "-" else text
+
+    # Блокируем пользователя
+    user = await user_repo.block_user(telegram_id, reason)
+
+    if not user:
+        await update.message.reply_text("⚠️ Не удалось заблокировать пользователя")
+        context.user_data.clear()
+        return ConversationHandler.END
+
+    # Аудит
+    await audit_service.log_block_user(
+        admin_telegram_id=update.effective_user.id,
+        target_telegram_id=telegram_id,
+        reason=reason,
+    )
+
+    logger.info(f"Admin blocked user {telegram_id}, reason: {reason}")
+
+    reason_text = reason if reason else "не указана"
+    await update.message.reply_text(
+        f"🚫 Пользователь заблокирован\n\n"
+        f"👤 {user_name}\n"
+        f"ID: {telegram_id}\n"
+        f"Причина: {reason_text}"
+    )
+
+    context.user_data.clear()
+    return ConversationHandler.END
+
+
+async def _unblock_user(query, context, telegram_id: int) -> int:
+    """Разблокировать пользователя."""
+
+    user = await user_repo.unblock_user(telegram_id)
+
+    if not user:
+        await query.edit_message_text("⚠️ Пользователь не найден")
+        return ConversationHandler.END
+
+    # Аудит
+    await audit_service.log_unblock_user(
+        admin_telegram_id=query.from_user.id,
+        target_telegram_id=telegram_id,
+    )
+
+    logger.info(f"Admin unblocked user {telegram_id}")
+
+    name = user.display_name or user.first_name or "Пользователь"
+
+    keyboard = [
+        [InlineKeyboardButton("👤 К профилю", callback_data=f"admin:user:{telegram_id}")],
+        [InlineKeyboardButton("🚫 Заблокированные", callback_data="admin:blocked")],
+        [InlineKeyboardButton("« Главное меню", callback_data="admin:back")],
+    ]
+
+    await query.edit_message_text(
+        f"✅ Пользователь разблокирован\n\n"
+        f"👤 {name}\n"
+        f"ID: {telegram_id}",
+        reply_markup=InlineKeyboardMarkup(keyboard),
+    )
+
     return ConversationHandler.END

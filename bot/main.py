@@ -42,9 +42,11 @@ from bot.handlers.admin import (
     handle_admin_callback,
     receive_user_id,
     receive_days,
+    receive_block_reason,
     cancel_admin,
     WAITING_USER_ID,
     WAITING_DAYS,
+    WAITING_BLOCK_REASON,
 )
 
 
@@ -200,6 +202,10 @@ def create_application() -> Application:
             ],
             WAITING_DAYS: [
                 MessageHandler(filters.TEXT & ~filters.COMMAND, receive_days),
+                CommandHandler("cancel", cancel_admin),
+            ],
+            WAITING_BLOCK_REASON: [
+                MessageHandler(filters.TEXT & ~filters.COMMAND, receive_block_reason),
                 CommandHandler("cancel", cancel_admin),
             ],
         },

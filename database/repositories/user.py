@@ -198,3 +198,94 @@ class UserRepository:
                 )
             )
             return result.scalar() or 0
+
+    async def block_user(
+        self,
+        telegram_id: int,
+        reason: Optional[str] = None,
+    ) -> Optional[User]:
+        """
+        Заблокировать пользователя.
+
+        Args:
+            telegram_id: Telegram ID пользователя
+            reason: Причина блокировки
+
+        Returns:
+            Обновлённый пользователь или None если не найден
+        """
+        async with get_session_context() as session:
+            result = await session.execute(
+                select(User).where(User.telegram_id == telegram_id)
+            )
+            user = result.scalar_one_or_none()
+
+            if not user:
+                return None
+
+            user.is_blocked = True
+            user.block_reason = reason
+            user.updated_at = datetime.now()
+
+            await session.commit()
+            await session.refresh(user)
+
+            return user
+
+    async def unblock_user(self, telegram_id: int) -> Optional[User]:
+        """
+        Разблокировать пользователя.
+
+        Args:
+            telegram_id: Telegram ID пользователя
+
+        Returns:
+            Обновлённый пользователь или None если не найден
+        """
+        async with get_session_context() as session:
+            result = await session.execute(
+                select(User).where(User.telegram_id == telegram_id)
+            )
+            user = result.scalar_one_or_none()
+
+            if not user:
+                return None
+
+            user.is_blocked = False
+            user.block_reason = None
+            user.updated_at = datetime.now()
+
+            await session.commit()
+            await session.refresh(user)
+
+            return user
+
+    async def get_blocked_users(
+        self,
+        page: int = 1,
+        per_page: int = 20,
+    ) -> Tuple[List[User], int]:
+        """
+        Получить список заблокированных пользователей.
+
+        Returns:
+            (users, total_count)
+        """
+        async with get_session_context() as session:
+            query = (
+                select(User)
+                .where(User.is_blocked == True)
+                .order_by(User.updated_at.desc())
+                .offset((page - 1) * per_page)
+                .limit(per_page)
+            )
+
+            count_query = select(func.count(User.id)).where(User.is_blocked == True)
+
+            result = await session.execute(query)
+            users = result.scalars().all()
+
+            count_result = await session.execute(count_query)
+            total = count_result.scalar() or 0
+
+            return list(users), total

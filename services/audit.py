@@ -25,6 +25,7 @@ class AuditService:
     ACTION_BLOCK_USER = "block_user"
     ACTION_UNBLOCK_USER = "unblock_user"
     ACTION_ADMIN_LOGIN = "admin_login"
+    ACTION_VIEW_BLOCKED = "view_blocked"
 
     async def log_action(
         self,
@@ -166,6 +167,46 @@ class AuditService:
         except Exception as e:
             logger.error(f"Failed to get user audit logs: {e}")
             return []
+
+    async def log_block_user(
+        self,
+        admin_telegram_id: int,
+        target_telegram_id: int,
+        reason: Optional[str] = None,
+    ) -> None:
+        """Логирует блокировку пользователя."""
+        await self.log_action(
+            admin_telegram_id=admin_telegram_id,
+            action=self.ACTION_BLOCK_USER,
+            target_user_id=target_telegram_id,
+            details={
+                "reason": reason,
+                "timestamp": datetime.now().isoformat(),
+            },
+        )
+
+    async def log_unblock_user(
+        self,
+        admin_telegram_id: int,
+        target_telegram_id: int,
+    ) -> None:
+        """Логирует разблокировку пользователя."""
+        await self.log_action(
+            admin_telegram_id=admin_telegram_id,
+            action=self.ACTION_UNBLOCK_USER,
+            target_user_id=target_telegram_id,
+            details={
+                "timestamp": datetime.now().isoformat(),
+            },
+        )
+
+    async def log_view_blocked(self, admin_telegram_id: int, page: int = 1) -> None:
+        """Логирует просмотр списка заблокированных."""
+        await self.log_action(
+            admin_telegram_id=admin_telegram_id,
+            action=self.ACTION_VIEW_BLOCKED,
+            details={"page": page},
+        )
 
 
 # Глобальный экземпляр

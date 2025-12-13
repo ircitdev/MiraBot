@@ -339,23 +339,20 @@ class AdminUser(Base):
 
 class AdminLog(Base):
     """Лог действий администраторов."""
-    
+
     __tablename__ = "admin_logs"
-    
+
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    admin_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("admin_users.id"), nullable=False)
-    
+    admin_id: Mapped[int] = mapped_column(BigInteger, nullable=False)  # Telegram ID админа
+
     action: Mapped[str] = mapped_column(String(100), nullable=False)
     target_user_id: Mapped[Optional[int]] = mapped_column(BigInteger)
     details: Mapped[Optional[dict]] = mapped_column(JSONB)
-    
+
     ip_address: Mapped[Optional[str]] = mapped_column(String(50))
     user_agent: Mapped[Optional[str]] = mapped_column(String(500))
-    
+
     created_at: Mapped[datetime] = mapped_column(DateTime, default=func.now())
-    
-    # Связи
-    admin: Mapped["AdminUser"] = relationship("AdminUser")
-    
+
     def __repr__(self) -> str:
         return f"<AdminLog(id={self.id}, admin_id={self.admin_id}, action={self.action})>"

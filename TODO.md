@@ -46,7 +46,7 @@
 - [x] Graceful shutdown — корректное завершение при перезапуске ✅
 - [x] Health check endpoint — мониторинг состояния бота ✅
 - [x] Retry logic — повторные попытки при ошибках API Claude/Whisper ✅
-- [ ] Connection pooling — пул соединений к БД
+- [x] Connection pooling — пул соединений к БД ✅
 
 ---
 
@@ -166,3 +166,8 @@
   - GET /ready — готовность к приёму запросов
   - GET /live — проверка живости процесса
   - Порт 8080 (настраивается через HEALTH_CHECK_PORT)
+- Добавлен Connection pooling (database/session.py)
+  - QueuePool вместо NullPool для PostgreSQL
+  - Настройки: DB_POOL_SIZE, DB_MAX_OVERFLOW, DB_POOL_TIMEOUT, DB_POOL_RECYCLE
+  - pool_pre_ping для проверки соединений
+  - Статистика пула в /health endpoint
