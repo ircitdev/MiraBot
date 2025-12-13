@@ -40,6 +40,22 @@ class Settings(BaseSettings):
         default="postgresql+asyncpg://mira:mira_password@localhost:5432/mira_bot",
         description="URL подключения к PostgreSQL"
     )
+    DB_POOL_SIZE: int = Field(
+        default=5,
+        description="Базовый размер пула соединений"
+    )
+    DB_MAX_OVERFLOW: int = Field(
+        default=10,
+        description="Максимум дополнительных соединений сверх pool_size"
+    )
+    DB_POOL_TIMEOUT: int = Field(
+        default=30,
+        description="Таймаут ожидания соединения из пула (секунды)"
+    )
+    DB_POOL_RECYCLE: int = Field(
+        default=1800,
+        description="Время жизни соединения (секунды), после которого оно пересоздаётся"
+    )
     
     # =====================================
     # REDIS

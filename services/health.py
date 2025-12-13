@@ -11,7 +11,7 @@ from loguru import logger
 
 from config.settings import settings
 from services.redis_client import redis_client
-from database.session import async_session
+from database.session import async_session, get_pool_status
 from sqlalchemy import text
 
 
@@ -97,6 +97,10 @@ class HealthCheckServer:
         }
         if not db_healthy:
             all_healthy = False
+
+        # Статистика пула соединений
+        pool_status = get_pool_status()
+        checks["checks"]["db_pool"] = pool_status
 
         # Общий статус
         if not all_healthy:

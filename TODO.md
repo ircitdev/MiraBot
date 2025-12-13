@@ -44,7 +44,7 @@
 ### 1.3. Стабильность
 
 - [x] Graceful shutdown — корректное завершение при перезапуске ✅
-- [ ] Health check endpoint — мониторинг состояния бота
+- [x] Health check endpoint — мониторинг состояния бота ✅
 - [x] Retry logic — повторные попытки при ошибках API Claude/Whisper ✅
 - [ ] Connection pooling — пул соединений к БД
 
@@ -161,3 +161,8 @@
   - Корректное завершение при systemctl stop/restart
   - Ожидание завершения pending запросов (30 сек)
   - Обновлён systemd unit с TimeoutStopSec=35
+- Добавлен Health Check endpoint (services/health.py)
+  - GET /health — полная проверка (бот, Redis, БД)
+  - GET /ready — готовность к приёму запросов
+  - GET /live — проверка живости процесса
+  - Порт 8080 (настраивается через HEALTH_CHECK_PORT)
