@@ -5,7 +5,7 @@ Claude API Client.
 
 import anthropic
 import asyncio
-from typing import Optional, List, Dict, Any
+from typing import Optional, List, Dict, Any, AsyncGenerator, Callable, Awaitable
 from loguru import logger
 
 from config.settings import settings
@@ -118,7 +118,110 @@ class ClaudeClient:
         except Exception as e:
             logger.error(f"Error generating response: {e}")
             raise
-    
+
+    async def generate_response_stream(
+        self,
+        user_id: int,
+        user_message: str,
+        user_data: Dict[str, Any],
+        is_premium: bool = False,
+        on_chunk: Optional[Callable[[str], Awaitable[None]]] = None,
+    ) -> Dict[str, Any]:
+        """
+        Генерирует ответ с учётом контекста и памяти в режиме streaming.
+
+        Args:
+            user_id: ID пользователя в БД
+            user_message: Сообщение пользователя
+            user_data: Данные пользователя (персона, имя, и т.д.)
+            is_premium: Премиум ли подписка
+            on_chunk: Callback для обработки каждого чанка текста
+
+        Returns:
+            {
+                "response": str,
+                "is_crisis": bool,
+                "crisis_level": Optional[str],
+                "tags": list[str],
+                "tokens_used": int
+            }
+        """
+        try:
+            # 1. Проверка на кризисные сигналы
+            crisis_check = self.crisis_detector.check(user_message)
+
+            # 2. Собираем контекст
+            memory_depth = (
+                settings.PREMIUM_MEMORY_DEPTH if is_premium
+                else settings.FREE_MEMORY_DEPTH
+            )
+
+            context = await self.context_builder.build(
+                user_id=user_id,
+                user_data=user_data,
+                recent_messages_limit=memory_depth,
+                include_long_term_memory=is_premium,
+            )
+
+            # 3. Формируем системный промпт
+            system_prompt = build_system_prompt(
+                persona=user_data.get("persona", "mira"),
+                user_context=context,
+                is_crisis=crisis_check["is_crisis"],
+            )
+
+            # 4. Собираем историю сообщений
+            messages = await self._build_messages(
+                user_id=user_id,
+                current_message=user_message,
+                limit=memory_depth,
+            )
+
+            # 5. Streaming запрос к Claude
+            full_response = ""
+            input_tokens = 0
+            output_tokens = 0
+
+            with self.client.messages.stream(
+                model=settings.CLAUDE_MODEL,
+                max_tokens=settings.CLAUDE_MAX_TOKENS,
+                system=system_prompt,
+                messages=messages,
+            ) as stream:
+                for text in stream.text_stream:
+                    full_response += text
+                    if on_chunk:
+                        await on_chunk(text)
+
+                # Получаем финальное сообщение для статистики
+                final_message = stream.get_final_message()
+                input_tokens = final_message.usage.input_tokens
+                output_tokens = final_message.usage.output_tokens
+
+            # 6. Извлекаем теги для памяти
+            tags = self._extract_tags(user_message, full_response, crisis_check)
+
+            logger.info(
+                f"Generated streaming response for user {user_id}, "
+                f"tokens: {input_tokens + output_tokens}, "
+                f"is_crisis: {crisis_check['is_crisis']}"
+            )
+
+            return {
+                "response": full_response,
+                "is_crisis": crisis_check["is_crisis"],
+                "crisis_level": crisis_check.get("level"),
+                "tags": tags,
+                "tokens_used": input_tokens + output_tokens,
+            }
+
+        except anthropic.APIError as e:
+            logger.error(f"Claude API error (streaming): {e}")
+            raise
+        except Exception as e:
+            logger.error(f"Error generating streaming response: {e}")
+            raise
+
     async def _build_messages(
         self,
         user_id: int,

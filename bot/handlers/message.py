@@ -87,10 +87,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         # 5. Обновляем last_active
         await user_repo.update_last_active(user.id)
         
-        # 6. Показываем "печатает..."
-        await update.message.chat.send_action("typing")
-        
-        # 7. Подготавливаем данные пользователя
+        # 6. Подготавливаем данные пользователя
         user_data = {
             "persona": user.persona,
             "display_name": user.display_name,
@@ -99,23 +96,24 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
             "marriage_years": user.marriage_years,
             "partner_gender": getattr(user, "partner_gender", None),
         }
-        
-        # 8. Получаем ответ от Claude
-        result = await claude.generate_response(
+
+        # 7. Streaming ответ от Claude
+        result = await _generate_and_stream_response(
+            update=update,
             user_id=user.id,
-            user_message=message_text,
+            message_text=message_text,
             user_data=user_data,
             is_premium=is_premium,
         )
-        
-        # 9. Сохраняем сообщения
+
+        # 8. Сохраняем сообщения
         await conversation_repo.save_message(
             user_id=user.id,
             role="user",
             content=message_text,
             tags=[],
         )
-        
+
         await conversation_repo.save_message(
             user_id=user.id,
             role="assistant",
@@ -123,11 +121,16 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
             tags=result["tags"],
             tokens_used=result["tokens_used"],
         )
-        
-        # 10. Отправляем ответ
-        await _send_response(update, result)
-        
-        # 11. Проверяем триггеры реферала
+
+        # 9. Добавляем кнопки при кризисе (если streaming уже отправил текст)
+        if result["is_crisis"]:
+            keyboard = get_crisis_keyboard()
+            await update.message.reply_text(
+                "💛 Если нужна помощь прямо сейчас:",
+                reply_markup=keyboard,
+            )
+
+        # 10. Проверяем триггеры реферала
         if not is_premium:
             await _check_referral_trigger(update, user, result)
         
@@ -214,6 +217,91 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         await update.message.reply_text(
             "Прости, что-то пошло не так... Попробуй ещё раз через минутку 💛"
         )
+
+
+# Настройки streaming
+STREAM_UPDATE_INTERVAL = 1.0  # секунд между обновлениями сообщения
+STREAM_MIN_CHARS = 20  # минимум символов для первого обновления
+
+
+async def _generate_and_stream_response(
+    update: Update,
+    user_id: int,
+    message_text: str,
+    user_data: dict,
+    is_premium: bool,
+) -> dict:
+    """
+    Генерирует ответ Claude и стримит его пользователю.
+    Редактирует сообщение по мере получения текста.
+    """
+    import time
+
+    # Отправляем начальное сообщение
+    bot_message = await update.message.reply_text("⏳")
+
+    # Состояние для streaming
+    current_text = ""
+    last_update_time = time.time()
+    last_sent_text = ""
+
+    async def update_message(chunk: str):
+        """Callback для обновления сообщения при получении чанка."""
+        nonlocal current_text, last_update_time, last_sent_text
+
+        current_text += chunk
+        current_time = time.time()
+
+        # Обновляем сообщение:
+        # - если прошло достаточно времени
+        # - и есть достаточно нового текста
+        should_update = (
+            current_time - last_update_time >= STREAM_UPDATE_INTERVAL
+            and len(current_text) >= STREAM_MIN_CHARS
+            and current_text != last_sent_text
+        )
+
+        if should_update:
+            try:
+                # Добавляем курсор "▌" для эффекта печати
+                display_text = current_text + " ▌"
+                await bot_message.edit_text(display_text)
+                last_sent_text = current_text
+                last_update_time = current_time
+            except Exception as e:
+                # Игнорируем ошибки редактирования (rate limit, message not modified)
+                logger.debug(f"Stream update error: {e}")
+
+    try:
+        # Получаем streaming ответ
+        result = await claude.generate_response_stream(
+            user_id=user_id,
+            user_message=message_text,
+            user_data=user_data,
+            is_premium=is_premium,
+            on_chunk=update_message,
+        )
+
+        # Финальное обновление — убираем курсор, показываем полный текст
+        final_text = result["response"]
+        if final_text != last_sent_text:
+            try:
+                await bot_message.edit_text(final_text)
+            except Exception as e:
+                logger.debug(f"Final stream update error: {e}")
+                # Если не удалось отредактировать — отправляем новое сообщение
+                if not last_sent_text:
+                    await update.message.reply_text(final_text)
+
+        return result
+
+    except Exception as e:
+        # При ошибке удаляем сообщение-заглушку
+        try:
+            await bot_message.delete()
+        except Exception:
+            pass
+        raise
 
 
 async def _handle_onboarding(
@@ -362,27 +450,6 @@ def _detect_gender_by_name(name: str) -> str:
 
     # По умолчанию — мужское
     return "male"
-
-
-async def _send_response(update: Update, result: dict) -> None:
-    """Отправляет ответ пользователю."""
-    
-    response_text = result["response"]
-    
-    # Разбиваем на части если есть разделитель
-    parts = response_text.split("---")
-    
-    for i, part in enumerate(parts):
-        part = part.strip()
-        if not part:
-            continue
-        
-        # Для последней части добавляем кнопки при кризисе
-        if result["is_crisis"] and i == len(parts) - 1:
-            keyboard = get_crisis_keyboard()
-            await update.message.reply_text(part, reply_markup=keyboard)
-        else:
-            await update.message.reply_text(part)
 
 
 async def _send_limit_reached(update: Update) -> None:
