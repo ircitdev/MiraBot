@@ -42,7 +42,8 @@
 - [x] Логирование действий админа — аудит операций ✅
 
 ### 1.3. Стабильность
-- [ ] Graceful shutdown — корректное завершение при перезапуске
+
+- [x] Graceful shutdown — корректное завершение при перезапуске ✅
 - [ ] Health check endpoint — мониторинг состояния бота
 - [x] Retry logic — повторные попытки при ошибках API Claude/Whisper ✅
 - [ ] Connection pooling — пул соединений к БД
@@ -155,3 +156,8 @@
   - AuditService для записи в таблицу admin_logs
   - Аудит: просмотр пользователей, статистики, выдача премиума
   - Интеграция в bot/handlers/admin.py
+- Добавлен Graceful shutdown (bot/main.py)
+  - Обработка сигналов SIGTERM, SIGINT
+  - Корректное завершение при systemctl stop/restart
+  - Ожидание завершения pending запросов (30 сек)
+  - Обновлён systemd unit с TimeoutStopSec=35

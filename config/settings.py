@@ -147,6 +147,14 @@ class Settings(BaseSettings):
     )
     
     # =====================================
+    # HEALTH CHECK
+    # =====================================
+    HEALTH_CHECK_PORT: int = Field(
+        default=8080,
+        description="Порт для health check endpoint"
+    )
+
+    # =====================================
     # ЛОГИРОВАНИЕ
     # =====================================
     LOG_LEVEL: str = Field(default="INFO", description="Уровень логирования")

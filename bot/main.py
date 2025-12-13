@@ -36,6 +36,7 @@ from bot.handlers.payments import (
 )
 from services.scheduler import start_scheduler, stop_scheduler
 from services.redis_client import redis_client
+from services.health import health_server
 from bot.handlers.admin import (
     admin_command,
     handle_admin_callback,
@@ -68,6 +69,13 @@ async def post_init(app: Application) -> None:
     # Запускаем планировщик
     start_scheduler(app)
 
+    # Запускаем health check сервер
+    try:
+        await health_server.start()
+        health_server.set_bot_running(True)
+    except Exception as e:
+        logger.warning(f"Failed to start health check server: {e}")
+
     logger.info("Bot initialized successfully")
 
 
@@ -81,6 +89,15 @@ async def post_shutdown(app: Application) -> None:
 
     _shutdown_in_progress = True
     logger.info("Shutting down bot gracefully...")
+
+    # Помечаем бот как остановленный для health check
+    health_server.set_bot_running(False)
+
+    # Останавливаем health check сервер
+    try:
+        await health_server.stop()
+    except Exception as e:
+        logger.error(f"Error stopping health server: {e}")
 
     # Останавливаем планировщик
     try:
