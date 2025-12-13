@@ -3,8 +3,8 @@ User repository.
 CRUD операции для пользователей.
 """
 
-from datetime import datetime
-from typing import Optional, List, Tuple, Any, Dict
+from datetime import datetime, timedelta
+from typing import Optional, List, Tuple, Any, Dict, AsyncGenerator
 from sqlalchemy import select, func, or_, and_
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -289,3 +289,120 @@ class UserRepository:
             total = count_result.scalar() or 0
 
             return list(users), total
+
+    async def get_all_telegram_ids(
+        self,
+        segment: str = "all",
+        exclude_blocked: bool = True,
+    ) -> List[int]:
+        """
+        Получить список telegram_id для рассылки.
+
+        Args:
+            segment: Сегмент пользователей:
+                - "all" — все пользователи
+                - "premium" — только с premium подпиской
+                - "free" — только с free подпиской
+                - "active_week" — активные за последнюю неделю
+                - "active_month" — активные за последний месяц
+                - "inactive" — неактивные более месяца
+            exclude_blocked: Исключить заблокированных
+
+        Returns:
+            Список telegram_id
+        """
+        async with get_session_context() as session:
+            query = select(User.telegram_id)
+
+            # Исключаем заблокированных
+            if exclude_blocked:
+                query = query.where(User.is_blocked == False)
+
+            # Фильтры по сегментам
+            if segment == "premium":
+                query = query.join(Subscription).where(
+                    and_(
+                        Subscription.plan == "premium",
+                        Subscription.status == "active",
+                    )
+                )
+            elif segment == "free":
+                query = query.join(Subscription).where(
+                    Subscription.plan == "free"
+                )
+            elif segment == "active_week":
+                week_ago = datetime.now() - timedelta(days=7)
+                query = query.where(User.last_active_at >= week_ago)
+            elif segment == "active_month":
+                month_ago = datetime.now() - timedelta(days=30)
+                query = query.where(User.last_active_at >= month_ago)
+            elif segment == "inactive":
+                month_ago = datetime.now() - timedelta(days=30)
+                query = query.where(
+                    or_(
+                        User.last_active_at < month_ago,
+                        User.last_active_at.is_(None),
+                    )
+                )
+
+            result = await session.execute(query)
+            return [row[0] for row in result.fetchall()]
+
+    async def count_by_segment(self, segment: str = "all") -> int:
+        """
+        Подсчитать количество пользователей в сегменте.
+
+        Args:
+            segment: Сегмент (см. get_all_telegram_ids)
+
+        Returns:
+            Количество пользователей
+        """
+        async with get_session_context() as session:
+            query = select(func.count(User.id)).where(User.is_blocked == False)
+
+            if segment == "premium":
+                query = (
+                    select(func.count(User.id))
+                    .select_from(User)
+                    .join(Subscription)
+                    .where(
+                        and_(
+                            User.is_blocked == False,
+                            Subscription.plan == "premium",
+                            Subscription.status == "active",
+                        )
+                    )
+                )
+            elif segment == "free":
+                query = (
+                    select(func.count(User.id))
+                    .select_from(User)
+                    .join(Subscription)
+                    .where(
+                        and_(
+                            User.is_blocked == False,
+                            Subscription.plan == "free",
+                        )
+                    )
+                )
+            elif segment == "active_week":
+                week_ago = datetime.now() - timedelta(days=7)
+                query = query.where(User.last_active_at >= week_ago)
+            elif segment == "active_month":
+                month_ago = datetime.now() - timedelta(days=30)
+                query = query.where(User.last_active_at >= month_ago)
+            elif segment == "inactive":
+                month_ago = datetime.now() - timedelta(days=30)
+                query = select(func.count(User.id)).where(
+                    and_(
+                        User.is_blocked == False,
+                        or_(
+                            User.last_active_at < month_ago,
+                            User.last_active_at.is_(None),
+                        ),
+                    )
+                )
+
+            result = await session.execute(query)
+            return result.scalar() or 0

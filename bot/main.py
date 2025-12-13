@@ -43,10 +43,12 @@ from bot.handlers.admin import (
     receive_user_id,
     receive_days,
     receive_block_reason,
+    receive_broadcast_message,
     cancel_admin,
     WAITING_USER_ID,
     WAITING_DAYS,
     WAITING_BLOCK_REASON,
+    WAITING_BROADCAST_MESSAGE,
 )
 
 
@@ -206,6 +208,10 @@ def create_application() -> Application:
             ],
             WAITING_BLOCK_REASON: [
                 MessageHandler(filters.TEXT & ~filters.COMMAND, receive_block_reason),
+                CommandHandler("cancel", cancel_admin),
+            ],
+            WAITING_BROADCAST_MESSAGE: [
+                MessageHandler(filters.TEXT & ~filters.COMMAND, receive_broadcast_message),
                 CommandHandler("cancel", cancel_admin),
             ],
         },

@@ -26,6 +26,8 @@ class AuditService:
     ACTION_UNBLOCK_USER = "unblock_user"
     ACTION_ADMIN_LOGIN = "admin_login"
     ACTION_VIEW_BLOCKED = "view_blocked"
+    ACTION_BROADCAST_START = "broadcast_start"
+    ACTION_BROADCAST_COMPLETE = "broadcast_complete"
 
     async def log_action(
         self,
@@ -206,6 +208,46 @@ class AuditService:
             admin_telegram_id=admin_telegram_id,
             action=self.ACTION_VIEW_BLOCKED,
             details={"page": page},
+        )
+
+    async def log_broadcast_start(
+        self,
+        admin_telegram_id: int,
+        segment: str,
+        total_users: int,
+        message_preview: str,
+    ) -> None:
+        """Логирует начало рассылки."""
+        await self.log_action(
+            admin_telegram_id=admin_telegram_id,
+            action=self.ACTION_BROADCAST_START,
+            details={
+                "segment": segment,
+                "total_users": total_users,
+                "message_preview": message_preview[:100],
+                "timestamp": datetime.now().isoformat(),
+            },
+        )
+
+    async def log_broadcast_complete(
+        self,
+        admin_telegram_id: int,
+        segment: str,
+        sent: int,
+        failed: int,
+        blocked_by_user: int,
+    ) -> None:
+        """Логирует завершение рассылки."""
+        await self.log_action(
+            admin_telegram_id=admin_telegram_id,
+            action=self.ACTION_BROADCAST_COMPLETE,
+            details={
+                "segment": segment,
+                "sent": sent,
+                "failed": failed,
+                "blocked_by_user": blocked_by_user,
+                "timestamp": datetime.now().isoformat(),
+            },
         )
 
 

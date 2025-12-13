@@ -23,6 +23,17 @@ ADMIN_ID = 65876198
 WAITING_USER_ID = 1
 WAITING_DAYS = 2
 WAITING_BLOCK_REASON = 3
+WAITING_BROADCAST_MESSAGE = 4
+
+# Сегменты для рассылки
+BROADCAST_SEGMENTS = {
+    "all": "👥 Все пользователи",
+    "premium": "💎 Только Premium",
+    "free": "🆓 Только Free",
+    "active_week": "🔥 Активные за неделю",
+    "active_month": "📅 Активные за месяц",
+    "inactive": "😴 Неактивные (>30 дней)",
+}
 
 user_repo = UserRepository()
 subscription_repo = SubscriptionRepository()
@@ -47,6 +58,7 @@ async def admin_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         [InlineKeyboardButton("📊 Статистика", callback_data="admin:stats")],
         [InlineKeyboardButton("👯 Рефералы", callback_data="admin:referrals")],
         [InlineKeyboardButton("🎁 Выдать Premium", callback_data="admin:give_premium")],
+        [InlineKeyboardButton("📢 Рассылка", callback_data="admin:broadcast")],
         [InlineKeyboardButton("🚫 Заблокированные", callback_data="admin:blocked")],
     ]
 
@@ -114,6 +126,20 @@ async def handle_admin_callback(update: Update, context: ContextTypes.DEFAULT_TY
         telegram_id = int(data.split(":")[-1])
         return await _unblock_user(query, context, telegram_id)
 
+    elif data == "admin:broadcast":
+        return await _show_broadcast_menu(query, context)
+
+    elif data.startswith("admin:broadcast:segment:"):
+        segment = data.split(":")[-1]
+        return await _start_broadcast(query, context, segment)
+
+    elif data == "admin:broadcast:confirm":
+        return await _confirm_broadcast(query, context)
+
+    elif data == "admin:broadcast:cancel":
+        context.user_data.clear()
+        return await _show_main_menu(query, context)
+
     return ConversationHandler.END
 
 
@@ -125,6 +151,7 @@ async def _show_main_menu(query, context) -> int:
         [InlineKeyboardButton("📊 Статистика", callback_data="admin:stats")],
         [InlineKeyboardButton("👯 Рефералы", callback_data="admin:referrals")],
         [InlineKeyboardButton("🎁 Выдать Premium", callback_data="admin:give_premium")],
+        [InlineKeyboardButton("📢 Рассылка", callback_data="admin:broadcast")],
         [InlineKeyboardButton("🚫 Заблокированные", callback_data="admin:blocked")],
     ]
 
@@ -735,4 +762,207 @@ async def _unblock_user(query, context, telegram_id: int) -> int:
         reply_markup=InlineKeyboardMarkup(keyboard),
     )
 
+    return ConversationHandler.END
+
+
+async def _show_broadcast_menu(query, context) -> int:
+    """Показать меню рассылки с сегментами."""
+
+    lines = ["📢 Рассылка сообщений\n", "Выбери сегмент получателей:\n"]
+
+    keyboard = []
+    for segment_key, segment_name in BROADCAST_SEGMENTS.items():
+        count = await user_repo.count_by_segment(segment_key)
+        keyboard.append([
+            InlineKeyboardButton(
+                f"{segment_name} ({count})",
+                callback_data=f"admin:broadcast:segment:{segment_key}"
+            )
+        ])
+
+    keyboard.append([InlineKeyboardButton("« Назад", callback_data="admin:back")])
+
+    await query.edit_message_text(
+        "\n".join(lines),
+        reply_markup=InlineKeyboardMarkup(keyboard),
+    )
+    return ConversationHandler.END
+
+
+async def _start_broadcast(query, context, segment: str) -> int:
+    """Начать создание рассылки для выбранного сегмента."""
+
+    count = await user_repo.count_by_segment(segment)
+    segment_name = BROADCAST_SEGMENTS.get(segment, segment)
+
+    if count == 0:
+        keyboard = [[InlineKeyboardButton("« Назад", callback_data="admin:broadcast")]]
+        await query.edit_message_text(
+            f"⚠️ В сегменте «{segment_name}» нет пользователей",
+            reply_markup=InlineKeyboardMarkup(keyboard),
+        )
+        return ConversationHandler.END
+
+    # Сохраняем данные для рассылки
+    context.user_data["broadcast_segment"] = segment
+    context.user_data["broadcast_segment_name"] = segment_name
+    context.user_data["broadcast_count"] = count
+
+    await query.edit_message_text(
+        f"📢 Рассылка: {segment_name}\n"
+        f"👥 Получателей: {count}\n\n"
+        "Отправь текст сообщения для рассылки.\n"
+        "Поддерживается HTML-разметка:\n"
+        "• <b>жирный</b>\n"
+        "• <i>курсив</i>\n"
+        "• <code>код</code>\n\n"
+        "Отправь /cancel для отмены"
+    )
+
+    return WAITING_BROADCAST_MESSAGE
+
+
+async def receive_broadcast_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """Получение текста рассылки."""
+
+    if not is_admin(update.effective_user.id):
+        return ConversationHandler.END
+
+    text = update.message.text.strip()
+
+    if text == "/cancel":
+        await update.message.reply_text("❌ Рассылка отменена")
+        context.user_data.clear()
+        return ConversationHandler.END
+
+    segment = context.user_data.get("broadcast_segment")
+    segment_name = context.user_data.get("broadcast_segment_name")
+    count = context.user_data.get("broadcast_count")
+
+    if not segment:
+        await update.message.reply_text("⚠️ Ошибка. Начни сначала /admin")
+        return ConversationHandler.END
+
+    # Сохраняем текст
+    context.user_data["broadcast_message"] = text
+
+    # Показываем превью и запрос подтверждения
+    preview = text[:500] + "..." if len(text) > 500 else text
+
+    keyboard = [
+        [InlineKeyboardButton("✅ Отправить", callback_data="admin:broadcast:confirm")],
+        [InlineKeyboardButton("❌ Отмена", callback_data="admin:broadcast:cancel")],
+    ]
+
+    await update.message.reply_text(
+        f"📢 Подтверждение рассылки\n\n"
+        f"Сегмент: {segment_name}\n"
+        f"Получателей: {count}\n\n"
+        f"━━━ Превью ━━━\n{preview}\n━━━━━━━━━━━━\n\n"
+        f"Подтвердить отправку?",
+        reply_markup=InlineKeyboardMarkup(keyboard),
+        parse_mode="HTML",
+    )
+
+    return ConversationHandler.END
+
+
+async def _confirm_broadcast(query, context) -> int:
+    """Подтверждение и выполнение рассылки."""
+    import asyncio
+
+    segment = context.user_data.get("broadcast_segment")
+    segment_name = context.user_data.get("broadcast_segment_name")
+    message_text = context.user_data.get("broadcast_message")
+
+    if not segment or not message_text:
+        await query.edit_message_text("⚠️ Ошибка. Начни сначала /admin")
+        return ConversationHandler.END
+
+    # Получаем список получателей
+    telegram_ids = await user_repo.get_all_telegram_ids(segment=segment)
+    total = len(telegram_ids)
+
+    # Аудит начала рассылки
+    await audit_service.log_broadcast_start(
+        admin_telegram_id=query.from_user.id,
+        segment=segment,
+        total_users=total,
+        message_preview=message_text,
+    )
+
+    await query.edit_message_text(
+        f"📢 Рассылка началась...\n\n"
+        f"Сегмент: {segment_name}\n"
+        f"Всего получателей: {total}\n\n"
+        f"⏳ Отправка..."
+    )
+
+    # Счётчики
+    sent = 0
+    failed = 0
+    blocked_by_user = 0
+
+    # Отправляем сообщения
+    for i, telegram_id in enumerate(telegram_ids):
+        try:
+            await context.bot.send_message(
+                chat_id=telegram_id,
+                text=message_text,
+                parse_mode="HTML",
+            )
+            sent += 1
+        except Exception as e:
+            error_str = str(e).lower()
+            if "blocked" in error_str or "deactivated" in error_str:
+                blocked_by_user += 1
+            else:
+                failed += 1
+            logger.warning(f"Broadcast failed for {telegram_id}: {e}")
+
+        # Задержка между сообщениями (избегаем rate limit)
+        if (i + 1) % 25 == 0:
+            await asyncio.sleep(1)
+
+        # Обновляем прогресс каждые 50 сообщений
+        if (i + 1) % 50 == 0:
+            try:
+                await query.edit_message_text(
+                    f"📢 Рассылка в процессе...\n\n"
+                    f"Сегмент: {segment_name}\n"
+                    f"Прогресс: {i + 1}/{total}\n"
+                    f"✅ Отправлено: {sent}\n"
+                    f"❌ Ошибок: {failed}\n"
+                    f"🚫 Заблокировали бота: {blocked_by_user}"
+                )
+            except Exception:
+                pass  # Игнорируем ошибки обновления
+
+    # Аудит завершения
+    await audit_service.log_broadcast_complete(
+        admin_telegram_id=query.from_user.id,
+        segment=segment,
+        sent=sent,
+        failed=failed,
+        blocked_by_user=blocked_by_user,
+    )
+
+    logger.info(
+        f"Broadcast complete: segment={segment}, sent={sent}, "
+        f"failed={failed}, blocked={blocked_by_user}"
+    )
+
+    keyboard = [[InlineKeyboardButton("« Главное меню", callback_data="admin:back")]]
+
+    await query.edit_message_text(
+        f"📢 Рассылка завершена!\n\n"
+        f"Сегмент: {segment_name}\n"
+        f"Всего: {total}\n\n"
+        f"✅ Отправлено: {sent}\n"
+        f"❌ Ошибок: {failed}\n"
+        f"🚫 Заблокировали бота: {blocked_by_user}",
+        reply_markup=InlineKeyboardMarkup(keyboard),
+    )
+
+    context.user_data.clear()
     return ConversationHandler.END
