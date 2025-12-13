@@ -19,6 +19,7 @@ from services.referral import ReferralService
 from bot.keyboards.inline import get_premium_keyboard, get_crisis_keyboard
 from bot.handlers.photos import send_photos
 from utils.text_parser import extract_name_from_text
+from utils.sanitizer import sanitize_text, sanitize_name, validate_message
 
 
 # Инициализируем сервисы
@@ -31,10 +32,19 @@ referral_service = ReferralService()
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Основной обработчик текстовых сообщений."""
-    
+
     user_tg = update.effective_user
-    message_text = update.message.text
-    
+    raw_text = update.message.text
+
+    # Валидация и санитизация входных данных
+    is_valid, message_text, error = validate_message(raw_text)
+    if not is_valid:
+        logger.warning(f"Invalid message from {user_tg.id}: {error}")
+        await update.message.reply_text(
+            "Не удалось обработать сообщение. Попробуй ещё раз 💛"
+        )
+        return
+
     try:
         # 1. Получаем пользователя
         user, _ = await user_repo.get_or_create(
@@ -226,6 +236,15 @@ async def _handle_onboarding(
             )
             return
 
+        # Санитизируем имя
+        display_name = sanitize_name(display_name, max_length=50)
+
+        if not display_name:
+            await update.message.reply_text(
+                "Как мне к тебе обращаться? Напиши своё имя 💛"
+            )
+            return
+
         await user_repo.update(
             user.id,
             display_name=display_name,
@@ -275,6 +294,15 @@ async def _handle_onboarding(
                     "Как зовут твоего партнёра? Напиши имя или \"пропустить\" 💛"
                 )
                 return
+
+        # Санитизируем имя партнёра
+        partner_name = sanitize_name(partner_name, max_length=50)
+
+        if not partner_name:
+            await update.message.reply_text(
+                "Как зовут твоего партнёра? Напиши имя или \"пропустить\" 💛"
+            )
+            return
 
         # Определяем пол по имени (эвристика для русских имён)
         partner_gender = _detect_gender_by_name(partner_name)
