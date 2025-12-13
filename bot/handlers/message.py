@@ -3,6 +3,8 @@ Message handler.
 Основной обработчик текстовых сообщений.
 """
 
+import traceback
+import anthropic
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
 from loguru import logger
@@ -125,8 +127,80 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
             f"is_crisis={result['is_crisis']}"
         )
         
+    except anthropic.APIConnectionError as e:
+        # Ошибка подключения к API Claude
+        logger.error(f"Claude API connection error for user {user_tg.id}: {e}")
+        logger.debug(traceback.format_exc())
+
+        # Сохраняем сообщение пользователя, чтобы не потерять контекст
+        try:
+            await conversation_repo.save_message(
+                user_id=user.id,
+                role="user",
+                content=message_text,
+                tags=["error:api_connection"],
+            )
+        except Exception as save_err:
+            logger.error(f"Failed to save message on error: {save_err}")
+
+        await update.message.reply_text(
+            "Не могу связаться с сервером... Попробуй через пару минут 💛"
+        )
+
+    except anthropic.RateLimitError as e:
+        # Превышен лимит запросов к Claude
+        logger.warning(f"Claude rate limit for user {user_tg.id}: {e}")
+
+        try:
+            await conversation_repo.save_message(
+                user_id=user.id,
+                role="user",
+                content=message_text,
+                tags=["error:rate_limit"],
+            )
+        except Exception as save_err:
+            logger.error(f"Failed to save message on error: {save_err}")
+
+        await update.message.reply_text(
+            "Сейчас много запросов, подожди минутку и напиши снова 💛"
+        )
+
+    except anthropic.APIStatusError as e:
+        # Другие ошибки API Claude
+        logger.error(f"Claude API error for user {user_tg.id}: {e.status_code} - {e.message}")
+        logger.debug(traceback.format_exc())
+
+        try:
+            await conversation_repo.save_message(
+                user_id=user.id,
+                role="user",
+                content=message_text,
+                tags=["error:api_status"],
+            )
+        except Exception as save_err:
+            logger.error(f"Failed to save message on error: {save_err}")
+
+        await update.message.reply_text(
+            "Что-то пошло не так на сервере... Попробуй ещё раз через минутку 💛"
+        )
+
     except Exception as e:
-        logger.error(f"Error handling message from {user_tg.id}: {e}")
+        # Неизвестная ошибка
+        logger.error(f"Unexpected error for user {user_tg.id}: {e}")
+        logger.error(traceback.format_exc())
+
+        # Пытаемся сохранить сообщение пользователя
+        try:
+            if 'user' in locals() and user:
+                await conversation_repo.save_message(
+                    user_id=user.id,
+                    role="user",
+                    content=message_text,
+                    tags=["error:unknown"],
+                )
+        except Exception as save_err:
+            logger.error(f"Failed to save message on error: {save_err}")
+
         await update.message.reply_text(
             "Прости, что-то пошло не так... Попробуй ещё раз через минутку 💛"
         )

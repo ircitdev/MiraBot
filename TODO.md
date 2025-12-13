@@ -32,7 +32,7 @@
 - [x] **Исправить парсинг имени** — извлекать имя из фразы, а не брать всё сообщение ✅
 - [x] **Проверить логи ошибки** — найти причину "что-то пошло не так" (конфликт polling) ✅
 - [x] **Добавить поле `partner_gender`** — чтобы правильно склонять ✅
-- [ ] **Graceful error handling** — при ошибке не терять контекст
+- [x] **Graceful error handling** — при ошибке не терять контекст ✅
 - [ ] **Сохранять partner_name** — спрашивать про партнёра в онбординге
 
 ### 1.2. Безопасность
@@ -134,3 +134,7 @@
 - Добавлен Rate Limiter (bot/middlewares/rate_limit.py)
 - Добавлена Retry логика (utils/retry.py)
 - Перезапущен бот после конфликта polling
+- Добавлен Graceful error handling (bot/handlers/message.py)
+  - Раздельная обработка APIConnectionError, RateLimitError, APIStatusError
+  - Сохранение сообщений пользователя при ошибках API
+  - Полный traceback в логах
