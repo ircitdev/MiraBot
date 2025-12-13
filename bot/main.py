@@ -4,6 +4,8 @@ Main bot entry point.
 """
 
 import asyncio
+import signal
+import sys
 from telegram import Update
 from telegram.ext import (
     Application,
@@ -48,6 +50,10 @@ from bot.handlers.admin import (
 # Глобальный экземпляр приложения
 application: Application = None
 
+# Флаг для отслеживания состояния shutdown
+_shutdown_in_progress = False
+_shutdown_timeout = 30  # секунд на завершение pending запросов
+
 
 async def post_init(app: Application) -> None:
     """Инициализация после запуска бота."""
@@ -67,18 +73,79 @@ async def post_init(app: Application) -> None:
 
 async def post_shutdown(app: Application) -> None:
     """Очистка при остановке бота."""
-    logger.info("Shutting down bot...")
+    global _shutdown_in_progress
+
+    if _shutdown_in_progress:
+        logger.warning("Shutdown already in progress, skipping...")
+        return
+
+    _shutdown_in_progress = True
+    logger.info("Shutting down bot gracefully...")
 
     # Останавливаем планировщик
-    stop_scheduler()
+    try:
+        stop_scheduler()
+        logger.info("Scheduler stopped")
+    except Exception as e:
+        logger.error(f"Error stopping scheduler: {e}")
 
     # Отключаемся от Redis
-    await redis_client.disconnect()
+    try:
+        await redis_client.disconnect()
+        logger.info("Redis disconnected")
+    except Exception as e:
+        logger.error(f"Error disconnecting Redis: {e}")
 
     # Закрываем БД
-    await close_db()
+    try:
+        await close_db()
+        logger.info("Database connections closed")
+    except Exception as e:
+        logger.error(f"Error closing database: {e}")
 
     logger.info("Bot shutdown complete")
+
+
+def _handle_signal(signum: int, frame) -> None:
+    """Обработчик сигналов SIGTERM и SIGINT."""
+    signal_name = signal.Signals(signum).name
+    logger.info(f"Received signal {signal_name}, initiating graceful shutdown...")
+
+    # Если приложение запущено, останавливаем его
+    if application and application.running:
+        # Создаём задачу для остановки в event loop
+        asyncio.create_task(_graceful_stop())
+    else:
+        logger.info("Application not running, exiting immediately")
+        sys.exit(0)
+
+
+async def _graceful_stop() -> None:
+    """Корректная остановка приложения."""
+    global application
+
+    if not application:
+        return
+
+    try:
+        logger.info(f"Waiting up to {_shutdown_timeout}s for pending requests...")
+
+        # Останавливаем polling/webhook
+        await application.stop()
+
+        # Ждём завершения обработчиков
+        await asyncio.sleep(1)
+
+        # Вызываем shutdown
+        await application.shutdown()
+
+        logger.info("Graceful stop completed")
+
+    except Exception as e:
+        logger.error(f"Error during graceful stop: {e}")
+    finally:
+        # Выходим
+        sys.exit(0)
 
 
 def create_application() -> Application:
@@ -166,18 +233,38 @@ def main() -> None:
         retention="30 days",
         level=settings.LOG_LEVEL,
     )
-    
+
     logger.info(f"Starting Mira Bot...")
     logger.info(f"Using Claude model: {settings.CLAUDE_MODEL}")
-    
+
+    # Регистрируем обработчики сигналов для graceful shutdown
+    # SIGTERM — от systemd при остановке сервиса
+    # SIGINT — при Ctrl+C
+    if sys.platform != "win32":
+        # На Unix используем signal напрямую
+        signal.signal(signal.SIGTERM, _handle_signal)
+        signal.signal(signal.SIGINT, _handle_signal)
+        logger.info("Signal handlers registered (SIGTERM, SIGINT)")
+    else:
+        # На Windows только SIGINT (Ctrl+C)
+        signal.signal(signal.SIGINT, _handle_signal)
+        logger.info("Signal handler registered (SIGINT)")
+
     # Создаём и запускаем приложение
     app = create_application()
-    
-    # Запускаем polling
-    app.run_polling(
-        allowed_updates=Update.ALL_TYPES,
-        drop_pending_updates=True,
-    )
+
+    try:
+        # Запускаем polling
+        app.run_polling(
+            allowed_updates=Update.ALL_TYPES,
+            drop_pending_updates=True,
+        )
+    except KeyboardInterrupt:
+        logger.info("KeyboardInterrupt received, shutting down...")
+    except Exception as e:
+        logger.error(f"Unexpected error in main loop: {e}")
+    finally:
+        logger.info("Bot stopped")
 
 
 if __name__ == "__main__":
