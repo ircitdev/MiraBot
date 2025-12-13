@@ -13,6 +13,7 @@ from database.repositories.subscription import SubscriptionRepository
 from database.repositories.conversation import ConversationRepository
 from database.repositories.referral import ReferralRepository
 from config.settings import settings
+from services.audit import audit_service
 
 
 # Telegram ID администратора
@@ -119,6 +120,9 @@ async def _show_main_menu(query, context) -> int:
 async def _show_users(query, context, page: int = 1) -> int:
     """Показать список пользователей."""
 
+    # Аудит
+    await audit_service.log_view_users(query.from_user.id, page)
+
     per_page = 8
     users, total = await user_repo.get_paginated(page=page, per_page=per_page)
 
@@ -170,6 +174,9 @@ async def _show_users(query, context, page: int = 1) -> int:
 
 async def _show_user_detail(query, context, telegram_id: int) -> int:
     """Показать детальную статистику пользователя."""
+
+    # Аудит
+    await audit_service.log_view_user_detail(query.from_user.id, telegram_id)
 
     user = await user_repo.get_by_telegram_id(telegram_id)
 
@@ -243,6 +250,9 @@ async def _show_user_detail(query, context, telegram_id: int) -> int:
 
 async def _show_stats(query, context) -> int:
     """Показать общую статистику."""
+
+    # Аудит
+    await audit_service.log_view_stats(query.from_user.id)
 
     now = datetime.now()
     today = now.replace(hour=0, minute=0, second=0, microsecond=0)
@@ -492,6 +502,15 @@ async def receive_days(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
     )
 
     logger.info(f"Admin gave {days} days premium to user {telegram_id}")
+
+    # Аудит выдачи премиума
+    is_extension = action == "продлён"
+    await audit_service.log_give_premium(
+        admin_telegram_id=update.effective_user.id,
+        target_telegram_id=telegram_id,
+        days=days,
+        is_extension=is_extension,
+    )
 
     # Очищаем данные
     context.user_data.clear()
