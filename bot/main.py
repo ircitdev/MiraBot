@@ -33,6 +33,7 @@ from bot.handlers.payments import (
     handle_payment_callback,
 )
 from services.scheduler import start_scheduler, stop_scheduler
+from services.redis_client import redis_client
 from bot.handlers.admin import (
     admin_command,
     handle_admin_callback,
@@ -51,26 +52,32 @@ application: Application = None
 async def post_init(app: Application) -> None:
     """Инициализация после запуска бота."""
     logger.info("Initializing bot...")
-    
+
+    # Подключаемся к Redis
+    await redis_client.connect()
+
     # Инициализируем БД
     await init_db()
-    
+
     # Запускаем планировщик
     start_scheduler(app)
-    
+
     logger.info("Bot initialized successfully")
 
 
 async def post_shutdown(app: Application) -> None:
     """Очистка при остановке бота."""
     logger.info("Shutting down bot...")
-    
+
     # Останавливаем планировщик
     stop_scheduler()
-    
+
+    # Отключаемся от Redis
+    await redis_client.disconnect()
+
     # Закрываем БД
     await close_db()
-    
+
     logger.info("Bot shutdown complete")
 
 
