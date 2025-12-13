@@ -16,6 +16,7 @@ from database.repositories.conversation import ConversationRepository
 from services.referral import ReferralService
 from bot.keyboards.inline import get_premium_keyboard, get_crisis_keyboard
 from bot.handlers.photos import send_photos
+from utils.text_parser import extract_name_from_text
 
 
 # Инициализируем сервисы
@@ -84,6 +85,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
             "partner_name": user.partner_name,
             "children_info": user.children_info,
             "marriage_years": user.marriage_years,
+            "partner_gender": getattr(user, "partner_gender", None),
         }
         
         # 8. Получаем ответ от Claude
@@ -142,9 +144,9 @@ async def _handle_onboarding(
     
     if step == 1:
         # Ожидаем имя пользователя
-        display_name = message_text.strip().split()[0].capitalize()
+        display_name = extract_name_from_text(message_text)
         
-        if len(display_name) < 2:
+        if not display_name:
             await update.message.reply_text(
                 "Как мне к тебе обращаться? Напиши своё имя 💛"
             )

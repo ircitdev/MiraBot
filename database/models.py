@@ -52,6 +52,7 @@ class User(Base):
     
     # Семейный контекст
     partner_name: Mapped[Optional[str]] = mapped_column(String(100))
+    partner_gender: Mapped[Optional[str]] = mapped_column(String(10))  # 'male' или 'female'
     children_info: Mapped[Optional[dict]] = mapped_column(JSONB, default=list)
     marriage_years: Mapped[Optional[int]] = mapped_column(Integer)
     

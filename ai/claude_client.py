@@ -4,10 +4,12 @@ Claude API Client.
 """
 
 import anthropic
+import asyncio
 from typing import Optional, List, Dict, Any
 from loguru import logger
 
 from config.settings import settings
+from utils.retry import async_retry, APIError
 from database.repositories.memory import MemoryRepository
 from database.repositories.conversation import ConversationRepository
 from ai.prompts.system_prompt import build_system_prompt
@@ -24,6 +26,8 @@ class ClaudeClient:
         self.conversation_repo = ConversationRepository()
         self.context_builder = ContextBuilder()
         self.crisis_detector = CrisisDetector()
+        self.max_retries = 3
+        self.retry_delay = 1.0
     
     async def generate_response(
         self,
