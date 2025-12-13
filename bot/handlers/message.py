@@ -213,38 +213,127 @@ async def _handle_onboarding(
     message_text: str,
 ) -> None:
     """Обработка сообщений во время онбординга."""
-    
+
     step = user.onboarding_step
-    
+
     if step == 1:
         # Ожидаем имя пользователя
         display_name = extract_name_from_text(message_text)
-        
+
         if not display_name:
             await update.message.reply_text(
                 "Как мне к тебе обращаться? Напиши своё имя 💛"
             )
             return
-        
+
         await user_repo.update(
             user.id,
             display_name=display_name,
             onboarding_step=2,
-            onboarding_completed=True,
         )
 
         text = f"""{display_name}, очень приятно 💛
+
+Можешь рассказать немного о себе? Есть ли у тебя партнёр/муж?
+
+Если хочешь — напиши его имя. Или напиши "пропустить", если не хочешь об этом сейчас."""
+
+        await update.message.reply_text(text)
+
+    elif step == 2:
+        # Ожидаем имя партнёра или "пропустить"
+        text_lower = message_text.strip().lower()
+
+        # Проверяем пропуск
+        skip_words = ["пропустить", "пропуск", "skip", "нет", "не хочу", "-"]
+        if any(word in text_lower for word in skip_words):
+            await user_repo.update(
+                user.id,
+                onboarding_step=3,
+                onboarding_completed=True,
+            )
+
+            display_name = user.display_name or "дорогая"
+            text = f"""Хорошо, {display_name} 💛
+
+Просто буду рядом. Можешь писать или отправлять голосовые 🎤
+
+Расскажи, что тебя сюда привело? Или начни с чего угодно — как прошёл день, что на душе..."""
+
+            await update.message.reply_text(text)
+            return
+
+        # Извлекаем имя партнёра
+        partner_name = extract_name_from_text(message_text)
+
+        if not partner_name:
+            # Попробуем взять текст как есть, если он короткий
+            if len(message_text.strip()) <= 20 and message_text.strip().isalpha():
+                partner_name = message_text.strip().capitalize()
+            else:
+                await update.message.reply_text(
+                    "Как зовут твоего партнёра? Напиши имя или \"пропустить\" 💛"
+                )
+                return
+
+        # Определяем пол по имени (эвристика для русских имён)
+        partner_gender = _detect_gender_by_name(partner_name)
+
+        await user_repo.update(
+            user.id,
+            partner_name=partner_name,
+            partner_gender=partner_gender,
+            onboarding_step=3,
+            onboarding_completed=True,
+        )
+
+        display_name = user.display_name or "дорогая"
+        text = f"""{display_name}, спасибо что поделилась 💛
 
 Просто буду рядом. Можешь писать или отправлять голосовые 🎤
 
 Расскажи, что тебя сюда привело? Или начни с чего угодно — как прошёл день, что на душе..."""
 
         await update.message.reply_text(text)
-        
+
     else:
         # Неожиданное состояние — отправляем на выбор персоны
         from bot.handlers.start import _start_onboarding
         await _start_onboarding(update, user)
+
+
+def _detect_gender_by_name(name: str) -> str:
+    """
+    Определяет пол по русскому имени.
+    Эвристика: имена на -а/-я обычно женские (кроме исключений).
+    """
+    name_lower = name.lower().strip()
+
+    # Явно мужские имена (исключения на -а/-я)
+    male_names = {
+        "саша", "женя", "никита", "илья", "данила", "лёша", "лёня",
+        "ваня", "коля", "толя", "митя", "гоша", "паша", "миша", "гриша",
+        "костя", "петя", "федя", "серёжа", "вова", "дима", "лёва",
+    }
+
+    # Явно женские имена
+    female_names = {
+        "оля", "катя", "маша", "даша", "наташа", "таня", "аня", "юля",
+        "света", "лена", "ира", "вика", "настя", "кристина", "марина",
+    }
+
+    if name_lower in male_names:
+        return "male"
+
+    if name_lower in female_names:
+        return "female"
+
+    # Общая эвристика: окончание на -а/-я = женское
+    if name_lower.endswith(("а", "я")):
+        return "female"
+
+    # По умолчанию — мужское
+    return "male"
 
 
 async def _send_response(update: Update, result: dict) -> None:
