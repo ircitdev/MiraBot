@@ -1,0 +1,81 @@
+version: '3.8'
+
+services:
+  # Основной бот
+  bot:
+    build: .
+    container_name: mira_bot
+    restart: unless-stopped
+    env_file:
+      - .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    volumes:
+      - ./logs:/app/logs
+    networks:
+      - mira_network
+
+  # PostgreSQL база данных
+  postgres:
+    image: postgres:15-alpine
+    container_name: mira_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: mira_bot
+      POSTGRES_USER: mira
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-mira_password}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - mira_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mira -d mira_bot"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis для кэширования
+  redis:
+    image: redis:7-alpine
+    container_name: mira_redis
+    restart: unless-stopped
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    networks:
+      - mira_network
+
+  # Admin API (опционально)
+  admin:
+    build:
+      context: .
+      dockerfile: Dockerfile.admin
+    container_name: mira_admin
+    restart: unless-stopped
+    env_file:
+      - .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    ports:
+      - "8000:8000"
+    networks:
+      - mira_network
+    profiles:
+      - admin
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  mira_network:
+    driver: bridge

@@ -1,0 +1,30 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pip install:*)",
+      "Bash(psql:*)",
+      "Bash(where:*)",
+      "Bash(\"C:\\Program Files\\PostgreSQL\\15\\bin\\psql.exe\" --version)",
+      "Bash(\"C:\\Program Files\\PostgreSQL\\16\\bin\\psql.exe\" --version)",
+      "Bash(cmd /c \"dir \"\"C:\\Program Files\\PostgreSQL\"\" 2>nul || echo PostgreSQL not found in Program Files\")",
+      "Bash(cmd /c \"where psql 2>nul || echo psql not in PATH\")",
+      "Bash(cmd /c \"sc query postgresql* 2>nul | findstr SERVICE_NAME || echo No PostgreSQL service\")",
+      "Bash(python -m bot.main:*)",
+      "Bash(del \"d:\\DevTools\\Database\\MIRABOT\\mira_bot\\mira_bot.db\")",
+      "Bash(cmd /c \"del \"\"d:\\DevTools\\Database\\MIRABOT\\mira_bot\\mira_bot.db\"\"\")",
+      "Bash(python:*)",
+      "Bash(tasklist:*)",
+      "Bash(taskkill:*)",
+      "Bash(cmd /c \"taskkill /F /PID 14176\")",
+      "Bash(cmd /c \"dir d:\\DevTools\\Database\\MIRABOT\\mira_bot\\docs\")",
+      "Bash(cmd /c \"dir d:\\DevTools\\Database\\MIRABOT\\mira_bot /s /b | findstr -i doc\")",
+      "Bash(cmd /c \"tasklist /FI \"\"IMAGENAME eq python.exe\"\" 2>nul\")",
+      "Bash(cmd /c \"tasklist | findstr python\")",
+      "Bash(cmd /c \"taskkill /F /IM python.exe 2>nul & timeout /t 2 >nul\")",
+      "Bash(cmd /c \"cd /d d:\\DevTools\\Database\\MIRABOT\\mira_bot && echo. > README.md && echo. > .env.example && echo. > .gitignore\")",
+      "Bash(cmd /c \"taskkill /F /IM python.exe 2>nul & echo Python processes stopped\")",
+      "Bash(git rev-parse:*)",
+      "Bash(cmd /c \"del /f d:\\DevTools\\Database\\MIRABOT\\mira_bot\\nul 2>nul & echo done\")"
+    ]
+  }
+}
