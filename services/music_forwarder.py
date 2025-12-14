@@ -54,9 +54,9 @@ MUSIC_TOPICS = {
         "moods": ["happy", "joyful", "excited"],
         "emoji": "🎤"
     },
-    "sexy": {
+    "sex": {
         "thread_id": 25,
-        "name": "Sexy",
+        "name": "Sex",
         "contexts": ["романтика", "близость", "страсть", "любовь", "интим", "свидание"],
         "moods": ["romantic", "passionate", "sensual"],
         "emoji": "💋"
@@ -187,7 +187,7 @@ class MusicForwarder:
             "lounge": [],
             "rock": [],
             "pop": [],
-            "sexy": [],
+            "sex": [],
             "hits": [],
         }
 

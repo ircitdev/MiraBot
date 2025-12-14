@@ -831,7 +831,7 @@ def _detect_music_topic(mira_response: str, user_message: str, mood: str = None)
 
     # Романтика
     if any(w in text for w in ["романтик", "любовь", "близост", "интим", "страст", "свидани", "💋"]):
-        return "sexy"
+        return "sex"
 
     # Релакс
     if any(w in text for w in ["расслаб", "отдых", "спокойн", "релакс", "медитац", "🌙", "устал"]):
@@ -855,7 +855,7 @@ def _detect_music_topic(mira_response: str, user_message: str, mood: str = None)
             "sad": "lounge",
             "angry": "rock",
             "happy": "pop",
-            "romantic": "sexy",
+            "romantic": "sex",
             "tired": "lounge",
             "excited": "trance",
         }
