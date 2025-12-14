@@ -11,7 +11,6 @@ from loguru import logger
 from services.music_forwarder import (
     music_forwarder,
     MUSIC_TOPICS,
-    get_cache_stats,
 )
 
 
@@ -43,27 +42,18 @@ async def check_and_send_music(
     if not topic_key:
         return False
 
-    # Проверяем есть ли треки в кэше
-    cache_stats = get_cache_stats()
-    if not cache_stats.get(topic_key):
-        logger.warning(f"No cached tracks for topic: {topic_key}")
-        # Можно отправить сообщение что музыка пока недоступна
-        return False
-
-    # Отправляем подводку
-    suggestion = music_forwarder.get_topic_suggestion(topic_key)
-    await update.message.reply_text(suggestion)
-
-    # Пересылаем музыку
+    # Пересылаем музыку (кэш загрузится автоматически внутри)
     success = await music_forwarder.forward_music(
         chat_id=update.effective_chat.id,
         topic_key=topic_key,
     )
 
-    if success:
-        logger.info(f"Sent music from {topic_key} to user {update.effective_user.id}")
+    if not success:
+        logger.warning(f"Failed to send music for topic: {topic_key}")
+        return False
 
-    return success
+    logger.info(f"Sent music from {topic_key} to user {update.effective_user.id}")
+    return True
 
 
 def detect_music_request(text: str) -> bool:
