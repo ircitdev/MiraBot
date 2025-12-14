@@ -6,6 +6,9 @@ Main bot entry point.
 import asyncio
 import signal
 import sys
+import os
+import fcntl
+from pathlib import Path
 from telegram import Update
 from telegram.ext import (
     Application,
@@ -70,6 +73,48 @@ application: Application = None
 # Флаг для отслеживания состояния shutdown
 _shutdown_in_progress = False
 _shutdown_timeout = 30  # секунд на завершение pending запросов
+
+# PID-файл для контроля одного экземпляра
+PID_FILE = Path(__file__).parent.parent / "mira_bot.pid"
+_lock_file = None
+
+
+def acquire_lock() -> bool:
+    """
+    Захватывает блокировку PID-файла.
+    Гарантирует что запущен только один экземпляр бота.
+
+    Returns:
+        True если блокировка получена, False если уже запущен другой экземпляр
+    """
+    global _lock_file
+
+    try:
+        _lock_file = open(PID_FILE, "w")
+        fcntl.flock(_lock_file.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+        _lock_file.write(str(os.getpid()))
+        _lock_file.flush()
+        logger.info(f"PID lock acquired: {os.getpid()}")
+        return True
+    except (IOError, OSError) as e:
+        if _lock_file:
+            _lock_file.close()
+        logger.error(f"Another bot instance is already running! Error: {e}")
+        return False
+
+
+def release_lock() -> None:
+    """Освобождает блокировку PID-файла."""
+    global _lock_file
+
+    if _lock_file:
+        try:
+            fcntl.flock(_lock_file.fileno(), fcntl.LOCK_UN)
+            _lock_file.close()
+            PID_FILE.unlink(missing_ok=True)
+            logger.info("PID lock released")
+        except Exception as e:
+            logger.error(f"Error releasing lock: {e}")
 
 
 async def post_init(app: Application) -> None:
@@ -310,6 +355,12 @@ def main() -> None:
     logger.info(f"Starting Mira Bot...")
     logger.info(f"Using Claude model: {settings.CLAUDE_MODEL}")
 
+    # Проверяем что не запущен другой экземпляр (только на Unix)
+    if sys.platform != "win32":
+        if not acquire_lock():
+            logger.error("Bot is already running! Exiting.")
+            sys.exit(1)
+
     # Регистрируем обработчики сигналов для graceful shutdown
     # SIGTERM — от systemd при остановке сервиса
     # SIGINT — при Ctrl+C
@@ -337,6 +388,9 @@ def main() -> None:
     except Exception as e:
         logger.error(f"Unexpected error in main loop: {e}")
     finally:
+        # Освобождаем блокировку
+        if sys.platform != "win32":
+            release_lock()
         logger.info("Bot stopped")
 
 
