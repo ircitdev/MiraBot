@@ -406,3 +406,47 @@ class UserRepository:
 
             result = await session.execute(query)
             return result.scalar() or 0
+    async def get_by_celebration_date(
+        self,
+        field: str,
+        month: int,
+        day: int,
+    ) -> List[User]:
+        """
+        Получить пользователей по дате праздника (день+месяц).
+
+        Args:
+            field: Поле для проверки ('birthday' или 'anniversary')
+            month: Месяц (1-12)
+            day: День (1-31)
+
+        Returns:
+            Список пользователей с праздником в этот день
+        """
+        async with get_session_context() as session:
+            from sqlalchemy import extract
+
+            if field == 'birthday':
+                query = select(User).where(
+                    and_(
+                        extract('month', User.birthday) == month,
+                        extract('day', User.birthday) == day,
+                        User.is_blocked == False,
+                        User.proactive_messages == True,
+                    )
+                )
+            elif field == 'anniversary':
+                query = select(User).where(
+                    and_(
+                        extract('month', User.anniversary) == month,
+                        extract('day', User.anniversary) == day,
+                        User.is_blocked == False,
+                        User.proactive_messages == True,
+                    )
+                )
+            else:
+                return []
+
+            result = await session.execute(query)
+            return list(result.scalars().all())
+

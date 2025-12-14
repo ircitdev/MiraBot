@@ -226,3 +226,22 @@ class MemoryRepository:
                 await session.commit()
                 await session.refresh(entry)
                 return entry
+
+    async def get_recent_topics(
+        self,
+        user_id: int,
+        limit: int = 5,
+    ) -> List[str]:
+        """
+        Получить недавние темы из памяти.
+        Возвращает список категорий/тем.
+        """
+        async with get_session_context() as session:
+            result = await session.execute(
+                select(MemoryEntry.category)
+                .where(MemoryEntry.user_id == user_id)
+                .order_by(MemoryEntry.updated_at.desc())
+                .distinct()
+                .limit(limit)
+            )
+            return [row[0] for row in result.all()]

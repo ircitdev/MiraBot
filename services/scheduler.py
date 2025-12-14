@@ -52,6 +52,14 @@ def start_scheduler(application: Application) -> None:
         id="expiration_reminders",
         replace_existing=True,
     )
+
+    # Проверка праздников (дни рождения, годовщины) — каждое утро в 9:00
+    scheduler.add_job(
+        check_celebrations,
+        trigger=CronTrigger(hour=9, minute=0),
+        id="check_celebrations",
+        replace_existing=True,
+    )
     
     scheduler.start()
     logger.info("Scheduler started")
@@ -114,19 +122,59 @@ async def process_scheduled_messages() -> None:
 
 
 async def _generate_ritual_content(ritual_type: str, user) -> str:
-    """Генерирует контент для ритуала."""
-    
-    if ritual_type == "morning_checkin":
-        return random.choice(MORNING_CHECKIN_PROMPTS)
-    
-    elif ritual_type == "evening_checkin":
-        return random.choice(EVENING_CHECKIN_PROMPTS)
-    
+    """Генерирует персонализированный контент для ритуала."""
+
+    if ritual_type in ["morning_checkin", "evening_checkin"]:
+        # Персонализированная генерация через Claude
+        try:
+            from database.repositories.memory import MemoryRepository
+            from database.repositories.mood import MoodRepository
+            from database.repositories.conversation import ConversationRepository
+            from ai.prompts.checkin import build_checkin_prompt
+            from ai.claude_client import ClaudeClient
+
+            memory_repo = MemoryRepository()
+            mood_repo = MoodRepository()
+            conversation_repo = ConversationRepository()
+
+            # Собираем контекст
+            recent_topics = await memory_repo.get_recent_topics(user.id, limit=3)
+            recent_mood = await mood_repo.get_latest(user.id)
+            last_message = await conversation_repo.get_last_message(user.id, role="user")
+
+            # Строим промпт
+            prompt = build_checkin_prompt(
+                ritual_type=ritual_type,
+                user=user,
+                recent_topics=recent_topics,
+                recent_mood=recent_mood,
+                last_message=last_message,
+            )
+
+            # Генерируем через Claude
+            claude = ClaudeClient()
+            result = await claude.generate_simple(
+                system_prompt=prompt["system"],
+                user_prompt=prompt["user"],
+                max_tokens=200,
+            )
+
+            logger.debug(f"Generated personalized check-in for user {user.id}")
+            return result
+
+        except Exception as e:
+            logger.warning(f"Failed to generate personalized check-in: {e}, using fallback")
+            # Fallback к шаблонным сообщениям
+            if ritual_type == "morning_checkin":
+                return random.choice(MORNING_CHECKIN_PROMPTS)
+            else:
+                return random.choice(EVENING_CHECKIN_PROMPTS)
+
     elif ritual_type == "followup":
         # Для followup нужен контекст, используем дефолт
         persona_name = "Мира" if user.persona == "mira" else "Марк"
         return f"Привет 💛 Это {persona_name}. Думала о тебе. Как ты?"
-    
+
     else:
         return "Привет 💛 Как ты сегодня?"
 
@@ -291,3 +339,131 @@ async def schedule_user_rituals(user_id: int) -> None:
         )
     
     logger.info(f"Scheduled rituals for user {user_id}")
+
+
+async def cancel_user_ritual(user_id: int, ritual_type: str) -> int:
+    """
+    Отменяет запланированные сообщения ритуала.
+
+    Args:
+        user_id: ID пользователя
+        ritual_type: Тип ритуала (morning_checkin, evening_checkin, etc.)
+
+    Returns:
+        Количество отменённых сообщений
+    """
+    scheduled_repo = ScheduledMessageRepository()
+    count = await scheduled_repo.cancel_by_user(user_id, type=ritual_type)
+    logger.debug(f"Cancelled {count} {ritual_type} messages for user {user_id}")
+    return count
+
+async def check_celebrations() -> None:
+    """
+    Проверяет дни рождения и годовщины.
+    Отправляет персонализированные поздравления.
+    """
+    global app
+
+    if not app:
+        return
+
+    user_repo = UserRepository()
+
+    today = datetime.now()
+    month = today.month
+    day = today.day
+
+    logger.info(f"Checking celebrations for {day:02d}.{month:02d}")
+
+    # Дни рождения
+    birthday_users = await user_repo.get_by_celebration_date("birthday", month, day)
+
+    for user in birthday_users:
+        try:
+            content = await _generate_birthday_message(user)
+            await app.bot.send_message(chat_id=user.telegram_id, text=content)
+            logger.info(f"Sent birthday greeting to user {user.id}")
+        except Exception as e:
+            logger.error(f"Failed to send birthday greeting to user {user.id}: {e}")
+
+    # Годовщины
+    anniversary_users = await user_repo.get_by_celebration_date("anniversary", month, day)
+
+    for user in anniversary_users:
+        try:
+            content = await _generate_anniversary_message(user)
+            await app.bot.send_message(chat_id=user.telegram_id, text=content)
+            logger.info(f"Sent anniversary greeting to user {user.id}")
+        except Exception as e:
+            logger.error(f"Failed to send anniversary greeting to user {user.id}: {e}")
+
+    logger.info(f"Celebrations check complete: {len(birthday_users)} birthdays, {len(anniversary_users)} anniversaries")
+
+
+async def _generate_birthday_message(user) -> str:
+    """Генерирует поздравление с днём рождения."""
+    try:
+        from ai.prompts.celebrations import build_birthday_prompt
+        from ai.claude_client import ClaudeClient
+        from database.repositories.memory import MemoryRepository
+
+        # Получаем контекст из памяти
+        memory_repo = MemoryRepository()
+        recent_topics = await memory_repo.get_recent_topics(user.id, limit=5)
+        context = ", ".join(recent_topics) if recent_topics else None
+
+        prompt = build_birthday_prompt(user=user, context=context)
+
+        claude = ClaudeClient()
+        result = await claude.generate_simple(
+            system_prompt=prompt["system"],
+            user_prompt=prompt["user"],
+            max_tokens=300,
+        )
+
+        return result
+
+    except Exception as e:
+        logger.warning(f"Failed to generate personalized birthday message: {e}")
+        persona_name = "Мира" if user.persona == "mira" else "Марк"
+        name = user.display_name or "подруга"
+        return f"С днём рождения, {name}! 🎂 Это {persona_name}. Желаю тебе всего самого светлого в новом году жизни 💛"
+
+
+async def _generate_anniversary_message(user) -> str:
+    """Генерирует поздравление с годовщиной."""
+    try:
+        from ai.prompts.celebrations import build_anniversary_prompt
+        from ai.claude_client import ClaudeClient
+        from database.repositories.memory import MemoryRepository
+
+        # Получаем контекст о браке из памяти
+        memory_repo = MemoryRepository()
+        entries = await memory_repo.get_by_user(
+            user_id=user.id,
+            category="family",
+            limit=5,
+        )
+        context = "\n".join([e.content for e in entries]) if entries else None
+
+        # Вычисляем годы вместе
+        years = None
+        if user.anniversary:
+            years = datetime.now().year - user.anniversary.year
+
+        prompt = build_anniversary_prompt(user=user, years=years, context=context)
+
+        claude = ClaudeClient()
+        result = await claude.generate_simple(
+            system_prompt=prompt["system"],
+            user_prompt=prompt["user"],
+            max_tokens=300,
+        )
+
+        return result
+
+    except Exception as e:
+        logger.warning(f"Failed to generate personalized anniversary message: {e}")
+        persona_name = "Мира" if user.persona == "mira" else "Марк"
+        name = user.display_name or "подруга"
+        return f"Привет, {name}! Сегодня особенный день — годовщина 💛 Это {persona_name}. Думаю о тебе."

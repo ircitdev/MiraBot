@@ -235,6 +235,33 @@ class ConversationRepository:
                 "voice": voice_count,
             }
 
+
+    async def get_last_message(
+        self,
+        user_id: int,
+        role: Optional[str] = None,
+    ) -> Optional[Message]:
+        """
+        Получить последнее сообщение пользователя.
+
+        Args:
+            user_id: ID пользователя
+            role: Опционально фильтр по роли ('user' или 'assistant')
+
+        Returns:
+            Последнее сообщение или None
+        """
+        async with get_session_context() as session:
+            query = select(Message).where(Message.user_id == user_id)
+
+            if role:
+                query = query.where(Message.role == role)
+
+            query = query.order_by(Message.created_at.desc()).limit(1)
+
+            result = await session.execute(query)
+            return result.scalar_one_or_none()
+
     async def delete_old_messages(
         self,
         user_id: int,

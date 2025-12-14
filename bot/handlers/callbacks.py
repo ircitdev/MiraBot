@@ -42,7 +42,10 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     
     elif data == "crisis:hotline":
         await _show_hotline_info(query)
-    
+
+    elif data.startswith("hint:"):
+        await _handle_hint_selection(query, data, context)
+
     else:
         logger.warning(f"Unknown callback: {data}")
 
@@ -129,27 +132,44 @@ async def _handle_ritual(query, data: str) -> None:
     
     if action == "toggle":
         ritual = parts[2]  # morning, evening, gratitude, letter
-        
+
         rituals = user.rituals_enabled or []
-        
+
+        # Маппинг ritual → scheduled_message type
+        ritual_type_map = {
+            "morning": "morning_checkin",
+            "evening": "evening_checkin",
+            "gratitude": "ritual_gratitude",
+            "letter": "ritual_letter",
+        }
+
         if ritual in rituals:
             rituals.remove(ritual)
             status = "отключён"
+
+            # Отменяем запланированные сообщения этого типа
+            from services.scheduler import cancel_user_ritual
+            if ritual in ritual_type_map:
+                await cancel_user_ritual(user.id, ritual_type_map[ritual])
         else:
             rituals.append(ritual)
             status = "включён"
-        
+
+            # Планируем ритуал
+            from services.scheduler import schedule_user_rituals
+            await schedule_user_rituals(user.id)
+
         await user_repo.update(user.id, rituals_enabled=rituals)
-        
+
         ritual_names = {
             "morning": "Утренний check-in",
             "evening": "Вечерний check-in",
             "gratitude": "Благодарность дня",
             "letter": "Письмо себе",
         }
-        
+
         await query.answer(f"{ritual_names.get(ritual, ritual)} {status}")
-        
+
         # Обновляем сообщение
         from bot.handlers.commands import rituals_command
         # Создаём фейковый update для обновления
@@ -222,7 +242,7 @@ async def _handle_subscription_action(query, data: str) -> None:
 
 async def _show_hotline_info(query) -> None:
     """Показывает информацию о кризисной линии."""
-    
+
     text = """📞 **Телефон доверия**
 
 **8-800-2000-122** — бесплатно, круглосуточно, анонимно
@@ -237,5 +257,150 @@ async def _show_hotline_info(query) -> None:
 **Другие ресурсы:**
 • Центр помощи женщинам: 8-800-7000-600
 • Скорая психологическая помощь: 051 (с мобильного)"""
-    
+
     await query.edit_message_text(text, parse_mode="Markdown")
+
+
+async def _handle_hint_selection(query, data: str, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """
+    Обработка нажатия на кнопку подсказки.
+    Отправляет сохранённое сообщение как от пользователя.
+    """
+    try:
+        # Парсим индекс подсказки
+        hint_index = int(data.split(":")[1])
+
+        # Получаем сохранённые подсказки из контекста
+        hints = context.user_data.get("current_hints", [])
+
+        if not hints or hint_index >= len(hints):
+            await query.answer("Подсказка устарела, напиши сообщение сам 💛")
+            return
+
+        hint = hints[hint_index]
+        message_text = hint.get("message", "")
+
+        if not message_text:
+            await query.answer("Ошибка подсказки")
+            return
+
+        # Удаляем сообщение с кнопками
+        try:
+            await query.message.delete()
+        except Exception:
+            pass
+
+        # Очищаем текущие подсказки
+        context.user_data["current_hints"] = []
+
+        # Отправляем текст подсказки от имени пользователя
+        # Создаём "фейковое" сообщение и обрабатываем его через message handler
+        from bot.handlers.message import handle_message
+        from telegram import Message as TelegramMessage
+
+        # Для простоты — просто отправляем текст как новое сообщение от бота,
+        # показывая что выбрал пользователь, и потом обрабатываем
+        await query.message.chat.send_message(
+            f"💬 _{message_text}_",
+            parse_mode="Markdown",
+        )
+
+        # Создаём симуляцию Update с текстом подсказки
+        # Это хак — лучше было бы использовать send_and_process, но так проще
+        from telegram import Update as TelegramUpdate
+
+        # Используем обычную отправку сообщения, которое пользователь мог бы написать сам
+        # Но для полноценной обработки — симулируем ввод
+
+        # Альтернативный подход: просто сохраняем текст и ждём следующего сообщения
+        # Но лучше — отправить текст в обработчик напрямую
+
+        # Получаем пользователя
+        user = await user_repo.get_by_telegram_id(query.from_user.id)
+        if not user:
+            return
+
+        # Импортируем необходимое
+        from ai.claude_client import ClaudeClient
+        from database.repositories.conversation import ConversationRepository
+        from ai.hint_generator import hint_generator
+        from bot.keyboards.inline import get_hints_keyboard
+
+        claude = ClaudeClient()
+        conversation_repo = ConversationRepository()
+
+        # Проверяем лимиты
+        subscription = await subscription_repo.get_active(user.id)
+        is_premium = subscription and subscription.plan == "premium"
+
+        if not is_premium:
+            if subscription and subscription.messages_today >= 5:  # settings.FREE_MESSAGES_PER_DAY
+                await query.message.chat.send_message(
+                    "На сегодня лимит сообщений исчерпан... "
+                    "Но я здесь, и завтра мы продолжим 💛"
+                )
+                return
+            if subscription:
+                await subscription_repo.increment_messages(subscription.id)
+
+        # Подготавливаем данные
+        user_data = {
+            "persona": user.persona,
+            "display_name": user.display_name,
+            "partner_name": user.partner_name,
+            "children_info": user.children_info,
+            "marriage_years": user.marriage_years,
+            "partner_gender": getattr(user, "partner_gender", None),
+        }
+
+        # Отправляем "печатает..."
+        await query.message.chat.send_action("typing")
+
+        # Генерируем ответ
+        result = await claude.generate_response(
+            user_id=user.id,
+            user_message=message_text,
+            user_data=user_data,
+            is_premium=is_premium,
+        )
+
+        # Отправляем ответ
+        await query.message.chat.send_message(result["response"])
+
+        # Сохраняем сообщения
+        await conversation_repo.save_message(
+            user_id=user.id,
+            role="user",
+            content=message_text,
+            tags=["hint"],  # Помечаем что это из подсказки
+        )
+
+        await conversation_repo.save_message(
+            user_id=user.id,
+            role="assistant",
+            content=result["response"],
+            tags=result["tags"],
+            tokens_used=result["tokens_used"],
+        )
+
+        # Генерируем новые подсказки
+        message_count = await conversation_repo.count_by_user(user.id)
+        hints = hint_generator.generate(
+            response_text=result["response"],
+            tags=result["tags"],
+            message_count=message_count,
+        )
+
+        if hints:
+            context.user_data["current_hints"] = [
+                {"text": h.text, "message": h.message}
+                for h in hints
+            ]
+            keyboard = get_hints_keyboard(hints)
+            await query.message.chat.send_message("💬", reply_markup=keyboard)
+
+        logger.info(f"Hint processed for user {query.from_user.id}: '{hint.get('text')}'")
+
+    except Exception as e:
+        logger.error(f"Error handling hint: {e}")
+        await query.answer("Произошла ошибка, попробуй написать сообщение сам 💛")

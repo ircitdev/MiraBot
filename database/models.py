@@ -70,7 +70,29 @@ class User(Base):
     is_blocked: Mapped[bool] = mapped_column(Boolean, default=False)
     block_reason: Mapped[Optional[str]] = mapped_column(Text)
     special_status: Mapped[Optional[str]] = mapped_column(String(50))  # 'guardian' и т.д.
-    
+
+    # Отправленные фото (для отслеживания)
+    sent_photos: Mapped[Optional[list]] = mapped_column(JSONB, default=list)
+
+    # Праздничные даты
+    birthday: Mapped[Optional[datetime]] = mapped_column(Date)  # День рождения пользователя
+    anniversary: Mapped[Optional[datetime]] = mapped_column(Date)  # Годовщина свадьбы
+
+    # Персонализация стиля общения (выводится автоматически из диалогов)
+    communication_style: Mapped[Optional[dict]] = mapped_column(JSONB, default=dict)
+    # Структура communication_style:
+    # {
+    #   "formality": "informal" | "neutral" | "formal",  # уровень формальности
+    #   "emoji_preference": "none" | "few" | "many",     # использование эмодзи
+    #   "message_length": "short" | "medium" | "long",   # предпочтительная длина
+    #   "response_depth": "surface" | "medium" | "deep", # глубина проработки тем
+    #   "humor_level": "none" | "light" | "frequent",    # юмор в общении
+    #   "support_style": "gentle" | "direct" | "tough",  # стиль поддержки
+    #   "topics_avoided": [],                             # темы, которые избегает
+    #   "triggers": [],                                   # чувствительные темы
+    #   "updated_at": "2024-12-14T..."                   # дата обновления
+    # }
+
     # Метаданные
     created_at: Mapped[datetime] = mapped_column(DateTime, default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=func.now(), onupdate=func.now())
@@ -335,6 +357,39 @@ class AdminUser(Base):
     
     def __repr__(self) -> str:
         return f"<AdminUser(id={self.id}, email={self.email}, role={self.role})>"
+
+
+class MoodEntry(Base):
+    """Модель записи настроения пользователя."""
+
+    __tablename__ = "mood_entries"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    user_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("users.id"), nullable=False)
+    message_id: Mapped[Optional[int]] = mapped_column(BigInteger, ForeignKey("messages.id"))
+
+    # Основные метрики настроения
+    mood_score: Mapped[int] = mapped_column(Integer, nullable=False)  # -5 до +5
+    energy_level: Mapped[Optional[int]] = mapped_column(Integer)  # 1-10
+    anxiety_level: Mapped[Optional[int]] = mapped_column(Integer)  # 1-10
+
+    # Детали
+    primary_emotion: Mapped[str] = mapped_column(String(50), nullable=False)  # sad, anxious, angry, happy, neutral
+    secondary_emotions: Mapped[Optional[list]] = mapped_column(JSONB, default=list)
+    triggers: Mapped[Optional[list]] = mapped_column(JSONB, default=list)  # Триггеры настроения
+
+    # Контекст
+    context_tags: Mapped[Optional[list]] = mapped_column(JSONB, default=list)  # topic:husband, etc.
+
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=func.now())
+
+    # Индексы
+    __table_args__ = (
+        Index("idx_mood_user_created", "user_id", "created_at"),
+    )
+
+    def __repr__(self) -> str:
+        return f"<MoodEntry(id={self.id}, user_id={self.user_id}, mood={self.mood_score}, emotion={self.primary_emotion})>"
 
 
 class AdminLog(Base):

@@ -314,7 +314,143 @@ class ClaudeClient:
         )
         
         return response.content[0].text
-    
+
+    async def generate_response_with_image(
+        self,
+        user_id: int,
+        image_base64: str,
+        media_type: str,
+        caption: Optional[str],
+        user_data: Dict[str, Any],
+        is_premium: bool = False,
+    ) -> Dict[str, Any]:
+        """
+        Генерирует ответ на изображение с учётом контекста.
+
+        Args:
+            user_id: ID пользователя в БД
+            image_base64: Base64-encoded изображение
+            media_type: MIME тип (image/jpeg, image/png, etc.)
+            caption: Подпись к фото (если есть)
+            user_data: Данные пользователя
+            is_premium: Премиум ли подписка
+
+        Returns:
+            {
+                "response": str,
+                "is_crisis": bool,
+                "tags": list[str],
+                "tokens_used": int
+            }
+        """
+        try:
+            # 1. Собираем контекст
+            memory_depth = (
+                settings.PREMIUM_MEMORY_DEPTH if is_premium
+                else settings.FREE_MEMORY_DEPTH
+            )
+
+            context = await self.context_builder.build(
+                user_id=user_id,
+                user_data=user_data,
+                recent_messages_limit=memory_depth,
+                include_long_term_memory=is_premium,
+            )
+
+            # 2. Формируем системный промпт с инструкциями для фото
+            base_prompt = build_system_prompt(
+                persona=user_data.get("persona", "mira"),
+                user_context=context,
+                is_crisis=False,
+            )
+
+            image_instructions = """
+
+## АНАЛИЗ ФОТОГРАФИЙ
+
+Когда пользователь присылает фото, ты:
+1. Внимательно смотришь на изображение
+2. Отмечаешь эмоциональный контекст (настроение, атмосфера)
+3. Реагируешь как близкая подруга — тепло, с интересом
+4. Можешь задать вопросы о том, что видишь
+5. Если на фото человек — комментируй тактично и поддерживающе
+6. Если это что-то личное (дом, еда, место) — прояви искренний интерес
+
+ВАЖНО про людей на фото:
+- НЕ называй людей на фото именами из своей жизни (Андрей, Алиса, Тима и т.д.)!
+- Это фото ПОЛЬЗОВАТЕЛЯ, не твоё. Ты не знаешь кто эти люди.
+- Если видишь человека — спроси "А кто это с тобой?" или "Это твой муж/подруга?"
+- Используй имя партнёра пользователя ТОЛЬКО если оно указано в контексте выше
+
+НЕ делай:
+- Не перечисляй все объекты на фото как робот
+- Не давай оценок внешности ("ты красивая/некрасивая")
+- Не будь формальной или отстранённой
+- Не путай свою жизнь с жизнью пользователя!
+
+Примеры реакций:
+- "Ооо, какое уютное место! Это у тебя дома?"
+- "Вижу, ты куда-то выбралась! Как там?"
+- "Какая атмосферная фотка... А кто это рядом с тобой?"
+- "Ух ты, как уютно! Расскажи, что там было?"
+"""
+
+            system_prompt = base_prompt + image_instructions
+
+            # 3. Формируем контент с изображением
+            user_content = [
+                {
+                    "type": "image",
+                    "source": {
+                        "type": "base64",
+                        "media_type": media_type,
+                        "data": image_base64,
+                    },
+                },
+            ]
+
+            # Добавляем подпись если есть
+            if caption:
+                user_content.append({
+                    "type": "text",
+                    "text": caption,
+                })
+            else:
+                user_content.append({
+                    "type": "text",
+                    "text": "(пользователь прислал фото без подписи)",
+                })
+
+            # 4. Запрос к Claude
+            response = self.client.messages.create(
+                model=settings.CLAUDE_MODEL,
+                max_tokens=settings.CLAUDE_MAX_TOKENS,
+                system=system_prompt,
+                messages=[{"role": "user", "content": user_content}],
+            )
+
+            response_text = response.content[0].text
+
+            logger.info(
+                f"Generated image response for user {user_id}, "
+                f"tokens: {response.usage.input_tokens + response.usage.output_tokens}"
+            )
+
+            return {
+                "response": response_text,
+                "is_crisis": False,
+                "crisis_level": None,
+                "tags": ["photo"],
+                "tokens_used": response.usage.input_tokens + response.usage.output_tokens,
+            }
+
+        except anthropic.APIError as e:
+            logger.error(f"Claude API error (image): {e}")
+            raise
+        except Exception as e:
+            logger.error(f"Error generating image response: {e}")
+            raise
+
     async def summarize_conversation(
         self,
         messages: List[Dict[str, str]],
@@ -353,3 +489,38 @@ class ClaudeClient:
         )
         
         return response.content[0].text
+
+    async def generate_simple(
+        self,
+        system_prompt: str,
+        user_prompt: str,
+        max_tokens: int = 500,
+    ) -> str:
+        """
+        Простая генерация без контекста и памяти.
+        Используется для ритуалов, подсказок и других коротких сообщений.
+
+        Args:
+            system_prompt: Системный промпт
+            user_prompt: Пользовательский промпт
+            max_tokens: Максимальное количество токенов
+
+        Returns:
+            Сгенерированный текст
+        """
+        try:
+            response = self.client.messages.create(
+                model=settings.CLAUDE_MODEL,
+                max_tokens=max_tokens,
+                system=system_prompt,
+                messages=[{"role": "user", "content": user_prompt}],
+            )
+
+            return response.content[0].text
+
+        except anthropic.APIError as e:
+            logger.error(f"Claude API error in generate_simple: {e}")
+            raise
+        except Exception as e:
+            logger.error(f"Error in generate_simple: {e}")
+            raise
