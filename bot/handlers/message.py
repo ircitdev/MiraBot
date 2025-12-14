@@ -1,9 +1,10 @@
 """
 Message handler.
-Основной обработчик текстовых сообщений.
+Основной обработчик текстовых и фото сообщений.
 """
 
 import traceback
+import base64
 import anthropic
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
@@ -12,12 +13,15 @@ from datetime import datetime
 
 from config.settings import settings
 from ai.claude_client import ClaudeClient
+from ai.mood_analyzer import mood_analyzer
 from database.repositories.user import UserRepository
 from database.repositories.subscription import SubscriptionRepository
 from database.repositories.conversation import ConversationRepository
+from database.repositories.mood import MoodRepository
 from services.referral import ReferralService
-from bot.keyboards.inline import get_premium_keyboard, get_crisis_keyboard
+from bot.keyboards.inline import get_premium_keyboard, get_crisis_keyboard, get_hints_keyboard
 from bot.handlers.photos import send_photos
+from ai.hint_generator import hint_generator
 from utils.text_parser import extract_name_from_text
 from utils.sanitizer import sanitize_text, sanitize_name, validate_message
 
@@ -27,6 +31,7 @@ claude = ClaudeClient()
 user_repo = UserRepository()
 subscription_repo = SubscriptionRepository()
 conversation_repo = ConversationRepository()
+mood_repo = MoodRepository()
 referral_service = ReferralService()
 
 
@@ -67,7 +72,14 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
             return
 
         # 3.5. Проверяем запрос на фотографии
-        if await send_photos(update, context):
+        user_data_for_photos = {"sent_photos": user.sent_photos or []}
+        if await send_photos(update, context, user_data_for_photos):
+            # Сохраняем отправленные фото
+            new_sent = context.user_data.get("new_sent_photos", [])
+            if new_sent:
+                current_sent = user.sent_photos or []
+                updated_sent = current_sent + new_sent
+                await user_repo.update(user.id, sent_photos=updated_sent)
             return
 
         # 4. Проверяем лимиты
@@ -95,6 +107,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
             "children_info": user.children_info,
             "marriage_years": user.marriage_years,
             "partner_gender": getattr(user, "partner_gender", None),
+            "communication_style": user.communication_style,
         }
 
         # 7. Streaming ответ от Claude
@@ -107,7 +120,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         )
 
         # 8. Сохраняем сообщения
-        await conversation_repo.save_message(
+        user_message_saved = await conversation_repo.save_message(
             user_id=user.id,
             role="user",
             content=message_text,
@@ -122,6 +135,14 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
             tokens_used=result["tokens_used"],
         )
 
+        # 8.5. Mood tracking — анализируем и сохраняем настроение
+        mood_entry = await _save_mood_entry(
+            user_id=user.id,
+            message_id=user_message_saved.id if user_message_saved else None,
+            message_text=message_text,
+            context_tags=result["tags"],
+        )
+
         # 9. Добавляем кнопки при кризисе (если streaming уже отправил текст)
         if result["is_crisis"]:
             keyboard = get_crisis_keyboard()
@@ -129,6 +150,34 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
                 "💛 Если нужна помощь прямо сейчас:",
                 reply_markup=keyboard,
             )
+
+        # 9.5. Контекстные подсказки (кнопки быстрых ответов)
+        if not result["is_crisis"]:
+            # Получаем количество сообщений для контекста
+            message_count = await conversation_repo.count_by_user(user.id)
+
+            # Генерируем подсказки с учётом настроения и стиля общения
+            hints = hint_generator.generate(
+                response_text=result["response"],
+                tags=result["tags"],
+                mood_data=mood_entry,
+                message_count=message_count,
+                communication_style=user.communication_style,
+            )
+
+            if hints:
+                # Сохраняем подсказки в context для callback обработчика
+                context.user_data["current_hints"] = [
+                    {"text": h.text, "message": h.message}
+                    for h in hints
+                ]
+
+                # Отправляем кнопки
+                keyboard = get_hints_keyboard(hints)
+                await update.message.reply_text(
+                    "💬",
+                    reply_markup=keyboard,
+                )
 
         # 10. Проверяем триггеры реферала
         if not is_premium:
@@ -464,6 +513,55 @@ async def _send_limit_reached(update: Update) -> None:
     await update.message.reply_text(text, reply_markup=keyboard)
 
 
+async def _save_mood_entry(
+    user_id: int,
+    message_id: int | None,
+    message_text: str,
+    context_tags: list,
+) -> dict | None:
+    """
+    Анализирует настроение и сохраняет в БД.
+    Возвращает данные о настроении для использования в подсказках.
+    """
+    try:
+        # Анализируем текст
+        mood_analysis = mood_analyzer.analyze(message_text)
+
+        # Сохраняем только если уверенность достаточная
+        if mood_analysis.confidence < 0.3:
+            return None
+
+        await mood_repo.create(
+            user_id=user_id,
+            message_id=message_id,
+            mood_score=mood_analysis.mood_score,
+            primary_emotion=mood_analysis.primary_emotion,
+            energy_level=mood_analysis.energy_level,
+            anxiety_level=mood_analysis.anxiety_level,
+            secondary_emotions=mood_analysis.secondary_emotions,
+            triggers=mood_analysis.triggers,
+            context_tags=context_tags,
+        )
+
+        logger.debug(
+            f"Mood saved for user {user_id}: "
+            f"score={mood_analysis.mood_score}, emotion={mood_analysis.primary_emotion}"
+        )
+
+        # Возвращаем данные для использования в подсказках
+        return {
+            "primary_emotion": mood_analysis.primary_emotion,
+            "mood_score": mood_analysis.mood_score,
+            "anxiety_level": mood_analysis.anxiety_level,
+            "energy_level": mood_analysis.energy_level,
+        }
+
+    except Exception as e:
+        # Ошибки mood tracking не должны ломать основной флоу
+        logger.warning(f"Failed to save mood entry: {e}")
+        return None
+
+
 async def _check_referral_trigger(update: Update, user, result: dict) -> None:
     """Проверяет, нужно ли предложить реферальную программу."""
     
@@ -505,3 +603,142 @@ async def _check_referral_trigger(update: Update, user, result: dict) -> None:
 Ваш код: `{code}`"""
     
     await update.message.reply_text(text, parse_mode="Markdown")
+
+
+async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """
+    Обработчик фотографий от пользователей.
+    Скачивает фото, конвертирует в base64 и отправляет Claude для анализа.
+    """
+    user_tg = update.effective_user
+    caption = update.message.caption  # Подпись к фото (если есть)
+
+    try:
+        # 1. Получаем пользователя
+        user, _ = await user_repo.get_or_create(
+            telegram_id=user_tg.id,
+            username=user_tg.username,
+            first_name=user_tg.first_name,
+        )
+
+        # 2. Проверяем блокировку
+        if user.is_blocked:
+            await update.message.reply_text(
+                "К сожалению, доступ ограничен. "
+                "Если считаешь, что это ошибка — напиши в поддержку."
+            )
+            return
+
+        # 3. Проверяем онбординг
+        if not user.onboarding_completed:
+            await update.message.reply_text(
+                "Давай сначала познакомимся! Напиши мне своё имя 💛"
+            )
+            return
+
+        # 4. Проверяем лимиты
+        subscription = await subscription_repo.get_active(user.id)
+        is_premium = subscription and subscription.plan == "premium"
+
+        if not is_premium:
+            if subscription and subscription.messages_today >= settings.FREE_MESSAGES_PER_DAY:
+                await _send_limit_reached(update)
+                return
+            if subscription:
+                await subscription_repo.increment_messages(subscription.id)
+
+        # 5. Обновляем last_active
+        await user_repo.update_last_active(user.id)
+
+        # 6. Скачиваем фото (берём самое большое разрешение)
+        photo = update.message.photo[-1]  # Последний элемент = максимальное разрешение
+        file = await context.bot.get_file(photo.file_id)
+
+        # Скачиваем в байты
+        photo_bytes = await file.download_as_bytearray()
+
+        # Конвертируем в base64
+        image_base64 = base64.b64encode(photo_bytes).decode("utf-8")
+
+        # Определяем MIME тип (Telegram всегда отправляет JPEG)
+        media_type = "image/jpeg"
+
+        # 7. Отправляем "печатает..."
+        await context.bot.send_chat_action(
+            chat_id=update.effective_chat.id,
+            action="typing"
+        )
+
+        # 8. Подготавливаем данные пользователя
+        user_data = {
+            "persona": user.persona,
+            "display_name": user.display_name,
+            "partner_name": user.partner_name,
+            "children_info": user.children_info,
+            "marriage_years": user.marriage_years,
+            "partner_gender": getattr(user, "partner_gender", None),
+        }
+
+        # 9. Генерируем ответ на фото через Claude
+        result = await claude.generate_response_with_image(
+            user_id=user.id,
+            image_base64=image_base64,
+            media_type=media_type,
+            caption=caption,
+            user_data=user_data,
+            is_premium=is_premium,
+        )
+
+        # 10. Отправляем ответ
+        await update.message.reply_text(result["response"])
+
+        # 11. Сохраняем сообщения в историю
+        # Сохраняем сообщение пользователя (отмечаем что это фото)
+        photo_description = "[Пользователь отправил фото]"
+        if caption:
+            photo_description += f" с подписью: {caption}"
+
+        await conversation_repo.save_message(
+            user_id=user.id,
+            role="user",
+            content=photo_description,
+            tags=["photo"],
+        )
+
+        await conversation_repo.save_message(
+            user_id=user.id,
+            role="assistant",
+            content=result["response"],
+            tags=result.get("tags", ["photo"]),
+            tokens_used=result.get("tokens_used", 0),
+        )
+
+        logger.info(
+            f"Photo processed for user {user_tg.id}, "
+            f"tokens={result.get('tokens_used', 0)}"
+        )
+
+    except anthropic.APIConnectionError as e:
+        logger.error(f"Claude API connection error (photo) for user {user_tg.id}: {e}")
+        await update.message.reply_text(
+            "Не могу связаться с сервером... Попробуй через пару минут 💛"
+        )
+
+    except anthropic.RateLimitError as e:
+        logger.warning(f"Claude rate limit (photo) for user {user_tg.id}: {e}")
+        await update.message.reply_text(
+            "Сейчас много запросов, подожди минутку и напиши снова 💛"
+        )
+
+    except anthropic.APIStatusError as e:
+        logger.error(f"Claude API error (photo) for user {user_tg.id}: {e.status_code} - {e.message}")
+        await update.message.reply_text(
+            "Что-то пошло не так на сервере... Попробуй ещё раз 💛"
+        )
+
+    except Exception as e:
+        logger.error(f"Unexpected error processing photo for user {user_tg.id}: {e}")
+        logger.error(traceback.format_exc())
+        await update.message.reply_text(
+            "Прости, не получилось посмотреть фото... Попробуй ещё раз 💛"
+        )

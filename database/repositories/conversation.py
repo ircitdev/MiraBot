@@ -98,6 +98,19 @@ class ConversationRepository:
                 select(func.count(Message.id)).where(Message.user_id == user_id)
             )
             return result.scalar() or 0
+
+    async def count_user_messages(self, user_id: int) -> int:
+        """Количество сообщений от пользователя (только role='user')."""
+        async with get_session_context() as session:
+            result = await session.execute(
+                select(func.count(Message.id)).where(
+                    and_(
+                        Message.user_id == user_id,
+                        Message.role == "user"
+                    )
+                )
+            )
+            return result.scalar() or 0
     
     async def count_sessions(self, user_id: int) -> int:
         """

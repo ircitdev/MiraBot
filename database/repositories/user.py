@@ -450,3 +450,27 @@ class UserRepository:
             result = await session.execute(query)
             return list(result.scalars().all())
 
+    async def update_communication_style(
+        self,
+        user_id: int,
+        style: dict,
+    ) -> None:
+        """
+        Обновить стиль общения пользователя.
+
+        Args:
+            user_id: ID пользователя
+            style: Словарь со стилем общения
+        """
+        style["updated_at"] = datetime.now().isoformat()
+        async with get_session_context() as session:
+            result = await session.execute(
+                select(User).where(User.id == user_id)
+            )
+            user = result.scalar_one_or_none()
+
+            if user:
+                user.communication_style = style
+                user.updated_at = datetime.now()
+                await session.commit()
+
