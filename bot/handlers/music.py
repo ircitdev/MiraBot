@@ -52,6 +52,11 @@ async def check_and_send_music(
         logger.warning(f"Failed to send music for topic: {topic_key}")
         return False
 
+    # Отправляем подводку после трека
+    suggestion = music_forwarder.get_topic_suggestion(topic_key)
+    if suggestion:
+        await update.message.reply_text(suggestion)
+
     logger.info(f"Sent music from {topic_key} to user {update.effective_user.id}")
     return True
 
