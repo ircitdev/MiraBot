@@ -21,6 +21,7 @@ from database.repositories.mood import MoodRepository
 from services.referral import ReferralService
 from bot.keyboards.inline import get_premium_keyboard, get_crisis_keyboard, get_hints_keyboard
 from bot.handlers.photos import send_photos
+from bot.handlers.music import check_and_send_music, detect_music_request
 from ai.hint_generator import hint_generator
 from utils.text_parser import extract_name_from_text
 from utils.sanitizer import sanitize_text, sanitize_name, validate_message
@@ -81,6 +82,12 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
                 updated_sent = current_sent + new_sent
                 await user_repo.update(user.id, sent_photos=updated_sent)
             return
+
+        # 3.6. Проверяем запрос музыки
+        if detect_music_request(message_text):
+            music_sent = await check_and_send_music(update, context, message_text)
+            if music_sent:
+                return
 
         # 4. Проверяем лимиты
         subscription = await subscription_repo.get_active(user.id)
