@@ -57,6 +57,11 @@ from bot.handlers.admin import (
     WAITING_PROMO_MAX_USES,
 )
 from bot.handlers.promo import get_promo_handler
+from services.music_forwarder import (
+    handle_supergroup_message,
+    MUSIC_SUPERGROUP_ID,
+    music_forwarder,
+)
 
 
 # Глобальный экземпляр приложения
@@ -86,6 +91,10 @@ async def post_init(app: Application) -> None:
         health_server.set_bot_running(True)
     except Exception as e:
         logger.warning(f"Failed to start health check server: {e}")
+
+    # Инициализируем music forwarder с ботом
+    music_forwarder.set_bot(app.bot)
+    logger.info("Music forwarder initialized")
 
     logger.info("Bot initialized successfully")
 
@@ -271,6 +280,12 @@ def create_application() -> Application:
     application.add_handler(MessageHandler(
         filters.PHOTO,
         handle_photo
+    ))
+
+    # Обработчик музыки из супергруппы (для кэширования)
+    application.add_handler(MessageHandler(
+        filters.Chat(MUSIC_SUPERGROUP_ID) & (filters.AUDIO | filters.VOICE | filters.VIDEO),
+        handle_supergroup_message
     ))
 
     # Обработчик текстовых сообщений (должен быть последним)
