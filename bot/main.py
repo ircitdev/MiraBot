@@ -90,8 +90,13 @@ def acquire_lock() -> bool:
     global _lock_file
 
     try:
-        _lock_file = open(PID_FILE, "w")
+        # Открываем файл для чтения+записи, создаём если не существует
+        _lock_file = open(PID_FILE, "a+")
+        # Пробуем получить эксклюзивную блокировку (non-blocking)
         fcntl.flock(_lock_file.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+        # Блокировка получена — очищаем файл и записываем наш PID
+        _lock_file.seek(0)
+        _lock_file.truncate()
         _lock_file.write(str(os.getpid()))
         _lock_file.flush()
         logger.info(f"PID lock acquired: {os.getpid()}")
@@ -99,6 +104,7 @@ def acquire_lock() -> bool:
     except (IOError, OSError) as e:
         if _lock_file:
             _lock_file.close()
+            _lock_file = None
         logger.error(f"Another bot instance is already running! Error: {e}")
         return False
 
