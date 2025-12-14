@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MIRA BOT - Документация возможностей</title>
+    <title>MIRA BOT — Возможности и алгоритмы</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         * {
             margin: 0;
@@ -12,207 +13,343 @@
         }
 
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            line-height: 1.6;
-            color: #333;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #FFF8F0 0%, #F5E6D3 50%, #EDD5C0 100%);
+            min-height: 100vh;
             padding: 20px;
+            color: #4A3728;
+            line-height: 1.6;
         }
 
         .container {
-            max-width: 1200px;
+            max-width: 800px;
             margin: 0 auto;
-            background: white;
-            border-radius: 15px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
-            overflow: hidden;
         }
 
-        header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 40px;
+        /* Header with Heart */
+        .header {
             text-align: center;
+            margin-bottom: 30px;
+            padding: 20px 0;
         }
 
-        header h1 {
-            font-size: 3em;
-            margin-bottom: 10px;
+        .heart-container {
+            position: relative;
+            display: inline-block;
+            margin-bottom: 20px;
         }
 
-        header p {
-            font-size: 1.2em;
-            opacity: 0.9;
+        .heart {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, #FFB085 0%, #FF8B6A 50%, #E57373 100%);
+            border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+            transform: rotate(-45deg);
+            position: relative;
+            box-shadow:
+                0 10px 30px rgba(255, 139, 106, 0.4),
+                inset 0 -5px 15px rgba(255, 255, 255, 0.3);
+            animation: heartGlow 2s ease-in-out infinite;
         }
 
-        .stats {
+        .heart::before,
+        .heart::after {
+            content: '';
+            position: absolute;
+            background: inherit;
+            border-radius: 50%;
+        }
+
+        .heart::before {
+            width: 80px;
+            height: 80px;
+            top: -40px;
+            left: 0;
+        }
+
+        .heart::after {
+            width: 80px;
+            height: 80px;
+            top: 0;
+            left: 40px;
+        }
+
+        .sparkle {
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            background: white;
+            border-radius: 50%;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(45deg);
+            box-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
+            animation: sparkle 1.5s ease-in-out infinite;
+            z-index: 10;
+        }
+
+        @keyframes heartGlow {
+            0%, 100% {
+                box-shadow:
+                    0 10px 30px rgba(255, 139, 106, 0.4),
+                    inset 0 -5px 15px rgba(255, 255, 255, 0.3);
+            }
+            50% {
+                box-shadow:
+                    0 15px 40px rgba(255, 139, 106, 0.6),
+                    inset 0 -5px 15px rgba(255, 255, 255, 0.4);
+            }
+        }
+
+        @keyframes sparkle {
+            0%, 100% { opacity: 0.6; transform: translate(-50%, -50%) rotate(45deg) scale(1); }
+            50% { opacity: 1; transform: translate(-50%, -50%) rotate(45deg) scale(1.2); }
+        }
+
+        .header h1 {
+            font-size: 28px;
+            color: #5D4037;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .header p {
+            font-size: 15px;
+            color: #8D6E63;
+        }
+
+        /* Stats Banner */
+        .stats-banner {
+            background: linear-gradient(135deg, #FFFFFF 0%, #FFF5EE 100%);
+            border-radius: 20px;
+            padding: 25px;
+            margin-bottom: 25px;
+            box-shadow: 0 8px 25px rgba(139, 90, 43, 0.1);
+            border: 1px solid rgba(255, 183, 133, 0.3);
+        }
+
+        .stats-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 20px;
-            padding: 30px;
-            background: #f8f9fa;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
         }
 
         .stat-card {
-            background: white;
-            padding: 20px;
-            border-radius: 10px;
             text-align: center;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            background: linear-gradient(135deg, #FFE0B2 0%, #FFCC80 100%);
+            padding: 15px;
+            border-radius: 12px;
         }
 
         .stat-card h3 {
-            color: #667eea;
-            font-size: 2em;
+            font-size: 24px;
+            color: #5D4037;
             margin-bottom: 5px;
         }
 
         .stat-card p {
-            color: #666;
+            font-size: 13px;
+            color: #6D4C41;
         }
 
-        nav {
-            background: #2d3748;
-            padding: 20px;
-            position: sticky;
-            top: 0;
-            z-index: 100;
-        }
-
-        nav ul {
-            list-style: none;
+        /* Section Headers */
+        .section-header {
+            font-size: 20px;
+            color: #5D4037;
+            font-weight: 600;
+            margin: 30px 0 15px 0;
             display: flex;
-            flex-wrap: wrap;
-            gap: 20px;
-            justify-content: center;
+            align-items: center;
+            gap: 10px;
         }
 
-        nav a {
-            color: white;
-            text-decoration: none;
-            padding: 10px 20px;
-            border-radius: 5px;
-            transition: background 0.3s;
+        .section-icon {
+            font-size: 24px;
         }
 
-        nav a:hover {
-            background: #4a5568;
-        }
-
-        .content {
-            padding: 40px;
-        }
-
-        section {
-            margin-bottom: 60px;
-        }
-
-        h2 {
-            color: #667eea;
-            font-size: 2.2em;
-            margin-bottom: 20px;
-            border-bottom: 3px solid #667eea;
-            padding-bottom: 10px;
-        }
-
-        h3 {
-            color: #764ba2;
-            font-size: 1.6em;
-            margin-top: 30px;
+        /* Accordion */
+        .accordion {
             margin-bottom: 15px;
         }
 
-        h4 {
-            color: #4a5568;
-            font-size: 1.3em;
-            margin-top: 20px;
+        .accordion-item {
+            background: #FFFFFF;
+            border-radius: 16px;
+            margin-bottom: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(139, 90, 43, 0.08);
+            border: 1px solid rgba(255, 183, 133, 0.2);
+            transition: box-shadow 0.3s ease;
+        }
+
+        .accordion-item:hover {
+            box-shadow: 0 6px 20px rgba(139, 90, 43, 0.12);
+        }
+
+        .accordion-header {
+            padding: 18px 20px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            user-select: none;
+            transition: background 0.2s ease;
+        }
+
+        .accordion-header:hover {
+            background: rgba(255, 183, 133, 0.1);
+        }
+
+        .accordion-header h3 {
+            font-size: 15px;
+            color: #5D4037;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .accordion-icon {
+            width: 32px;
+            height: 32px;
+            background: linear-gradient(135deg, #FFE0B2 0%, #FFCC80 100%);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            flex-shrink: 0;
+        }
+
+        .accordion-arrow {
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.3s ease;
+            color: #BCAAA4;
+        }
+
+        .accordion-item.active .accordion-arrow {
+            transform: rotate(180deg);
+        }
+
+        .accordion-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+
+        .accordion-item.active .accordion-content {
+            max-height: 5000px;
+        }
+
+        .accordion-body {
+            padding: 0 20px 20px 20px;
+            color: #6D4C41;
+            font-size: 14px;
+        }
+
+        .accordion-body h4 {
+            font-size: 14px;
+            color: #5D4037;
+            margin: 15px 0 8px 0;
+            font-weight: 600;
+        }
+
+        .accordion-body p {
             margin-bottom: 10px;
         }
 
-        .feature-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 25px;
-            margin-top: 20px;
+        .accordion-body ul {
+            margin: 10px 0;
+            padding-left: 20px;
         }
 
-        .feature-card {
-            background: #f8f9fa;
-            padding: 25px;
-            border-radius: 10px;
-            border-left: 4px solid #667eea;
-            transition: transform 0.3s, box-shadow 0.3s;
+        .accordion-body li {
+            margin-bottom: 6px;
         }
 
-        .feature-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.2);
-        }
-
-        .feature-card h4 {
-            color: #667eea;
-            margin-top: 0;
-        }
-
-        .algorithm {
-            background: #f8f9fa;
-            padding: 25px;
-            border-radius: 10px;
-            margin: 20px 0;
-        }
-
+        /* Flowchart */
         .flowchart {
-            background: white;
-            padding: 20px;
-            border-radius: 8px;
+            background: linear-gradient(135deg, #FFF8F0 0%, #FFEBEE 100%);
+            padding: 15px;
+            border-radius: 12px;
             margin: 15px 0;
-            border: 2px solid #e2e8f0;
         }
 
         .flowchart-step {
-            background: #667eea;
+            background: linear-gradient(135deg, #FFB085 0%, #FF8B6A 100%);
             color: white;
-            padding: 12px 20px;
-            margin: 10px 0;
-            border-radius: 5px;
-            position: relative;
+            padding: 12px 16px;
+            margin: 8px 0;
+            border-radius: 8px;
+            font-size: 13px;
+            box-shadow: 0 2px 8px rgba(255, 139, 106, 0.3);
         }
 
-        .flowchart-step:not(:last-child)::after {
-            content: '↓';
-            display: block;
+        .flowchart-arrow {
             text-align: center;
-            font-size: 1.5em;
-            color: #667eea;
-            margin: 5px 0;
+            font-size: 18px;
+            color: #FF8B6A;
+            margin: 3px 0;
         }
 
         .flowchart-decision {
-            background: #f59e0b;
-            color: white;
-            padding: 12px 20px;
-            margin: 10px 0;
-            border-radius: 5px;
-            clip-path: polygon(10% 0%, 90% 0%, 100% 50%, 90% 100%, 10% 100%, 0% 50%);
+            background: linear-gradient(135deg, #FFE082 0%, #FFD54F 100%);
+            color: #5D4037;
+            padding: 12px 16px;
+            margin: 8px 0;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 500;
             text-align: center;
+            box-shadow: 0 2px 8px rgba(255, 213, 79, 0.3);
         }
 
+        /* Table */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+            font-size: 13px;
+        }
+
+        th, td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid rgba(255, 183, 133, 0.2);
+        }
+
+        th {
+            background: linear-gradient(135deg, #FFE0B2 0%, #FFCC80 100%);
+            color: #5D4037;
+            font-weight: 600;
+        }
+
+        tr:hover {
+            background: rgba(255, 183, 133, 0.05);
+        }
+
+        /* Code */
         code {
-            background: #2d3748;
-            color: #f7fafc;
-            padding: 2px 8px;
+            background: rgba(93, 64, 55, 0.1);
+            color: #5D4037;
+            padding: 2px 6px;
             border-radius: 4px;
             font-family: 'Courier New', monospace;
-            font-size: 0.9em;
+            font-size: 12px;
         }
 
         pre {
-            background: #2d3748;
-            color: #f7fafc;
-            padding: 20px;
+            background: rgba(93, 64, 55, 0.1);
+            padding: 15px;
             border-radius: 8px;
             overflow-x: auto;
-            margin: 15px 0;
+            margin: 12px 0;
+            font-size: 12px;
         }
 
         pre code {
@@ -220,1041 +357,674 @@
             padding: 0;
         }
 
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin: 20px 0;
-        }
-
-        th, td {
-            padding: 12px;
-            text-align: left;
-            border-bottom: 1px solid #e2e8f0;
-        }
-
-        th {
-            background: #667eea;
-            color: white;
+        /* Badge */
+        .badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 11px;
             font-weight: 600;
+            margin: 2px;
         }
 
-        tr:hover {
-            background: #f8f9fa;
+        .badge-primary {
+            background: linear-gradient(135deg, #90CAF9 0%, #64B5F6 100%);
+            color: white;
         }
 
-        .tech-stack {
+        .badge-success {
+            background: linear-gradient(135deg, #A5D6A7 0%, #81C784 100%);
+            color: white;
+        }
+
+        .badge-warning {
+            background: linear-gradient(135deg, #FFE082 0%, #FFD54F 100%);
+            color: #5D4037;
+        }
+
+        .badge-danger {
+            background: linear-gradient(135deg, #EF9A9A 0%, #E57373 100%);
+            color: white;
+        }
+
+        /* Tech Stack Grid */
+        .tech-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 20px;
-            margin-top: 20px;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 12px;
+            margin: 15px 0;
         }
 
         .tech-category {
             background: white;
-            border: 2px solid #e2e8f0;
-            border-radius: 8px;
-            padding: 20px;
+            border-radius: 12px;
+            padding: 15px;
+            border: 1px solid rgba(255, 183, 133, 0.2);
         }
 
         .tech-category h4 {
-            color: #667eea;
-            margin-top: 0;
-            margin-bottom: 15px;
+            font-size: 14px;
+            color: #5D4037;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
 
         .tech-category ul {
             list-style: none;
+            padding: 0;
         }
 
         .tech-category li {
-            padding: 8px 0;
-            border-bottom: 1px solid #f1f1f1;
+            padding: 5px 0;
+            font-size: 13px;
+            color: #6D4C41;
+            border-bottom: 1px solid rgba(255, 183, 133, 0.1);
         }
 
         .tech-category li:last-child {
             border-bottom: none;
         }
 
-        .badge {
-            display: inline-block;
-            padding: 4px 12px;
-            border-radius: 12px;
-            font-size: 0.85em;
-            font-weight: 600;
-            margin-right: 5px;
-        }
-
-        .badge-primary {
-            background: #667eea;
-            color: white;
-        }
-
-        .badge-success {
-            background: #48bb78;
-            color: white;
-        }
-
-        .badge-warning {
-            background: #f59e0b;
-            color: white;
-        }
-
-        .badge-danger {
-            background: #f56565;
-            color: white;
-        }
-
-        .architecture-diagram {
-            background: white;
-            border: 2px solid #e2e8f0;
-            border-radius: 10px;
-            padding: 30px;
-            margin: 20px 0;
-        }
-
-        .layer {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 20px;
-            margin: 10px 0;
-            border-radius: 8px;
+        /* Footer */
+        .footer {
             text-align: center;
-            font-weight: 600;
+            padding: 25px 0 10px 0;
+            color: #A1887F;
+            font-size: 12px;
         }
 
-        .layer-arrow {
-            text-align: center;
-            font-size: 2em;
-            color: #667eea;
-            margin: 5px 0;
+        .footer p {
+            margin-bottom: 5px;
         }
 
-        footer {
-            background: #2d3748;
-            color: white;
-            padding: 30px;
-            text-align: center;
+        .version {
+            font-size: 11px;
+            color: #BCAAA4;
         }
 
-        footer a {
-            color: #667eea;
-            text-decoration: none;
-        }
-
-        footer a:hover {
-            text-decoration: underline;
-        }
-
-        @media (max-width: 768px) {
-            header h1 {
-                font-size: 2em;
+        /* Dark mode */
+        @media (prefers-color-scheme: dark) {
+            body {
+                background: linear-gradient(135deg, #2D2118 0%, #3E2D20 50%, #4A3628 100%);
+                color: #E8D5C4;
             }
 
-            .stats {
-                grid-template-columns: 1fr;
+            .header h1, .section-header, .accordion-header h3, .accordion-body h4 {
+                color: #FFE0B2;
             }
 
-            nav ul {
-                flex-direction: column;
+            .header p, .accordion-body {
+                color: #D7CCC8;
             }
 
-            .content {
-                padding: 20px;
+            .stats-banner, .accordion-item, .tech-category {
+                background: rgba(62, 45, 32, 0.8);
+                border-color: rgba(255, 183, 133, 0.15);
+            }
+
+            .accordion-header:hover {
+                background: rgba(255, 183, 133, 0.05);
+            }
+
+            code, pre {
+                background: rgba(255, 183, 133, 0.1);
+                color: #FFE0B2;
             }
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <header>
+        <!-- Header -->
+        <header class="header">
+            <div class="heart-container">
+                <div class="heart">
+                    <span class="sparkle"></span>
+                </div>
+            </div>
             <h1>💛 MIRA BOT</h1>
-            <p>Telegram психологический бот с AI на базе Claude Sonnet 4.5</p>
+            <p>AI-ассистент на базе Claude Sonnet 4.5</p>
         </header>
 
-        <div class="stats">
-            <div class="stat-card">
-                <h3>200K</h3>
-                <p>Токенов контекста</p>
+        <!-- Stats Banner -->
+        <section class="stats-banner">
+            <h2 style="font-size: 18px; color: #5D4037; margin-bottom: 10px;">📊 Основные метрики</h2>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <h3>200K</h3>
+                    <p>Токенов контекста</p>
+                </div>
+                <div class="stat-card">
+                    <h3>46</h3>
+                    <p>Unit тестов</p>
+                </div>
+                <div class="stat-card">
+                    <h3>80%+</h3>
+                    <p>Покрытие кода</p>
+                </div>
+                <div class="stat-card">
+                    <h3>24/7</h3>
+                    <p>Доступность</p>
+                </div>
             </div>
-            <div class="stat-card">
-                <h3>46</h3>
-                <p>Unit тестов</p>
-            </div>
-            <div class="stat-card">
-                <h3>80%+</h3>
-                <p>Покрытие кода</p>
-            </div>
-            <div class="stat-card">
-                <h3>24/7</h3>
-                <p>Доступность</p>
+        </section>
+
+        <!-- Overview -->
+        <div class="section-header">
+            <span class="section-icon">📋</span>
+            Обзор проекта
+        </div>
+
+        <div class="accordion">
+            <div class="accordion-item">
+                <div class="accordion-header" onclick="toggleAccordion(this)">
+                    <h3>
+                        <span class="accordion-icon">ℹ️</span>
+                        О проекте
+                    </h3>
+                    <span class="accordion-arrow">▼</span>
+                </div>
+                <div class="accordion-content">
+                    <div class="accordion-body">
+                        <p><strong>MIRA BOT</strong> — это Telegram-бот для психологической поддержки, использующий передовую AI модель Claude Sonnet 4.5.</p>
+
+                        <h4>Ключевые характеристики</h4>
+                        <ul>
+                            <li><strong>AI-модель:</strong> Claude Sonnet 4.5</li>
+                            <li><strong>Контекст:</strong> 200 000 токенов (≈150 000 слов)</li>
+                            <li><strong>База данных:</strong> SQLite / PostgreSQL</li>
+                            <li><strong>Кэш:</strong> Redis с fallback на in-memory</li>
+                            <li><strong>Язык:</strong> Python 3.10+</li>
+                            <li><strong>Framework:</strong> python-telegram-bot 21.0</li>
+                            <li><strong>Deployment:</strong> Docker Compose + systemd</li>
+                        </ul>
+                    </div>
+                </div>
             </div>
         </div>
 
-        <nav>
-            <ul>
-                <li><a href="#overview">Обзор</a></li>
-                <li><a href="#features">Возможности</a></li>
-                <li><a href="#algorithms">Алгоритмы</a></li>
-                <li><a href="#architecture">Архитектура</a></li>
-                <li><a href="#tech-stack">Технологии</a></li>
-                <li><a href="#development">Разработка</a></li>
-            </ul>
-        </nav>
+        <!-- Features -->
+        <div class="section-header">
+            <span class="section-icon">✨</span>
+            Возможности
+        </div>
 
-        <div class="content">
-            <section id="overview">
-                <h2>📋 Обзор</h2>
-                <p><strong>MIRA BOT</strong> — это Telegram-бот для психологической поддержки, использующий передовую AI модель Claude Sonnet 4.5 от Anthropic для ведения естественных диалогов.</p>
-
-                <h3>Ключевые характеристики</h3>
-                <ul>
-                    <li><strong>AI-модель:</strong> Claude Sonnet 4.5 (claude-sonnet-4.5-20251022)</li>
-                    <li><strong>Контекст:</strong> 200 000 токенов (≈150 000 слов)</li>
-                    <li><strong>База данных:</strong> SQLite (production: PostgreSQL)</li>
-                    <li><strong>Кэш:</strong> Redis с fallback на in-memory</li>
-                    <li><strong>Язык:</strong> Python 3.10+</li>
-                    <li><strong>Framework:</strong> python-telegram-bot 21.0</li>
-                    <li><strong>Deployment:</strong> Docker Compose + systemd</li>
-                </ul>
-            </section>
-
-            <section id="features">
-                <h2>✨ Возможности</h2>
-
-                <div class="feature-grid">
-                    <div class="feature-card">
-                        <h4>🤖 AI-диалог</h4>
+        <div class="accordion">
+            <div class="accordion-item">
+                <div class="accordion-header" onclick="toggleAccordion(this)">
+                    <h3>
+                        <span class="accordion-icon">🤖</span>
+                        AI-диалог
+                    </h3>
+                    <span class="accordion-arrow">▼</span>
+                </div>
+                <div class="accordion-content">
+                    <div class="accordion-body">
                         <p>Streaming ответы через Claude Sonnet 4.5 с контекстом до 200K токенов. Сообщения обновляются в реальном времени по мере генерации.</p>
                         <p><span class="badge badge-primary">Streaming</span> <span class="badge badge-success">200K context</span></p>
                     </div>
+                </div>
+            </div>
 
-                    <div class="feature-card">
-                        <h4>😊 Mood Tracking</h4>
+            <div class="accordion-item">
+                <div class="accordion-header" onclick="toggleAccordion(this)">
+                    <h3>
+                        <span class="accordion-icon">😊</span>
+                        Mood Tracking
+                    </h3>
+                    <span class="accordion-arrow">▼</span>
+                </div>
+                <div class="accordion-content">
+                    <div class="accordion-body">
                         <p>Автоматический анализ настроения пользователя по 12 эмоциям с расчётом уверенности и динамики изменений.</p>
                         <p><span class="badge badge-primary">12 emotions</span> <span class="badge badge-success">Confidence scoring</span></p>
                     </div>
+                </div>
+            </div>
 
-                    <div class="feature-card">
-                        <h4>💡 Контекстные подсказки</h4>
+            <div class="accordion-item">
+                <div class="accordion-header" onclick="toggleAccordion(this)">
+                    <h3>
+                        <span class="accordion-icon">💡</span>
+                        Контекстные подсказки
+                    </h3>
+                    <span class="accordion-arrow">▼</span>
+                </div>
+                <div class="accordion-content">
+                    <div class="accordion-body">
                         <p>Умные quick reply кнопки, адаптирующиеся к контексту диалога с приоритезацией по релевантности.</p>
                         <p><span class="badge badge-primary">Context-aware</span> <span class="badge badge-success">Priority-based</span></p>
                     </div>
+                </div>
+            </div>
 
-                    <div class="feature-card">
-                        <h4>🚨 Кризис-детекция</h4>
+            <div class="accordion-item">
+                <div class="accordion-header" onclick="toggleAccordion(this)">
+                    <h3>
+                        <span class="accordion-icon">🚨</span>
+                        Кризис-детекция
+                    </h3>
+                    <span class="accordion-arrow">▼</span>
+                </div>
+                <div class="accordion-content">
+                    <div class="accordion-body">
                         <p>Автоматическое выявление суицидальных мыслей, панических атак и кризисных состояний с немедленным предложением помощи.</p>
                         <p><span class="badge badge-danger">Critical</span> <span class="badge badge-warning">Auto-detect</span></p>
                     </div>
+                </div>
+            </div>
 
-                    <div class="feature-card">
-                        <h4>👤 Персонализация</h4>
+            <div class="accordion-item">
+                <div class="accordion-header" onclick="toggleAccordion(this)">
+                    <h3>
+                        <span class="accordion-icon">👤</span>
+                        Персонализация
+                    </h3>
+                    <span class="accordion-arrow">▼</span>
+                </div>
+                <div class="accordion-content">
+                    <div class="accordion-body">
                         <p>Запоминание имени пользователя, персоны (Мира/Макс), пола, партнёра и предпочтений в диалоге.</p>
                         <p><span class="badge badge-primary">Name memory</span> <span class="badge badge-success">Persona switch</span></p>
                     </div>
+                </div>
+            </div>
 
-                    <div class="feature-card">
-                        <h4>💎 Подписки</h4>
+            <div class="accordion-item">
+                <div class="accordion-header" onclick="toggleAccordion(this)">
+                    <h3>
+                        <span class="accordion-icon">💎</span>
+                        Подписки
+                    </h3>
+                    <span class="accordion-arrow">▼</span>
+                </div>
+                <div class="accordion-content">
+                    <div class="accordion-body">
                         <p>Free план (5 сообщений/день) и Premium (безлимит). Интеграция с ЮKassa для оплаты.</p>
                         <p><span class="badge badge-primary">Free tier</span> <span class="badge badge-success">Premium</span></p>
                     </div>
-
-                    <div class="feature-card">
-                        <h4>🎁 Реферальная программа</h4>
-                        <p>Уникальные реферальные ссылки, отслеживание приглашённых пользователей и бонусы за активность.</p>
-                        <p><span class="badge badge-success">Rewards</span> <span class="badge badge-primary">Tracking</span></p>
-                    </div>
-
-                    <div class="feature-card">
-                        <h4>🧘 Ритуалы</h4>
-                        <p>Медитации, дыхательные практики, аффирмации и музыкальная терапия для поддержки ментального здоровья.</p>
-                        <p><span class="badge badge-primary">Meditation</span> <span class="badge badge-success">Breathing</span></p>
-                    </div>
-
-                    <div class="feature-card">
-                        <h4>⚙️ Админ-панель</h4>
-                        <p>FastAPI dashboard для управления пользователями, статистикой, подписками и экспортом данных в Excel.</p>
-                        <p><span class="badge badge-warning">Admin only</span> <span class="badge badge-primary">FastAPI</span></p>
-                    </div>
                 </div>
-            </section>
-
-            <section id="algorithms">
-                <h2>🔬 Алгоритмы</h2>
-
-                <div class="algorithm">
-                    <h3>MoodAnalyzer - Анализ настроения</h3>
-                    <p>Определяет эмоциональное состояние пользователя по тексту сообщения.</p>
-
-                    <div class="flowchart">
-                        <div class="flowchart-step">1. Получение текста сообщения</div>
-                        <div class="flowchart-step">2. Нормализация текста (lowercase, удаление punctuation)</div>
-                        <div class="flowchart-step">3. Токенизация на слова</div>
-                        <div class="flowchart-step">4. Поиск эмоциональных маркеров</div>
-                        <div class="flowchart-step">5. Подсчёт совпадений по 12 эмоциям</div>
-                        <div class="flowchart-decision">Найдены маркеры?</div>
-                        <div class="flowchart-step">6. Расчёт mood_score (-1.0 до +1.0)</div>
-                        <div class="flowchart-step">7. Определение primary_emotion (с макс. количеством совпадений)</div>
-                        <div class="flowchart-step">8. Расчёт confidence (0.0 до 1.0)</div>
-                        <div class="flowchart-step">9. Возврат MoodAnalysisResult</div>
-                    </div>
-
-                    <h4>12 отслеживаемых эмоций:</h4>
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Эмоция</th>
-                                <th>Примеры маркеров</th>
-                                <th>Вес</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td>happy</td>
-                                <td>счастлив, радост, весел, отлично</td>
-                                <td>+1.0</td>
-                            </tr>
-                            <tr>
-                                <td>sad</td>
-                                <td>грустн, печаль, тоска, слёз</td>
-                                <td>-0.8</td>
-                            </tr>
-                            <tr>
-                                <td>anxious</td>
-                                <td>тревож, волну, беспоко, страшно</td>
-                                <td>-0.6</td>
-                            </tr>
-                            <tr>
-                                <td>angry</td>
-                                <td>злой, бесит, раздража, ярость</td>
-                                <td>-0.7</td>
-                            </tr>
-                            <tr>
-                                <td>calm</td>
-                                <td>спокой, умиротвор, расслаб</td>
-                                <td>+0.7</td>
-                            </tr>
-                            <tr>
-                                <td>excited</td>
-                                <td>вдохновлён, воодушев, энергия</td>
-                                <td>+0.9</td>
-                            </tr>
-                            <tr>
-                                <td>lonely</td>
-                                <td>одинок, скуча, пуст</td>
-                                <td>-0.5</td>
-                            </tr>
-                            <tr>
-                                <td>stressed</td>
-                                <td>стресс, напряж, устал, выматыва</td>
-                                <td>-0.6</td>
-                            </tr>
-                            <tr>
-                                <td>grateful</td>
-                                <td>благодар, ценю, спасибо</td>
-                                <td>+0.8</td>
-                            </tr>
-                            <tr>
-                                <td>confused</td>
-                                <td>запутал, не понима, растеря</td>
-                                <td>-0.3</td>
-                            </tr>
-                            <tr>
-                                <td>hopeful</td>
-                                <td>надежд, верю, получится</td>
-                                <td>+0.6</td>
-                            </tr>
-                            <tr>
-                                <td>frustrated</td>
-                                <td>раздосадован, не получается, безысходность</td>
-                                <td>-0.5</td>
-                            </tr>
-                        </tbody>
-                    </table>
-
-                    <h4>Формулы расчёта:</h4>
-                    <pre><code>mood_score = Σ(emotion_weight × match_count) / total_words
-confidence = min(1.0, total_matches / 5)
-primary_emotion = emotion с max(match_count)</code></pre>
-                </div>
-
-                <div class="algorithm">
-                    <h3>HintGenerator - Генерация подсказок</h3>
-                    <p>Создаёт контекстные quick reply кнопки на основе ответа AI и настроения.</p>
-
-                    <div class="flowchart">
-                        <div class="flowchart-step">1. Получение response (ответ AI) и mood</div>
-                        <div class="flowchart-step">2. Нормализация текста (lowercase)</div>
-                        <div class="flowchart-step">3. Поиск триггеров в RESPONSE_TRIGGERS</div>
-                        <div class="flowchart-step">4. Добавление универсальных хинтов (UNIVERSAL_HINTS)</div>
-                        <div class="flowchart-step">5. Добавление mood-специфичных хинтов</div>
-                        <div class="flowchart-step">6. Сортировка по приоритету (DESC)</div>
-                        <div class="flowchart-step">7. Удаление дубликатов</div>
-                        <div class="flowchart-step">8. Лимит: макс. 6 подсказок</div>
-                        <div class="flowchart-step">9. Возврат List[Hint]</div>
-                    </div>
-
-                    <h4>Приоритеты подсказок:</h4>
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Тип</th>
-                                <th>Приоритет</th>
-                                <th>Примеры</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td>Вопросы</td>
-                                <td>15</td>
-                                <td>"Да", "Нет", "Может быть"</td>
-                            </tr>
-                            <tr>
-                                <td>Эмоциональные</td>
-                                <td>12-14</td>
-                                <td>"😊 Лучше!", "😔 Не очень"</td>
-                            </tr>
-                            <tr>
-                                <td>Действия</td>
-                                <td>10-11</td>
-                                <td>"🧘 Медитация", "🌙 Спать"</td>
-                            </tr>
-                            <tr>
-                                <td>Универсальные</td>
-                                <td>1-5</td>
-                                <td>"💬 Продолжим?", "🔄 Сменить тему"</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-
-                <div class="algorithm">
-                    <h3>Crisis Detection - Детекция кризиса</h3>
-                    <p>Выявляет критические состояния пользователя для немедленного реагирования.</p>
-
-                    <div class="flowchart">
-                        <div class="flowchart-step">1. Получение сообщения пользователя</div>
-                        <div class="flowchart-step">2. Нормализация текста</div>
-                        <div class="flowchart-step">3. Проверка суицидальных маркеров</div>
-                        <div class="flowchart-decision">Найдены маркеры?</div>
-                        <div class="flowchart-step">4. Проверка панических атак</div>
-                        <div class="flowchart-decision">Паническая атака?</div>
-                        <div class="flowchart-step">5. Проверка кризисных состояний</div>
-                        <div class="flowchart-decision">Кризис?</div>
-                        <div class="flowchart-step">6. Формирование экстренного ответа</div>
-                        <div class="flowchart-step">7. Отправка номеров горячих линий</div>
-                        <div class="flowchart-step">8. Логирование в БД (crisis_detected=True)</div>
-                    </div>
-
-                    <h4>Критические маркеры:</h4>
-                    <ul>
-                        <li><strong>Суицид:</strong> "хочу умереть", "покончить с собой", "не хочу жить"</li>
-                        <li><strong>Паника:</strong> "не могу дышать", "сердце колотится", "всё кружится"</li>
-                        <li><strong>Кризис:</strong> "больше не могу", "всё бессмысленно", "нет сил"</li>
-                    </ul>
-                </div>
-
-                <div class="algorithm">
-                    <h3>Context Builder - Построение контекста</h3>
-                    <p>Формирует контекст для Claude API из истории сообщений и данных пользователя.</p>
-
-                    <div class="flowchart">
-                        <div class="flowchart-step">1. Загрузка последних N сообщений из БД</div>
-                        <div class="flowchart-step">2. Получение профиля пользователя (имя, персона, пол)</div>
-                        <div class="flowchart-step">3. Получение текущего настроения (mood)</div>
-                        <div class="flowchart-step">4. Формирование system prompt с персоной</div>
-                        <div class="flowchart-step">5. Добавление mood context (если есть)</div>
-                        <div class="flowchart-step">6. Конвертация сообщений в формат Claude API</div>
-                        <div class="flowchart-step">7. Обрезка контекста до MAX_CONTEXT_TOKENS</div>
-                        <div class="flowchart-step">8. Возврат messages[] для API</div>
-                    </div>
-
-                    <h4>Структура system prompt:</h4>
-                    <pre><code>Ты — {persona_name}, {persona_description}
-
-Текущее состояние пользователя:
-- Имя: {user_name}
-- Настроение: {mood} (уверенность: {confidence})
-- Пол партнёра: {partner_gender}
-
-Рекомендации:
-- Обращайся по имени
-- Учитывай эмоциональное состояние
-- Не давай медицинских советов
-- Предлагай техники самопомощи</code></pre>
-                </div>
-
-                <div class="algorithm">
-                    <h3>Rate Limiting - Ограничение частоты</h3>
-                    <p>Защита от спама и злоупотреблений через Redis.</p>
-
-                    <div class="flowchart">
-                        <div class="flowchart-step">1. Получение user_id</div>
-                        <div class="flowchart-step">2. Проверка Redis: rate_limit:{user_id}</div>
-                        <div class="flowchart-decision">Ключ существует?</div>
-                        <div class="flowchart-step">3. Инкремент счётчика</div>
-                        <div class="flowchart-decision">Превышен лимит?</div>
-                        <div class="flowchart-step">4. Блокировка запроса</div>
-                        <div class="flowchart-step">5. Отправка предупреждения</div>
-                        <div class="flowchart-step">ELSE: Обработка сообщения</div>
-                        <div class="flowchart-step">6. TTL: 2 секунды</div>
-                    </div>
-
-                    <h4>Лимиты:</h4>
-                    <ul>
-                        <li><strong>Сообщения:</strong> 1 сообщение в 2 секунды</li>
-                        <li><strong>Free план:</strong> 5 сообщений в день</li>
-                        <li><strong>Premium:</strong> Без ограничений</li>
-                    </ul>
-                </div>
-
-                <div class="algorithm">
-                    <h3>Text Parsing - Парсинг имени</h3>
-                    <p>Извлечение имени пользователя из естественного текста.</p>
-
-                    <div class="flowchart">
-                        <div class="flowchart-step">1. Получение текста сообщения</div>
-                        <div class="flowchart-step">2. Поиск паттернов: "Меня зовут X", "Называй меня X"</div>
-                        <div class="flowchart-decision">Найден паттерн?</div>
-                        <div class="flowchart-step">3. Извлечение имени</div>
-                        <div class="flowchart-step">4. Валидация (не вопрос, не служебное слово)</div>
-                        <div class="flowchart-step">5. Проверка длины (2-30 символов)</div>
-                        <div class="flowchart-step">6. Capitalize первой буквы</div>
-                        <div class="flowchart-step">7. Возврат имени или None</div>
-                    </div>
-
-                    <h4>Поддерживаемые паттерны:</h4>
-                    <pre><code>- "Меня зовут {name}"
-- "Я {name}"
-- "Зови меня {name}"
-- "Называй меня {name}"
-- "Можешь звать меня {name}"
-- "Имя — {name}"</code></pre>
-
-                    <h4>Отклоняются:</h4>
-                    <ul>
-                        <li>Вопросы: "Забыла?", "Не помнишь?"</li>
-                        <li>Служебные слова: "как", "что", "почему"</li>
-                        <li>Слишком короткие: < 2 символов</li>
-                        <li>Слишком длинные: > 30 символов</li>
-                    </ul>
-                </div>
-
-                <div class="algorithm">
-                    <h3>Input Sanitization - Санитизация входа</h3>
-                    <p>Очистка и валидация пользовательского ввода.</p>
-
-                    <div class="flowchart">
-                        <div class="flowchart-step">1. Получение raw text</div>
-                        <div class="flowchart-step">2. Удаление control characters (\x00-\x1F)</div>
-                        <div class="flowchart-step">3. Удаление ZWSP (zero-width space)</div>
-                        <div class="flowchart-step">4. Нормализация Unicode (NFC)</div>
-                        <div class="flowchart-step">5. Strip whitespace</div>
-                        <div class="flowchart-step">6. Проверка длины (1-4096 символов)</div>
-                        <div class="flowchart-step">7. Детекция SQL injection паттернов</div>
-                        <div class="flowchart-step">8. Детекция XSS паттернов</div>
-                        <div class="flowchart-step">9. Логирование подозрительного ввода</div>
-                        <div class="flowchart-step">10. Возврат очищенного текста</div>
-                    </div>
-
-                    <h4>Проверки безопасности:</h4>
-                    <ul>
-                        <li>SQL injection: <code>SELECT</code>, <code>DROP</code>, <code>INSERT</code>, <code>--</code></li>
-                        <li>XSS: <code>&lt;script&gt;</code>, <code>javascript:</code>, <code>onerror=</code></li>
-                        <li>Path traversal: <code>../</code>, <code>..\\</code></li>
-                        <li>Command injection: <code>$(</code>, <code>`</code>, <code>;</code></li>
-                    </ul>
-                </div>
-
-                <div class="algorithm">
-                    <h3>Error Handling - Обработка ошибок</h3>
-                    <p>Graceful обработка ошибок API без потери контекста.</p>
-
-                    <div class="flowchart">
-                        <div class="flowchart-step">1. Отправка запроса к Claude API</div>
-                        <div class="flowchart-decision">Успех?</div>
-                        <div class="flowchart-step">YES: Обработка ответа</div>
-                        <div class="flowchart-step">NO: Определение типа ошибки</div>
-                        <div class="flowchart-decision">APIConnectionError?</div>
-                        <div class="flowchart-step">Retry с exponential backoff</div>
-                        <div class="flowchart-decision">RateLimitError?</div>
-                        <div class="flowchart-step">Ожидание retry_after</div>
-                        <div class="flowchart-decision">APIStatusError?</div>
-                        <div class="flowchart-step">Логирование + пользователю сообщение</div>
-                        <div class="flowchart-step">Сохранение сообщения в БД</div>
-                        <div class="flowchart-step">Контекст сохранён!</div>
-                    </div>
-
-                    <h4>Retry стратегия:</h4>
-                    <pre><code>max_retries = 3
-backoff_delays = [1s, 2s, 4s]
-
-for attempt in range(max_retries):
-    try:
-        return api_call()
-    except APIConnectionError:
-        if attempt < max_retries - 1:
-            await asyncio.sleep(backoff_delays[attempt])
-        else:
-            raise</code></pre>
-                </div>
-            </section>
-
-            <section id="architecture">
-                <h2>🏗️ Архитектура</h2>
-
-                <h3>Слоистая архитектура</h3>
-                <div class="architecture-diagram">
-                    <div class="layer">🖥️ Presentation Layer (bot/handlers, bot/keyboards)</div>
-                    <div class="layer-arrow">↓</div>
-                    <div class="layer">🧠 Business Logic Layer (ai/, services/)</div>
-                    <div class="layer-arrow">↓</div>
-                    <div class="layer">💾 Data Access Layer (database/repositories)</div>
-                    <div class="layer-arrow">↓</div>
-                    <div class="layer">🗄️ Database Layer (SQLAlchemy + PostgreSQL/SQLite)</div>
-                </div>
-
-                <h3>Repository Pattern</h3>
-                <p>Абстракция доступа к данным через репозитории:</p>
-                <pre><code>database/repositories/
-├── user_repository.py       # CRUD пользователей
-├── message_repository.py    # История сообщений
-├── subscription_repository.py # Подписки
-└── referral_repository.py   # Рефералы</code></pre>
-
-                <h4>Пример использования:</h4>
-                <pre><code>from database.repositories import UserRepository
-
-user_repo = UserRepository(session)
-user = await user_repo.get_by_telegram_id(123456789)
-await user_repo.update(user.id, name="Анна")</code></pre>
-
-                <h3>Database Schema</h3>
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Таблица</th>
-                            <th>Описание</th>
-                            <th>Ключевые поля</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td>users</td>
-                            <td>Профили пользователей</td>
-                            <td>telegram_id, name, persona, subscription_tier</td>
-                        </tr>
-                        <tr>
-                            <td>messages</td>
-                            <td>История диалогов</td>
-                            <td>user_id, role, content, mood, created_at</td>
-                        </tr>
-                        <tr>
-                            <td>subscriptions</td>
-                            <td>Подписки Premium</td>
-                            <td>user_id, start_date, end_date, status</td>
-                        </tr>
-                        <tr>
-                            <td>referrals</td>
-                            <td>Реферальная программа</td>
-                            <td>referrer_id, referred_id, reward_granted</td>
-                        </tr>
-                        <tr>
-                            <td>mood_history</td>
-                            <td>Динамика настроения</td>
-                            <td>user_id, mood, score, confidence, timestamp</td>
-                        </tr>
-                    </tbody>
-                </table>
-
-                <h3>Message Flow</h3>
-                <div class="flowchart">
-                    <div class="flowchart-step">1. Пользователь отправляет сообщение</div>
-                    <div class="flowchart-step">2. Telegram Bot API → Update</div>
-                    <div class="flowchart-step">3. RateLimitMiddleware проверяет лимиты</div>
-                    <div class="flowchart-step">4. MessageHandler получает update</div>
-                    <div class="flowchart-step">5. Санитизация ввода (sanitizer.py)</div>
-                    <div class="flowchart-step">6. Парсинг имени (text_parser.py)</div>
-                    <div class="flowchart-step">7. Анализ настроения (MoodAnalyzer)</div>
-                    <div class="flowchart-step">8. Детекция кризиса (Crisis Detection)</div>
-                    <div class="flowchart-step">9. Построение контекста (Context Builder)</div>
-                    <div class="flowchart-step">10. Отправка к Claude API (streaming)</div>
-                    <div class="flowchart-step">11. Streaming обновление сообщения</div>
-                    <div class="flowchart-step">12. Генерация подсказок (HintGenerator)</div>
-                    <div class="flowchart-step">13. Сохранение в БД (MessageRepository)</div>
-                    <div class="flowchart-step">14. Отображение quick reply кнопок</div>
-                </div>
-
-                <h3>Компоненты системы</h3>
-
-                <h4>AI модули (ai/)</h4>
-                <ul>
-                    <li><code>claude_client.py</code> — Клиент Claude API с streaming</li>
-                    <li><code>mood_analyzer.py</code> — Анализ настроения (12 эмоций)</li>
-                    <li><code>hint_generator.py</code> — Генерация контекстных подсказок</li>
-                </ul>
-
-                <h4>Bot handlers (bot/handlers/)</h4>
-                <ul>
-                    <li><code>start.py</code> — /start, /help, /persona</li>
-                    <li><code>message.py</code> — Обработка текстовых сообщений</li>
-                    <li><code>voice.py</code> — Голосовые сообщения (Whisper API)</li>
-                    <li><code>subscription.py</code> — Управление подпиской</li>
-                    <li><code>admin.py</code> — Админ команды</li>
-                    <li><code>content.py</code> — Медитации, дыхание, аффирмации</li>
-                </ul>
-
-                <h4>Services (services/)</h4>
-                <ul>
-                    <li><code>referral.py</code> — Реферальная программа</li>
-                    <li><code>scheduler.py</code> — APScheduler задачи</li>
-                    <li><code>export.py</code> — Экспорт данных в Excel</li>
-                    <li><code>tts_yandex.py</code> — Text-to-Speech через Yandex</li>
-                </ul>
-
-                <h4>Utils (utils/)</h4>
-                <ul>
-                    <li><code>text_parser.py</code> — Парсинг имён</li>
-                    <li><code>sanitizer.py</code> — Санитизация ввода</li>
-                    <li><code>retry.py</code> — Retry логика для API</li>
-                </ul>
-            </section>
-
-            <section id="tech-stack">
-                <h2>🛠️ Технологический стек</h2>
-
-                <div class="tech-stack">
-                    <div class="tech-category">
-                        <h4>🤖 AI & ML</h4>
-                        <ul>
-                            <li>Claude Sonnet 4.5 (anthropic==0.18.1)</li>
-                            <li>OpenAI Whisper (voice transcription)</li>
-                            <li>Yandex SpeechKit (TTS)</li>
-                        </ul>
-                    </div>
-
-                    <div class="tech-category">
-                        <h4>🐍 Python</h4>
-                        <ul>
-                            <li>Python 3.10+</li>
-                            <li>python-telegram-bot==21.0</li>
-                            <li>asyncio (async/await)</li>
-                            <li>pydantic (validation)</li>
-                        </ul>
-                    </div>
-
-                    <div class="tech-category">
-                        <h4>💾 Database</h4>
-                        <ul>
-                            <li>PostgreSQL (production)</li>
-                            <li>SQLite (development)</li>
-                            <li>SQLAlchemy 2.0 (ORM)</li>
-                            <li>Alembic (migrations)</li>
-                        </ul>
-                    </div>
-
-                    <div class="tech-category">
-                        <h4>⚡ Cache & Queue</h4>
-                        <ul>
-                            <li>Redis 7.0 (cache, rate limiting)</li>
-                            <li>aioredis (async client)</li>
-                            <li>APScheduler (background jobs)</li>
-                        </ul>
-                    </div>
-
-                    <div class="tech-category">
-                        <h4>🌐 Web</h4>
-                        <ul>
-                            <li>FastAPI (admin panel)</li>
-                            <li>Uvicorn (ASGI server)</li>
-                            <li>httpx (async HTTP)</li>
-                            <li>aiohttp (websockets)</li>
-                        </ul>
-                    </div>
-
-                    <div class="tech-category">
-                        <h4>💳 Payments</h4>
-                        <ul>
-                            <li>ЮKassa API</li>
-                            <li>python-jose (JWT)</li>
-                            <li>passlib (password hashing)</li>
-                        </ul>
-                    </div>
-
-                    <div class="tech-category">
-                        <h4>🧪 Testing</h4>
-                        <ul>
-                            <li>pytest==7.4.4</li>
-                            <li>pytest-asyncio==0.23.3</li>
-                            <li>pytest-cov==4.1.0</li>
-                            <li>Coverage: 80%+</li>
-                        </ul>
-                    </div>
-
-                    <div class="tech-category">
-                        <h4>🔍 Code Quality</h4>
-                        <ul>
-                            <li>mypy (type checking)</li>
-                            <li>black (formatting)</li>
-                            <li>isort (import sorting)</li>
-                            <li>flake8 (linting)</li>
-                        </ul>
-                    </div>
-
-                    <div class="tech-category">
-                        <h4>🐳 DevOps</h4>
-                        <ul>
-                            <li>Docker + Docker Compose</li>
-                            <li>systemd (service management)</li>
-                            <li>GitHub Actions (CI/CD)</li>
-                            <li>nginx (reverse proxy)</li>
-                        </ul>
-                    </div>
-
-                    <div class="tech-category">
-                        <h4>📊 Monitoring</h4>
-                        <ul>
-                            <li>loguru (logging)</li>
-                            <li>Health checks</li>
-                            <li>Sentry (error tracking, planned)</li>
-                            <li>Prometheus (metrics, planned)</li>
-                        </ul>
-                    </div>
-
-                    <div class="tech-category">
-                        <h4>📦 Utils</h4>
-                        <ul>
-                            <li>python-dotenv (env vars)</li>
-                            <li>openpyxl (Excel export)</li>
-                            <li>python-dateutil (dates)</li>
-                            <li>pytz (timezones)</li>
-                        </ul>
-                    </div>
-                </div>
-            </section>
-
-            <section id="development">
-                <h2>👨‍💻 Разработка</h2>
-
-                <h3>Git Workflow</h3>
-                <div class="flowchart">
-                    <div class="flowchart-step">1. Создание feature ветки (feature/name)</div>
-                    <div class="flowchart-step">2. Разработка с коммитами (Conventional Commits)</div>
-                    <div class="flowchart-step">3. Локальное тестирование (pytest)</div>
-                    <div class="flowchart-step">4. Push в GitHub</div>
-                    <div class="flowchart-step">5. GitHub Actions: тесты + линтеры</div>
-                    <div class="flowchart-decision">Тесты прошли?</div>
-                    <div class="flowchart-step">6. Code review (опционально)</div>
-                    <div class="flowchart-step">7. Merge в main</div>
-                    <div class="flowchart-step">8. Auto-deploy на production</div>
-                    <div class="flowchart-step">9. systemctl restart mirabot</div>
-                </div>
-
-                <h3>CI/CD Pipeline</h3>
-
-                <h4>Test Workflow (.github/workflows/test.yml)</h4>
-                <ul>
-                    <li>Triggers: push на main/develop, pull requests</li>
-                    <li>Matrix: Python 3.10, 3.11</li>
-                    <li>Steps:
-                        <ul>
-                            <li>Checkout code</li>
-                            <li>Setup Python</li>
-                            <li>Install dependencies</li>
-                            <li>Run pytest с coverage</li>
-                            <li>Upload to codecov</li>
-                            <li>Lint: black, isort, flake8, mypy</li>
-                        </ul>
-                    </li>
-                </ul>
-
-                <h4>Deploy Workflow (.github/workflows/deploy.yml)</h4>
-                <ul>
-                    <li>Trigger: push на main</li>
-                    <li>Steps:
-                        <ul>
-                            <li>SSH в production сервер</li>
-                            <li>git pull origin main</li>
-                            <li>pip install -r requirements.txt</li>
-                            <li>alembic upgrade head</li>
-                            <li>systemctl restart mirabot</li>
-                            <li>Health check проверка</li>
-                        </ul>
-                    </li>
-                </ul>
-
-                <h3>Testing Strategy</h3>
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Тип тестов</th>
-                            <th>Покрытие</th>
-                            <th>Примеры</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td>Unit тесты</td>
-                            <td>80%+</td>
-                            <td>test_text_parser.py, test_sanitizer.py, test_mood_analyzer.py</td>
-                        </tr>
-                        <tr>
-                            <td>Integration тесты</td>
-                            <td>Planned</td>
-                            <td>API endpoints, database operations</td>
-                        </tr>
-                        <tr>
-                            <td>E2E тесты</td>
-                            <td>Planned</td>
-                            <td>Full user flows</td>
-                        </tr>
-                    </tbody>
-                </table>
-
-                <h3>Deployment</h3>
-
-                <h4>Production сервер</h4>
-                <ul>
-                    <li><strong>IP:</strong> 31.44.7.144</li>
-                    <li><strong>OS:</strong> Ubuntu 22.04</li>
-                    <li><strong>Path:</strong> /root/mira_bot</li>
-                    <li><strong>Service:</strong> systemd (mirabot.service)</li>
-                    <li><strong>Logs:</strong> /var/log/mira_bot.log + journalctl</li>
-                </ul>
-
-                <h4>Docker Deployment</h4>
-                <pre><code># Клонирование
-git clone https://github.com/ircitdev/MiraBot.git
-cd mira_bot
-
-# Конфигурация
-cp .env.example .env
-# Заполнить BOT_TOKEN, CLAUDE_API_KEY, ADMIN_TELEGRAM_IDS
-
-# Запуск
-docker-compose up -d
-
-# Проверка
-curl http://localhost:8080/health</code></pre>
-
-                <h3>Monitoring</h3>
-
-                <h4>Health Checks</h4>
-                <pre><code>GET http://localhost:8080/health
-
-Response:
-{
-  "status": "healthy",
-  "checks": {
-    "bot": {"status": "running", "healthy": true},
-    "redis": {"status": "connected", "healthy": true},
-    "database": {"status": "connected", "healthy": true}
-  }
-}</code></pre>
-
-                <h4>Логирование</h4>
-                <ul>
-                    <li>Production: <code>/var/log/mira_bot.log</code></li>
-                    <li>Systemd: <code>journalctl -u mirabot -f</code></li>
-                    <li>Docker: <code>docker-compose logs -f bot</code></li>
-                    <li>Level: INFO (production), DEBUG (dev)</li>
-                </ul>
-
-                <h3>Backup Strategy</h3>
-
-                <h4>Автоматические бэкапы</h4>
-                <ul>
-                    <li>Скрипт: <code>scripts/backup_db.sh</code></li>
-                    <li>Частота: Ежедневно в 3:00 AM (cron)</li>
-                    <li>Retention: 7 дней (настраивается)</li>
-                    <li>Формат: gzip сжатие</li>
-                    <li>Путь: <code>/backup/mira_bot/</code></li>
-                </ul>
-
-                <h4>Восстановление</h4>
-                <pre><code>./scripts/restore_db.sh /backup/mira_bot/mira_bot_20241214_030000.db.gz</code></pre>
-            </section>
-
-            <section id="security">
-                <h2>🔒 Безопасность</h2>
-
-                <h3>Input Validation</h3>
-                <ul>
-                    <li>Санитизация всех пользовательских вводов</li>
-                    <li>Детекция SQL injection паттернов</li>
-                    <li>Детекция XSS атак</li>
-                    <li>Удаление control characters</li>
-                    <li>Нормализация Unicode</li>
-                </ul>
-
-                <h3>Rate Limiting</h3>
-                <ul>
-                    <li>Redis-based rate limiting</li>
-                    <li>1 сообщение в 2 секунды</li>
-                    <li>Free plan: 5 сообщений/день</li>
-                    <li>Premium: без ограничений</li>
-                </ul>
-
-                <h3>Data Protection</h3>
-                <ul>
-                    <li>Хеширование паролей (bcrypt)</li>
-                    <li>JWT токены для админ-панели</li>
-                    <li>Шифрование чувствительных данных</li>
-                    <li>GDPR compliance (экспорт данных)</li>
-                </ul>
-
-                <h3>API Security</h3>
-                <ul>
-                    <li>API keys в переменных окружения</li>
-                    <li>Retry logic с exponential backoff</li>
-                    <li>Graceful error handling</li>
-                    <li>Request timeout (30s)</li>
-                </ul>
-            </section>
-
-            <section id="roadmap">
-                <h2>🗺️ Roadmap</h2>
-
-                <h3>Q1 2025</h3>
-                <ul>
-                    <li>✅ Streaming responses</li>
-                    <li>✅ Mood tracking</li>
-                    <li>✅ Context-aware hints</li>
-                    <li>✅ Docker deployment</li>
-                    <li>✅ CI/CD pipeline</li>
-                    <li>🔲 Voice messages (Whisper)</li>
-                    <li>🔲 Premium subscriptions</li>
-                </ul>
-
-                <h3>Q2 2025</h3>
-                <ul>
-                    <li>🔲 Графики настроения</li>
-                    <li>🔲 Экспорт истории диалогов</li>
-                    <li>🔲 Интеграция с психологами</li>
-                    <li>🔲 Групповая терапия (чаты)</li>
-                    <li>🔲 Mobile app (React Native)</li>
-                </ul>
-
-                <h3>Q3-Q4 2025</h3>
-                <ul>
-                    <li>🔲 Multi-language support</li>
-                    <li>🔲 AI avatars (voice cloning)</li>
-                    <li>🔲 AR/VR медитации</li>
-                    <li>🔲 Wearable integration (Apple Watch, Fitbit)</li>
-                </ul>
-            </section>
+            </div>
         </div>
 
-        <footer>
-            <p>&copy; 2024 MIRA BOT. Telegram психологический бот с AI.</p>
-            <p>
-                <a href="https://github.com/ircitdev/MiraBot" target="_blank">GitHub</a> |
-                <a href="https://t.me/mira_support_bot" target="_blank">Поддержка</a> |
-                <a href="mailto:support@mirabot.ru">Email</a>
-            </p>
-            <p style="margin-top: 20px; opacity: 0.7;">
-                Powered by Claude Sonnet 4.5 | Built with Python 3.10+ | Deployed with Docker
-            </p>
+        <!-- Algorithms -->
+        <div class="section-header">
+            <span class="section-icon">🔬</span>
+            Алгоритмы
+        </div>
+
+        <div class="accordion">
+            <div class="accordion-item">
+                <div class="accordion-header" onclick="toggleAccordion(this)">
+                    <h3>
+                        <span class="accordion-icon">😊</span>
+                        MoodAnalyzer — Анализ настроения
+                    </h3>
+                    <span class="accordion-arrow">▼</span>
+                </div>
+                <div class="accordion-content">
+                    <div class="accordion-body">
+                        <p>Определяет эмоциональное состояние пользователя по тексту сообщения.</p>
+
+                        <div class="flowchart">
+                            <div class="flowchart-step">1. Получение текста сообщения</div>
+                            <div class="flowchart-arrow">↓</div>
+                            <div class="flowchart-step">2. Нормализация текста (lowercase, удаление punctuation)</div>
+                            <div class="flowchart-arrow">↓</div>
+                            <div class="flowchart-step">3. Токенизация на слова</div>
+                            <div class="flowchart-arrow">↓</div>
+                            <div class="flowchart-step">4. Поиск эмоциональных маркеров</div>
+                            <div class="flowchart-arrow">↓</div>
+                            <div class="flowchart-step">5. Подсчёт совпадений по 12 эмоциям</div>
+                            <div class="flowchart-arrow">↓</div>
+                            <div class="flowchart-decision">Найдены маркеры?</div>
+                            <div class="flowchart-arrow">↓</div>
+                            <div class="flowchart-step">6. Расчёт mood_score (-1.0 до +1.0)</div>
+                            <div class="flowchart-arrow">↓</div>
+                            <div class="flowchart-step">7. Определение primary_emotion</div>
+                            <div class="flowchart-arrow">↓</div>
+                            <div class="flowchart-step">8. Расчёт confidence (0.0 до 1.0)</div>
+                            <div class="flowchart-arrow">↓</div>
+                            <div class="flowchart-step">9. Возврат MoodAnalysisResult</div>
+                        </div>
+
+                        <h4>12 отслеживаемых эмоций:</h4>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Эмоция</th>
+                                    <th>Примеры маркеров</th>
+                                    <th>Вес</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr><td>happy</td><td>счастлив, радост, весел</td><td>+1.0</td></tr>
+                                <tr><td>sad</td><td>грустн, печаль, тоска</td><td>-0.8</td></tr>
+                                <tr><td>anxious</td><td>тревож, волну, беспоко</td><td>-0.6</td></tr>
+                                <tr><td>angry</td><td>злой, бесит, раздража</td><td>-0.7</td></tr>
+                                <tr><td>calm</td><td>спокой, умиротвор</td><td>+0.7</td></tr>
+                                <tr><td>excited</td><td>вдохновлён, энергия</td><td>+0.9</td></tr>
+                                <tr><td>lonely</td><td>одинок, скуча, пуст</td><td>-0.5</td></tr>
+                                <tr><td>stressed</td><td>стресс, напряж, устал</td><td>-0.6</td></tr>
+                            </tbody>
+                        </table>
+
+                        <h4>Формулы расчёта:</h4>
+                        <pre><code>mood_score = Σ(emotion_weight × match_count) / total_words
+confidence = min(1.0, total_matches / 5)
+primary_emotion = emotion с max(match_count)</code></pre>
+                    </div>
+                </div>
+            </div>
+
+            <div class="accordion-item">
+                <div class="accordion-header" onclick="toggleAccordion(this)">
+                    <h3>
+                        <span class="accordion-icon">💡</span>
+                        HintGenerator — Генерация подсказок
+                    </h3>
+                    <span class="accordion-arrow">▼</span>
+                </div>
+                <div class="accordion-content">
+                    <div class="accordion-body">
+                        <p>Создаёт контекстные quick reply кнопки на основе ответа AI и настроения.</p>
+
+                        <div class="flowchart">
+                            <div class="flowchart-step">1. Получение response (ответ AI) и mood</div>
+                            <div class="flowchart-arrow">↓</div>
+                            <div class="flowchart-step">2. Нормализация текста (lowercase)</div>
+                            <div class="flowchart-arrow">↓</div>
+                            <div class="flowchart-step">3. Поиск триггеров в RESPONSE_TRIGGERS</div>
+                            <div class="flowchart-arrow">↓</div>
+                            <div class="flowchart-step">4. Добавление универсальных хинтов</div>
+                            <div class="flowchart-arrow">↓</div>
+                            <div class="flowchart-step">5. Добавление mood-специфичных хинтов</div>
+                            <div class="flowchart-arrow">↓</div>
+                            <div class="flowchart-step">6. Сортировка по приоритету (DESC)</div>
+                            <div class="flowchart-arrow">↓</div>
+                            <div class="flowchart-step">7. Удаление дубликатов</div>
+                            <div class="flowchart-arrow">↓</div>
+                            <div class="flowchart-step">8. Лимит: макс. 6 подсказок</div>
+                            <div class="flowchart-arrow">↓</div>
+                            <div class="flowchart-step">9. Возврат List[Hint]</div>
+                        </div>
+
+                        <h4>Приоритеты подсказок:</h4>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Тип</th>
+                                    <th>Приоритет</th>
+                                    <th>Примеры</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr><td>Вопросы</td><td>15</td><td>"Да", "Нет", "Может быть"</td></tr>
+                                <tr><td>Эмоциональные</td><td>12-14</td><td>"😊 Лучше!", "😔 Не очень"</td></tr>
+                                <tr><td>Действия</td><td>10-11</td><td>"🧘 Медитация", "🌙 Спать"</td></tr>
+                                <tr><td>Универсальные</td><td>1-5</td><td>"💬 Продолжим?", "🔄 Сменить тему"</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div class="accordion-item">
+                <div class="accordion-header" onclick="toggleAccordion(this)">
+                    <h3>
+                        <span class="accordion-icon">🚨</span>
+                        Crisis Detection — Детекция кризиса
+                    </h3>
+                    <span class="accordion-arrow">▼</span>
+                </div>
+                <div class="accordion-content">
+                    <div class="accordion-body">
+                        <p>Выявляет критические состояния пользователя для немедленного реагирования.</p>
+
+                        <div class="flowchart">
+                            <div class="flowchart-step">1. Получение сообщения пользователя</div>
+                            <div class="flowchart-arrow">↓</div>
+                            <div class="flowchart-step">2. Нормализация текста</div>
+                            <div class="flowchart-arrow">↓</div>
+                            <div class="flowchart-step">3. Проверка суицидальных маркеров</div>
+                            <div class="flowchart-arrow">↓</div>
+                            <div class="flowchart-decision">Найдены маркеры?</div>
+                            <div class="flowchart-arrow">↓</div>
+                            <div class="flowchart-step">4. Проверка панических атак</div>
+                            <div class="flowchart-arrow">↓</div>
+                            <div class="flowchart-decision">Паническая атака?</div>
+                            <div class="flowchart-arrow">↓</div>
+                            <div class="flowchart-step">5. Формирование экстренного ответа</div>
+                            <div class="flowchart-arrow">↓</div>
+                            <div class="flowchart-step">6. Отправка номеров горячих линий</div>
+                            <div class="flowchart-arrow">↓</div>
+                            <div class="flowchart-step">7. Логирование (crisis_detected=True)</div>
+                        </div>
+
+                        <h4>Критические маркеры:</h4>
+                        <ul>
+                            <li><strong>Суицид:</strong> "хочу умереть", "покончить с собой"</li>
+                            <li><strong>Паника:</strong> "не могу дышать", "сердце колотится"</li>
+                            <li><strong>Кризис:</strong> "больше не могу", "всё бессмысленно"</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="accordion-item">
+                <div class="accordion-header" onclick="toggleAccordion(this)">
+                    <h3>
+                        <span class="accordion-icon">🔐</span>
+                        Input Sanitization — Безопасность
+                    </h3>
+                    <span class="accordion-arrow">▼</span>
+                </div>
+                <div class="accordion-content">
+                    <div class="accordion-body">
+                        <p>Очистка и валидация пользовательского ввода для защиты от атак.</p>
+
+                        <div class="flowchart">
+                            <div class="flowchart-step">1. Получение raw text</div>
+                            <div class="flowchart-arrow">↓</div>
+                            <div class="flowchart-step">2. Удаление control characters</div>
+                            <div class="flowchart-arrow">↓</div>
+                            <div class="flowchart-step">3. Нормализация Unicode (NFC)</div>
+                            <div class="flowchart-arrow">↓</div>
+                            <div class="flowchart-step">4. Проверка длины (1-4096 символов)</div>
+                            <div class="flowchart-arrow">↓</div>
+                            <div class="flowchart-step">5. Детекция SQL injection</div>
+                            <div class="flowchart-arrow">↓</div>
+                            <div class="flowchart-step">6. Детекция XSS паттернов</div>
+                            <div class="flowchart-arrow">↓</div>
+                            <div class="flowchart-step">7. Логирование подозрительного ввода</div>
+                            <div class="flowchart-arrow">↓</div>
+                            <div class="flowchart-step">8. Возврат очищенного текста</div>
+                        </div>
+
+                        <h4>Проверки безопасности:</h4>
+                        <ul>
+                            <li>SQL injection: <code>SELECT</code>, <code>DROP</code>, <code>--</code></li>
+                            <li>XSS: <code>&lt;script&gt;</code>, <code>javascript:</code></li>
+                            <li>Path traversal: <code>../</code></li>
+                            <li>Command injection: <code>$(</code>, <code>;</code></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Architecture -->
+        <div class="section-header">
+            <span class="section-icon">🏗️</span>
+            Архитектура
+        </div>
+
+        <div class="accordion">
+            <div class="accordion-item">
+                <div class="accordion-header" onclick="toggleAccordion(this)">
+                    <h3>
+                        <span class="accordion-icon">📐</span>
+                        Слоистая архитектура
+                    </h3>
+                    <span class="accordion-arrow">▼</span>
+                </div>
+                <div class="accordion-content">
+                    <div class="accordion-body">
+                        <div class="flowchart">
+                            <div class="flowchart-step">🖥️ Presentation Layer (bot/handlers)</div>
+                            <div class="flowchart-arrow">↓</div>
+                            <div class="flowchart-step">🧠 Business Logic Layer (ai/, services/)</div>
+                            <div class="flowchart-arrow">↓</div>
+                            <div class="flowchart-step">💾 Data Access Layer (repositories)</div>
+                            <div class="flowchart-arrow">↓</div>
+                            <div class="flowchart-step">🗄️ Database Layer (SQLAlchemy + PostgreSQL)</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="accordion-item">
+                <div class="accordion-header" onclick="toggleAccordion(this)">
+                    <h3>
+                        <span class="accordion-icon">🗄️</span>
+                        Database Schema
+                    </h3>
+                    <span class="accordion-arrow">▼</span>
+                </div>
+                <div class="accordion-content">
+                    <div class="accordion-body">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Таблица</th>
+                                    <th>Описание</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr><td>users</td><td>Профили пользователей</td></tr>
+                                <tr><td>messages</td><td>История диалогов</td></tr>
+                                <tr><td>subscriptions</td><td>Подписки Premium</td></tr>
+                                <tr><td>referrals</td><td>Реферальная программа</td></tr>
+                                <tr><td>mood_history</td><td>Динамика настроения</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tech Stack -->
+        <div class="section-header">
+            <span class="section-icon">🛠️</span>
+            Технологический стек
+        </div>
+
+        <div class="accordion">
+            <div class="accordion-item">
+                <div class="accordion-header" onclick="toggleAccordion(this)">
+                    <h3>
+                        <span class="accordion-icon">🔧</span>
+                        Основные технологии
+                    </h3>
+                    <span class="accordion-arrow">▼</span>
+                </div>
+                <div class="accordion-content">
+                    <div class="accordion-body">
+                        <div class="tech-grid">
+                            <div class="tech-category">
+                                <h4>🤖 AI & ML</h4>
+                                <ul>
+                                    <li>Claude Sonnet 4.5</li>
+                                    <li>OpenAI Whisper</li>
+                                    <li>Yandex SpeechKit</li>
+                                </ul>
+                            </div>
+
+                            <div class="tech-category">
+                                <h4>🐍 Python</h4>
+                                <ul>
+                                    <li>Python 3.10+</li>
+                                    <li>python-telegram-bot 21.0</li>
+                                    <li>asyncio</li>
+                                    <li>pydantic</li>
+                                </ul>
+                            </div>
+
+                            <div class="tech-category">
+                                <h4>💾 Database</h4>
+                                <ul>
+                                    <li>PostgreSQL</li>
+                                    <li>SQLite</li>
+                                    <li>SQLAlchemy 2.0</li>
+                                    <li>Alembic</li>
+                                </ul>
+                            </div>
+
+                            <div class="tech-category">
+                                <h4>⚡ Cache</h4>
+                                <ul>
+                                    <li>Redis 7.0</li>
+                                    <li>aioredis</li>
+                                    <li>APScheduler</li>
+                                </ul>
+                            </div>
+
+                            <div class="tech-category">
+                                <h4>🧪 Testing</h4>
+                                <ul>
+                                    <li>pytest</li>
+                                    <li>pytest-asyncio</li>
+                                    <li>Coverage: 80%+</li>
+                                </ul>
+                            </div>
+
+                            <div class="tech-category">
+                                <h4>🐳 DevOps</h4>
+                                <ul>
+                                    <li>Docker Compose</li>
+                                    <li>GitHub Actions</li>
+                                    <li>systemd</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <p>С заботой о тебе 💛</p>
+            <p class="version">Версия 1.0 • Обновлено: Декабрь 2024</p>
         </footer>
     </div>
+
+    <script>
+        // Initialize Telegram Web App
+        if (window.Telegram && window.Telegram.WebApp) {
+            Telegram.WebApp.ready();
+            Telegram.WebApp.expand();
+            Telegram.WebApp.setHeaderColor('#FFF8F0');
+            Telegram.WebApp.setBackgroundColor('#FFF8F0');
+        }
+
+        // Accordion functionality
+        function toggleAccordion(header) {
+            const item = header.parentElement;
+            const wasActive = item.classList.contains('active');
+
+            // Close all items
+            document.querySelectorAll('.accordion-item').forEach(el => {
+                el.classList.remove('active');
+            });
+
+            // Open clicked item if it wasn't active
+            if (!wasActive) {
+                item.classList.add('active');
+            }
+        }
+    </script>
 </body>
 </html>
