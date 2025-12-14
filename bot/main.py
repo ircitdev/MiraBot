@@ -20,7 +20,7 @@ from loguru import logger
 from config.settings import settings
 from database import init_db, close_db
 from bot.handlers.start import start_command, help_command
-from bot.handlers.message import handle_message
+from bot.handlers.message import handle_message, handle_photo
 from bot.handlers.voice import handle_voice
 from bot.handlers.commands import (
     settings_command,
@@ -44,12 +44,19 @@ from bot.handlers.admin import (
     receive_days,
     receive_block_reason,
     receive_broadcast_message,
+    receive_promo_code_input,
+    receive_promo_value,
+    receive_promo_max_uses,
     cancel_admin,
     WAITING_USER_ID,
     WAITING_DAYS,
     WAITING_BLOCK_REASON,
     WAITING_BROADCAST_MESSAGE,
+    WAITING_PROMO_CODE,
+    WAITING_PROMO_VALUE,
+    WAITING_PROMO_MAX_USES,
 )
+from bot.handlers.promo import get_promo_handler
 
 
 # Глобальный экземпляр приложения
@@ -214,6 +221,18 @@ def create_application() -> Application:
                 MessageHandler(filters.TEXT & ~filters.COMMAND, receive_broadcast_message),
                 CommandHandler("cancel", cancel_admin),
             ],
+            WAITING_PROMO_CODE: [
+                MessageHandler(filters.TEXT & ~filters.COMMAND, receive_promo_code_input),
+                CommandHandler("cancel", cancel_admin),
+            ],
+            WAITING_PROMO_VALUE: [
+                MessageHandler(filters.TEXT & ~filters.COMMAND, receive_promo_value),
+                CommandHandler("cancel", cancel_admin),
+            ],
+            WAITING_PROMO_MAX_USES: [
+                MessageHandler(filters.TEXT & ~filters.COMMAND, receive_promo_max_uses),
+                CommandHandler("cancel", cancel_admin),
+            ],
         },
         fallbacks=[
             CommandHandler("cancel", cancel_admin),
@@ -223,6 +242,10 @@ def create_application() -> Application:
         per_user=True,
     )
     application.add_handler(admin_conv_handler)
+
+    # Обработчик промокодов
+    promo_handler = get_promo_handler()
+    application.add_handler(promo_handler)
 
     # Обработчики callback-кнопок
     application.add_handler(CallbackQueryHandler(
@@ -242,6 +265,12 @@ def create_application() -> Application:
     application.add_handler(MessageHandler(
         filters.VOICE,
         handle_voice
+    ))
+
+    # Обработчик фотографий
+    application.add_handler(MessageHandler(
+        filters.PHOTO,
+        handle_photo
     ))
 
     # Обработчик текстовых сообщений (должен быть последним)

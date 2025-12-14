@@ -411,3 +411,95 @@ class AdminLog(Base):
 
     def __repr__(self) -> str:
         return f"<AdminLog(id={self.id}, admin_id={self.admin_id}, action={self.action})>"
+
+
+class PromoCode(Base):
+    """Модель промокода."""
+
+    __tablename__ = "promo_codes"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+
+    # Код и описание
+    code: Mapped[str] = mapped_column(String(50), unique=True, nullable=False, index=True)
+    description: Mapped[Optional[str]] = mapped_column(String(255))
+
+    # Тип промокода
+    promo_type: Mapped[str] = mapped_column(String(20), nullable=False)
+    # Типы:
+    #   - 'discount_percent' — скидка в процентах (value = 10 означает 10%)
+    #   - 'discount_amount' — скидка в рублях (value = 100 означает 100₽)
+    #   - 'free_days' — бесплатные дни Premium (value = 7 означает 7 дней)
+    #   - 'free_trial' — активация trial подписки (value = кол-во дней)
+
+    # Значение промокода (зависит от типа)
+    value: Mapped[int] = mapped_column(Integer, nullable=False)
+
+    # Ограничения
+    max_uses: Mapped[Optional[int]] = mapped_column(Integer)  # Макс. количество активаций (NULL = безлимит)
+    current_uses: Mapped[int] = mapped_column(Integer, default=0)  # Текущее количество активаций
+    max_uses_per_user: Mapped[int] = mapped_column(Integer, default=1)  # Макс. на одного пользователя
+
+    # Срок действия
+    valid_from: Mapped[Optional[datetime]] = mapped_column(DateTime)  # Начало действия (NULL = сразу)
+    valid_until: Mapped[Optional[datetime]] = mapped_column(DateTime)  # Окончание (NULL = бессрочно)
+
+    # Применимость
+    applicable_plans: Mapped[Optional[list]] = mapped_column(JSONB, default=list)
+    # Список планов, к которым применим: ['monthly', 'quarterly', 'yearly']
+    # Пустой список = применим ко всем
+
+    # Для кого доступен
+    only_new_users: Mapped[bool] = mapped_column(Boolean, default=False)  # Только для новых
+    only_for_user_ids: Mapped[Optional[list]] = mapped_column(JSONB)  # Только для конкретных user_id
+
+    # Статус
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+
+    # Создатель
+    created_by_admin_id: Mapped[Optional[int]] = mapped_column(BigInteger)
+
+    # Метаданные
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=func.now(), onupdate=func.now())
+
+    # Связи
+    usages: Mapped[List["PromoCodeUsage"]] = relationship(
+        "PromoCodeUsage",
+        back_populates="promo_code",
+        lazy="selectin"
+    )
+
+    def __repr__(self) -> str:
+        return f"<PromoCode(id={self.id}, code={self.code}, type={self.promo_type})>"
+
+
+class PromoCodeUsage(Base):
+    """Модель использования промокода."""
+
+    __tablename__ = "promo_code_usages"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    promo_code_id: Mapped[int] = mapped_column(Integer, ForeignKey("promo_codes.id"), nullable=False)
+    user_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("users.id"), nullable=False)
+
+    # Результат применения
+    applied_to_payment_id: Mapped[Optional[int]] = mapped_column(BigInteger, ForeignKey("payments.id"))
+    discount_amount: Mapped[Optional[int]] = mapped_column(Integer)  # Размер скидки в рублях
+    free_days_granted: Mapped[Optional[int]] = mapped_column(Integer)  # Выданные бесплатные дни
+
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=func.now())
+
+    # Связи
+    promo_code: Mapped["PromoCode"] = relationship("PromoCode", back_populates="usages")
+    user: Mapped["User"] = relationship("User")
+    payment: Mapped[Optional["Payment"]] = relationship("Payment")
+
+    # Индексы
+    __table_args__ = (
+        Index("idx_promo_usage_user", "user_id"),
+        Index("idx_promo_usage_code", "promo_code_id"),
+    )
+
+    def __repr__(self) -> str:
+        return f"<PromoCodeUsage(id={self.id}, promo_code_id={self.promo_code_id}, user_id={self.user_id})>"

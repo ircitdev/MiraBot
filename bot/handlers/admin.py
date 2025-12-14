@@ -3,7 +3,7 @@ Admin handlers.
 Команды администратора бота.
 """
 
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, CallbackQuery
 from telegram.ext import ContextTypes, ConversationHandler
 from datetime import datetime, timedelta
 from loguru import logger
@@ -12,8 +12,10 @@ from database.repositories.user import UserRepository
 from database.repositories.subscription import SubscriptionRepository
 from database.repositories.conversation import ConversationRepository
 from database.repositories.referral import ReferralRepository
+from database.repositories.promo import promo_repo
 from config.settings import settings
 from services.audit import audit_service
+from services.export import export_service
 
 
 # Telegram ID администратора
@@ -24,6 +26,10 @@ WAITING_USER_ID = 1
 WAITING_DAYS = 2
 WAITING_BLOCK_REASON = 3
 WAITING_BROADCAST_MESSAGE = 4
+WAITING_PROMO_CODE = 5
+WAITING_PROMO_TYPE = 6
+WAITING_PROMO_VALUE = 7
+WAITING_PROMO_MAX_USES = 8
 
 # Сегменты для рассылки
 BROADCAST_SEGMENTS = {
@@ -58,7 +64,9 @@ async def admin_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         [InlineKeyboardButton("📊 Статистика", callback_data="admin:stats")],
         [InlineKeyboardButton("👯 Рефералы", callback_data="admin:referrals")],
         [InlineKeyboardButton("🎁 Выдать Premium", callback_data="admin:give_premium")],
+        [InlineKeyboardButton("🎟️ Промокоды", callback_data="admin:promos")],
         [InlineKeyboardButton("📢 Рассылка", callback_data="admin:broadcast")],
+        [InlineKeyboardButton("📥 Экспорт", callback_data="admin:export")],
         [InlineKeyboardButton("🚫 Заблокированные", callback_data="admin:blocked")],
     ]
 
@@ -129,6 +137,12 @@ async def handle_admin_callback(update: Update, context: ContextTypes.DEFAULT_TY
     elif data == "admin:broadcast":
         return await _show_broadcast_menu(query, context)
 
+    elif data == "admin:export":
+        return await _show_export_menu(query, context)
+
+    elif data.startswith("admin:export:"):
+        return await _handle_export(query, context, data)
+
     elif data.startswith("admin:broadcast:segment:"):
         segment = data.split(":")[-1]
         return await _start_broadcast(query, context, segment)
@@ -139,6 +153,38 @@ async def handle_admin_callback(update: Update, context: ContextTypes.DEFAULT_TY
     elif data == "admin:broadcast:cancel":
         context.user_data.clear()
         return await _show_main_menu(query, context)
+
+    elif data.startswith("admin:history:"):
+        parts = data.split(":")
+        telegram_id = int(parts[2])
+        page = int(parts[3]) if len(parts) > 3 else 1
+        return await _show_conversation_history(query, context, telegram_id, page)
+
+    elif data == "admin:promos":
+        return await _show_promos_menu(query, context)
+
+    elif data == "admin:promos:create":
+        return await _start_create_promo(query, context)
+
+    elif data.startswith("admin:promos:list:"):
+        page = int(data.split(":")[-1])
+        return await _show_promos_list(query, context, page)
+
+    elif data.startswith("admin:promo:view:"):
+        promo_id = int(data.split(":")[-1])
+        return await _show_promo_detail(query, context, promo_id)
+
+    elif data.startswith("admin:promo:toggle:"):
+        promo_id = int(data.split(":")[-1])
+        return await _toggle_promo(query, context, promo_id)
+
+    elif data.startswith("admin:promo:delete:"):
+        promo_id = int(data.split(":")[-1])
+        return await _delete_promo(query, context, promo_id)
+
+    elif data.startswith("admin:promo:type:"):
+        promo_type = data.split(":")[-1]
+        return await _receive_promo_type(query, context, promo_type)
 
     return ConversationHandler.END
 
@@ -151,7 +197,9 @@ async def _show_main_menu(query, context) -> int:
         [InlineKeyboardButton("📊 Статистика", callback_data="admin:stats")],
         [InlineKeyboardButton("👯 Рефералы", callback_data="admin:referrals")],
         [InlineKeyboardButton("🎁 Выдать Premium", callback_data="admin:give_premium")],
+        [InlineKeyboardButton("🎟️ Промокоды", callback_data="admin:promos")],
         [InlineKeyboardButton("📢 Рассылка", callback_data="admin:broadcast")],
+        [InlineKeyboardButton("📥 Экспорт", callback_data="admin:export")],
         [InlineKeyboardButton("🚫 Заблокированные", callback_data="admin:blocked")],
     ]
 
@@ -294,6 +342,7 @@ async def _show_user_detail(query, context, telegram_id: int) -> int:
         )
 
     keyboard = [
+        [InlineKeyboardButton("💬 История диалога", callback_data=f"admin:history:{telegram_id}")],
         [InlineKeyboardButton("🎁 Выдать Premium", callback_data="admin:give_premium")],
         [block_button],
         [InlineKeyboardButton("« К списку", callback_data="admin:users")],
@@ -963,6 +1012,609 @@ async def _confirm_broadcast(query, context) -> int:
         f"🚫 Заблокировали бота: {blocked_by_user}",
         reply_markup=InlineKeyboardMarkup(keyboard),
     )
+
+    context.user_data.clear()
+    return ConversationHandler.END
+
+
+async def _show_export_menu(query, context) -> int:
+    """Показать меню экспорта."""
+
+    keyboard = [
+        [InlineKeyboardButton("📊 Сводка (CSV)", callback_data="admin:export:summary:csv")],
+        [InlineKeyboardButton("👥 Пользователи (CSV)", callback_data="admin:export:users:csv")],
+        [InlineKeyboardButton("👥 Пользователи (Excel)", callback_data="admin:export:users:xlsx")],
+        [InlineKeyboardButton("👯 Рефералы (CSV)", callback_data="admin:export:referrals:csv")],
+        [InlineKeyboardButton("« Назад", callback_data="admin:back")],
+    ]
+
+    text = """📥 Экспорт статистики
+
+Выбери тип отчёта:
+
+• **Сводка** — общая статистика
+• **Пользователи** — список всех пользователей
+• **Рефералы** — топ рефереров"""
+
+    await query.edit_message_text(
+        text,
+        reply_markup=InlineKeyboardMarkup(keyboard),
+        parse_mode="Markdown",
+    )
+    return ConversationHandler.END
+
+
+async def _handle_export(query, context, data: str) -> int:
+    """Обработка экспорта статистики."""
+
+    await query.answer("⏳ Генерирую отчёт...")
+
+    parts = data.split(":")
+    export_type = parts[2]  # summary, users, referrals
+    export_format = parts[3]  # csv, xlsx
+
+    now = datetime.now()
+    date_str = now.strftime("%Y%m%d_%H%M")
+
+    try:
+        if export_type == "summary" and export_format == "csv":
+            file_bytes = await export_service.export_summary_csv()
+            filename = f"mira_summary_{date_str}.csv"
+            caption = "📊 Сводная статистика"
+
+        elif export_type == "users" and export_format == "csv":
+            file_bytes = await export_service.export_users_csv()
+            filename = f"mira_users_{date_str}.csv"
+            caption = "👥 Список пользователей (CSV)"
+
+        elif export_type == "users" and export_format == "xlsx":
+            file_bytes = await export_service.export_users_excel()
+            filename = f"mira_users_{date_str}.xlsx"
+            caption = "👥 Список пользователей (Excel)"
+
+        elif export_type == "referrals" and export_format == "csv":
+            file_bytes = await export_service.export_referrals_csv()
+            filename = f"mira_referrals_{date_str}.csv"
+            caption = "👯 Топ рефереров"
+
+        else:
+            await query.edit_message_text("⚠️ Неизвестный тип экспорта")
+            return ConversationHandler.END
+
+        # Отправляем файл
+        await context.bot.send_document(
+            chat_id=query.from_user.id,
+            document=file_bytes,
+            filename=filename,
+            caption=f"{caption}\n📅 {now.strftime('%d.%m.%Y %H:%M')}",
+        )
+
+        # Аудит
+        logger.info(f"Admin {query.from_user.id} exported {export_type} as {export_format}")
+
+        # Показываем меню экспорта снова
+        keyboard = [
+            [InlineKeyboardButton("📥 Ещё экспорт", callback_data="admin:export")],
+            [InlineKeyboardButton("« Главное меню", callback_data="admin:back")],
+        ]
+
+        await query.edit_message_text(
+            f"✅ Отчёт отправлен!\n\n📄 {filename}",
+            reply_markup=InlineKeyboardMarkup(keyboard),
+        )
+
+    except Exception as e:
+        logger.error(f"Export error: {e}")
+        await query.edit_message_text(
+            f"❌ Ошибка экспорта: {str(e)[:100]}",
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton("« Назад", callback_data="admin:export")]
+            ]),
+        )
+
+    return ConversationHandler.END
+
+
+async def _show_conversation_history(
+    query: CallbackQuery,
+    context: ContextTypes.DEFAULT_TYPE,
+    telegram_id: int,
+    page: int = 1,
+) -> int:
+    """Показывает историю диалога пользователя."""
+    from database.repositories.user import UserRepository
+    from database.repositories.conversation import ConversationRepository
+    from database.session import async_session_factory
+
+    per_page = 10
+
+    async with async_session_factory() as session:
+        user_repo = UserRepository(session)
+        conversation_repo = ConversationRepository(session)
+
+        # Получаем пользователя
+        user = await user_repo.get_by_telegram_id(telegram_id)
+        if not user:
+            await query.answer("Пользователь не найден", show_alert=True)
+            return ConversationHandler.END
+
+        # Получаем сообщения с пагинацией
+        messages, total = await conversation_repo.get_paginated(
+            user_id=user.id,
+            page=page,
+            per_page=per_page,
+        )
+
+        total_pages = (total + per_page - 1) // per_page if total > 0 else 1
+
+        # Формируем текст
+        display_name = user.display_name or user.first_name or f"ID:{telegram_id}"
+        text = f"💬 История диалога: {display_name}\n"
+        text += f"📄 Страница {page}/{total_pages} (всего: {total})\n"
+        text += "─" * 30 + "\n\n"
+
+        if not messages:
+            text += "📭 Сообщений нет"
+        else:
+            for msg in messages:
+                # Иконка роли
+                role_icon = "👤" if msg.role == "user" else "🤖"
+
+                # Время сообщения
+                time_str = msg.created_at.strftime("%d.%m %H:%M") if msg.created_at else ""
+
+                # Тип сообщения
+                type_icon = ""
+                if hasattr(msg, 'is_voice') and msg.is_voice:
+                    type_icon = "🎤 "
+
+                # Текст сообщения (обрезаем длинные)
+                content = msg.content or ""
+                if len(content) > 200:
+                    content = content[:200] + "..."
+
+                text += f"{role_icon} {type_icon}[{time_str}]\n{content}\n\n"
+
+        # Клавиатура пагинации
+        nav_buttons = []
+        if page > 1:
+            nav_buttons.append(
+                InlineKeyboardButton("« Назад", callback_data=f"admin:history:{telegram_id}:{page-1}")
+            )
+        if page < total_pages:
+            nav_buttons.append(
+                InlineKeyboardButton("Вперёд »", callback_data=f"admin:history:{telegram_id}:{page+1}")
+            )
+
+        keyboard = []
+        if nav_buttons:
+            keyboard.append(nav_buttons)
+        keyboard.append([
+            InlineKeyboardButton("« К профилю", callback_data=f"admin:user:{telegram_id}")
+        ])
+        keyboard.append([
+            InlineKeyboardButton("« Главное меню", callback_data="admin:back")
+        ])
+
+        await query.edit_message_text(
+            text,
+            reply_markup=InlineKeyboardMarkup(keyboard),
+        )
+
+    return ConversationHandler.END
+
+
+# ==================== ПРОМОКОДЫ ====================
+
+PROMO_TYPES = {
+    "free_days": "🎁 Бесплатные дни Premium",
+    "free_trial": "🆓 Trial период",
+    "discount_percent": "💰 Скидка %",
+    "discount_amount": "💵 Скидка ₽",
+}
+
+
+async def _show_promos_menu(query, context) -> int:
+    """Показать меню промокодов."""
+
+    # Получаем статистику
+    promos, total = await promo_repo.get_all(page=1, per_page=1)
+    active_promos, active_total = await promo_repo.get_all(active_only=True, page=1, per_page=1)
+
+    text = f"""🎟️ Управление промокодами
+
+📊 Статистика:
+• Всего промокодов: {total}
+• Активных: {active_total}
+
+Выбери действие:"""
+
+    keyboard = [
+        [InlineKeyboardButton("➕ Создать промокод", callback_data="admin:promos:create")],
+        [InlineKeyboardButton("📋 Список промокодов", callback_data="admin:promos:list:1")],
+        [InlineKeyboardButton("« Назад", callback_data="admin:back")],
+    ]
+
+    await query.edit_message_text(
+        text,
+        reply_markup=InlineKeyboardMarkup(keyboard),
+    )
+    return ConversationHandler.END
+
+
+async def _show_promos_list(query, context, page: int = 1) -> int:
+    """Показать список промокодов."""
+
+    per_page = 8
+    promos, total = await promo_repo.get_all(page=page, per_page=per_page)
+
+    total_pages = max(1, (total + per_page - 1) // per_page)
+
+    lines = [f"📋 Промокоды ({total} всего)\n"]
+
+    if not promos:
+        lines.append("Нет промокодов. Создай первый!")
+    else:
+        for promo in promos:
+            status = "✅" if promo.is_active else "❌"
+            type_emoji = "🎁" if promo.promo_type in ("free_days", "free_trial") else "💰"
+            uses = f"{promo.current_uses}/{promo.max_uses}" if promo.max_uses else f"{promo.current_uses}/∞"
+            lines.append(f"{status} {type_emoji} {promo.code}")
+            lines.append(f"   Использовано: {uses}")
+
+    # Кнопки промокодов
+    promo_buttons = []
+    for promo in promos:
+        status = "✅" if promo.is_active else "❌"
+        promo_buttons.append(
+            InlineKeyboardButton(
+                f"{status} {promo.code}",
+                callback_data=f"admin:promo:view:{promo.id}"
+            )
+        )
+
+    keyboard = []
+    for i in range(0, len(promo_buttons), 2):
+        row = promo_buttons[i:i + 2]
+        keyboard.append(row)
+
+    # Пагинация
+    nav_buttons = []
+    if page > 1:
+        nav_buttons.append(InlineKeyboardButton("◀️", callback_data=f"admin:promos:list:{page - 1}"))
+    if total_pages > 1:
+        nav_buttons.append(InlineKeyboardButton(f"{page}/{total_pages}", callback_data="noop"))
+    if page < total_pages:
+        nav_buttons.append(InlineKeyboardButton("▶️", callback_data=f"admin:promos:list:{page + 1}"))
+
+    if nav_buttons:
+        keyboard.append(nav_buttons)
+
+    keyboard.append([InlineKeyboardButton("➕ Создать", callback_data="admin:promos:create")])
+    keyboard.append([InlineKeyboardButton("« Назад", callback_data="admin:promos")])
+
+    await query.edit_message_text(
+        "\n".join(lines),
+        reply_markup=InlineKeyboardMarkup(keyboard),
+    )
+    return ConversationHandler.END
+
+
+async def _show_promo_detail(query, context, promo_id: int) -> int:
+    """Показать детали промокода."""
+
+    promo = await promo_repo.get_by_id(promo_id)
+
+    if not promo:
+        await query.answer("Промокод не найден", show_alert=True)
+        return ConversationHandler.END
+
+    # Получаем статистику использования
+    stats = await promo_repo.get_usage_stats(promo_id)
+
+    status = "✅ Активен" if promo.is_active else "❌ Неактивен"
+    type_name = PROMO_TYPES.get(promo.promo_type, promo.promo_type)
+
+    # Форматируем значение в зависимости от типа
+    if promo.promo_type == "discount_percent":
+        value_str = f"{promo.value}%"
+    elif promo.promo_type == "discount_amount":
+        value_str = f"{promo.value}₽"
+    else:
+        value_str = f"{promo.value} дней"
+
+    uses_str = f"{promo.current_uses}/{promo.max_uses}" if promo.max_uses else f"{promo.current_uses}/∞"
+
+    # Срок действия
+    valid_str = "Бессрочно"
+    if promo.valid_until:
+        valid_str = f"До {promo.valid_until.strftime('%d.%m.%Y %H:%M')}"
+
+    text = f"""🎟️ Промокод: {promo.code}
+
+📋 Информация:
+• Статус: {status}
+• Тип: {type_name}
+• Значение: {value_str}
+• Описание: {promo.description or "—"}
+
+📊 Использование:
+• Всего: {uses_str}
+• Уникальных пользователей: {stats['unique_users']}
+• Макс. на пользователя: {promo.max_uses_per_user}
+
+⏰ Срок действия: {valid_str}
+
+📈 Результаты:
+• Выдано бесплатных дней: {stats['total_free_days'] or 0}
+• Сумма скидок: {stats['total_discount'] or 0}₽"""
+
+    # Кнопки действий
+    toggle_text = "❌ Деактивировать" if promo.is_active else "✅ Активировать"
+
+    keyboard = [
+        [InlineKeyboardButton(toggle_text, callback_data=f"admin:promo:toggle:{promo.id}")],
+    ]
+
+    # Удаление только если не использовался
+    if promo.current_uses == 0:
+        keyboard.append([
+            InlineKeyboardButton("🗑 Удалить", callback_data=f"admin:promo:delete:{promo.id}")
+        ])
+
+    keyboard.append([InlineKeyboardButton("« К списку", callback_data="admin:promos:list:1")])
+    keyboard.append([InlineKeyboardButton("« Главное меню", callback_data="admin:back")])
+
+    await query.edit_message_text(
+        text,
+        reply_markup=InlineKeyboardMarkup(keyboard),
+    )
+    return ConversationHandler.END
+
+
+async def _toggle_promo(query, context, promo_id: int) -> int:
+    """Включить/выключить промокод."""
+
+    promo = await promo_repo.get_by_id(promo_id)
+
+    if not promo:
+        await query.answer("Промокод не найден", show_alert=True)
+        return ConversationHandler.END
+
+    if promo.is_active:
+        await promo_repo.deactivate(promo_id)
+        await query.answer("❌ Промокод деактивирован")
+    else:
+        await promo_repo.activate(promo_id)
+        await query.answer("✅ Промокод активирован")
+
+    logger.info(f"Admin toggled promo {promo.code}: active={not promo.is_active}")
+
+    return await _show_promo_detail(query, context, promo_id)
+
+
+async def _delete_promo(query, context, promo_id: int) -> int:
+    """Удалить промокод."""
+
+    success = await promo_repo.delete(promo_id)
+
+    if success:
+        await query.answer("🗑 Промокод удалён")
+        logger.info(f"Admin deleted promo {promo_id}")
+        return await _show_promos_list(query, context, page=1)
+    else:
+        await query.answer("⚠️ Невозможно удалить промокод (уже использовался)", show_alert=True)
+        return await _show_promo_detail(query, context, promo_id)
+
+
+async def _start_create_promo(query, context) -> int:
+    """Начать создание промокода."""
+
+    await query.edit_message_text(
+        "🎟️ Создание промокода\n\n"
+        "Введи код промокода (латиница, цифры):\n"
+        "Например: SUMMER2024, WELCOME, VIP50\n\n"
+        "Отправь /cancel для отмены"
+    )
+
+    return WAITING_PROMO_CODE
+
+
+async def receive_promo_code_input(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """Получение кода промокода."""
+
+    if not is_admin(update.effective_user.id):
+        return ConversationHandler.END
+
+    text = update.message.text.strip().upper()
+
+    if text == "/CANCEL":
+        await update.message.reply_text("❌ Создание отменено")
+        context.user_data.clear()
+        return ConversationHandler.END
+
+    # Валидация кода
+    import re
+    if not re.match(r'^[A-Z0-9_-]{3,30}$', text):
+        await update.message.reply_text(
+            "⚠️ Код должен содержать только латиницу, цифры, _ и -\n"
+            "Длина: 3-30 символов\n\n"
+            "Попробуй снова:"
+        )
+        return WAITING_PROMO_CODE
+
+    # Проверяем уникальность
+    existing = await promo_repo.get_by_code(text)
+    if existing:
+        await update.message.reply_text(
+            f"⚠️ Промокод {text} уже существует!\n"
+            "Введи другой код:"
+        )
+        return WAITING_PROMO_CODE
+
+    # Сохраняем код
+    context.user_data["new_promo_code"] = text
+
+    # Спрашиваем тип
+    keyboard = [
+        [InlineKeyboardButton("🎁 Бесплатные дни", callback_data="admin:promo:type:free_days")],
+        [InlineKeyboardButton("🆓 Trial период", callback_data="admin:promo:type:free_trial")],
+        [InlineKeyboardButton("💰 Скидка %", callback_data="admin:promo:type:discount_percent")],
+        [InlineKeyboardButton("💵 Скидка ₽", callback_data="admin:promo:type:discount_amount")],
+    ]
+
+    await update.message.reply_text(
+        f"✅ Код: {text}\n\n"
+        "Выбери тип промокода:",
+        reply_markup=InlineKeyboardMarkup(keyboard),
+    )
+
+    return ConversationHandler.END
+
+
+async def _receive_promo_type(query, context, promo_type: str) -> int:
+    """Получение типа промокода."""
+
+    context.user_data["new_promo_type"] = promo_type
+
+    type_name = PROMO_TYPES.get(promo_type, promo_type)
+    code = context.user_data.get("new_promo_code", "???")
+
+    if promo_type in ("free_days", "free_trial"):
+        prompt = "Сколько дней Premium/Trial дать?"
+        example = "Например: 7, 14, 30"
+    elif promo_type == "discount_percent":
+        prompt = "Какой процент скидки?"
+        example = "Например: 10, 25, 50"
+    else:
+        prompt = "Какая скидка в рублях?"
+        example = "Например: 100, 200, 500"
+
+    await query.edit_message_text(
+        f"🎟️ Создание: {code}\n"
+        f"Тип: {type_name}\n\n"
+        f"{prompt}\n{example}\n\n"
+        "Отправь /cancel для отмены"
+    )
+
+    return WAITING_PROMO_VALUE
+
+
+async def receive_promo_value(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """Получение значения промокода."""
+
+    if not is_admin(update.effective_user.id):
+        return ConversationHandler.END
+
+    text = update.message.text.strip()
+
+    if text.lower() == "/cancel":
+        await update.message.reply_text("❌ Создание отменено")
+        context.user_data.clear()
+        return ConversationHandler.END
+
+    try:
+        value = int(text)
+        if value <= 0:
+            raise ValueError
+    except ValueError:
+        await update.message.reply_text("⚠️ Введи положительное число")
+        return WAITING_PROMO_VALUE
+
+    promo_type = context.user_data.get("new_promo_type")
+
+    # Валидация значений
+    if promo_type == "discount_percent" and value > 100:
+        await update.message.reply_text("⚠️ Скидка не может быть больше 100%")
+        return WAITING_PROMO_VALUE
+
+    context.user_data["new_promo_value"] = value
+
+    code = context.user_data.get("new_promo_code", "???")
+    type_name = PROMO_TYPES.get(promo_type, promo_type)
+
+    if promo_type in ("free_days", "free_trial"):
+        value_str = f"{value} дней"
+    elif promo_type == "discount_percent":
+        value_str = f"{value}%"
+    else:
+        value_str = f"{value}₽"
+
+    await update.message.reply_text(
+        f"🎟️ Создание: {code}\n"
+        f"Тип: {type_name}\n"
+        f"Значение: {value_str}\n\n"
+        "Сколько раз можно использовать?\n"
+        "Введи число или - для безлимита\n\n"
+        "Отправь /cancel для отмены"
+    )
+
+    return WAITING_PROMO_MAX_USES
+
+
+async def receive_promo_max_uses(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """Получение лимита использований и создание промокода."""
+
+    if not is_admin(update.effective_user.id):
+        return ConversationHandler.END
+
+    text = update.message.text.strip()
+
+    if text.lower() == "/cancel":
+        await update.message.reply_text("❌ Создание отменено")
+        context.user_data.clear()
+        return ConversationHandler.END
+
+    max_uses = None
+    if text != "-":
+        try:
+            max_uses = int(text)
+            if max_uses <= 0:
+                raise ValueError
+        except ValueError:
+            await update.message.reply_text("⚠️ Введи положительное число или - для безлимита")
+            return WAITING_PROMO_MAX_USES
+
+    # Создаём промокод
+    code = context.user_data.get("new_promo_code")
+    promo_type = context.user_data.get("new_promo_type")
+    value = context.user_data.get("new_promo_value")
+
+    try:
+        promo = await promo_repo.create(
+            code=code,
+            promo_type=promo_type,
+            value=value,
+            max_uses=max_uses,
+            created_by_admin_id=update.effective_user.id,
+        )
+
+        type_name = PROMO_TYPES.get(promo_type, promo_type)
+
+        if promo_type in ("free_days", "free_trial"):
+            value_str = f"{value} дней"
+        elif promo_type == "discount_percent":
+            value_str = f"{value}%"
+        else:
+            value_str = f"{value}₽"
+
+        uses_str = str(max_uses) if max_uses else "∞"
+
+        await update.message.reply_text(
+            f"✅ Промокод создан!\n\n"
+            f"🎟️ Код: {promo.code}\n"
+            f"📋 Тип: {type_name}\n"
+            f"💫 Значение: {value_str}\n"
+            f"🔢 Лимит: {uses_str}\n\n"
+            f"Пользователи могут активировать его командой:\n"
+            f"/promo {promo.code}"
+        )
+
+        logger.info(f"Admin created promo: {promo.code} ({promo_type}={value})")
+
+    except Exception as e:
+        logger.error(f"Failed to create promo: {e}")
+        await update.message.reply_text(f"❌ Ошибка создания: {str(e)[:100]}")
 
     context.user_data.clear()
     return ConversationHandler.END
