@@ -3,7 +3,31 @@ Inline keyboards.
 Инлайн-клавиатуры для бота.
 """
 
+from typing import List
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+
+
+def get_hints_keyboard(hints: List) -> InlineKeyboardMarkup:
+    """
+    Клавиатура с контекстными подсказками.
+
+    Args:
+        hints: Список объектов Hint с полями text и message
+
+    Returns:
+        InlineKeyboardMarkup с кнопками подсказок
+    """
+    if not hints:
+        return None
+
+    keyboard = []
+    for i, hint in enumerate(hints):
+        # callback_data формат: hint:{index}:{hash сообщения}
+        # Используем индекс для идентификации подсказки
+        callback_data = f"hint:{i}"
+        keyboard.append([InlineKeyboardButton(hint.text, callback_data=callback_data)])
+
+    return InlineKeyboardMarkup(keyboard)
 
 
 def get_premium_keyboard() -> InlineKeyboardMarkup:
