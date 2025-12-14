@@ -102,10 +102,11 @@
 - [x] Миграции Alembic — автоматические миграции БД ✅
 
 ### 4.2. DevOps
-- [ ] Docker Compose — запуск одной командой
-- [ ] CI/CD pipeline — автодеплой через GitHub Actions
+
+- [x] Docker Compose — запуск одной командой ✅
+- [x] CI/CD pipeline — автодеплой через GitHub Actions ✅
 - [ ] Мониторинг — Prometheus + Grafana
-- [ ] Бэкапы БД — автоматические ежедневные
+- [x] Бэкапы БД — автоматические ежедневные ✅
 
 ---
 
@@ -266,3 +267,22 @@
   - Структура проекта, workflow, debugging, deployment
   - Инструкции по тестированию, миграциям, деплою
   - Troubleshooting для типичных проблем
+
+### 14.12.2024 (ночь)
+
+- **Добавлена Docker инфраструктура**
+  - Создан Dockerfile для контейнеризации приложения
+  - Создан docker-compose.yml с 3 сервисами (PostgreSQL, Redis, Bot)
+  - Создан .dockerignore для оптимизации образа
+  - Обновлён .env.example с полными настройками
+  - Создан DOCKER.md — полная документация Docker deployment
+- **Настроен CI/CD через GitHub Actions**
+  - .github/workflows/test.yml — автоматические тесты и линтинг
+  - .github/workflows/deploy.yml — автодеплой на production
+  - Интеграция с Codecov для coverage отчётов
+  - Проверка форматирования (black, isort, flake8, mypy)
+- **Добавлены скрипты автоматизации**
+  - scripts/backup_db.sh — автоматический бэкап БД с ротацией
+  - scripts/restore_db.sh — восстановление из бэкапа
+  - scripts/setup_cron.sh — настройка cron для ежедневных бэкапов
+  - Логирование всех операций бэкапа

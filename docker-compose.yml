@@ -1,81 +1,85 @@
 version: '3.8'
 
 services:
-  # Основной бот
-  bot:
-    build: .
-    container_name: mira_bot
-    restart: unless-stopped
-    env_file:
-      - .env
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_started
-    volumes:
-      - ./logs:/app/logs
-    networks:
-      - mira_network
-
-  # PostgreSQL база данных
-  postgres:
+  # PostgreSQL Database
+  db:
     image: postgres:15-alpine
-    container_name: mira_db
+    container_name: mira_postgres
     restart: unless-stopped
     environment:
-      POSTGRES_DB: mira_bot
-      POSTGRES_USER: mira
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-mira_password}
+      POSTGRES_DB: ${DB_NAME:-mira_bot}
+      POSTGRES_USER: ${DB_USER:-mirabot}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-changeme}
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./backups:/backups
     ports:
       - "5432:5432"
-    networks:
-      - mira_network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U mira -d mira_bot"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-mirabot}"]
       interval: 10s
       timeout: 5s
       retries: 5
 
-  # Redis для кэширования
+  # Redis Cache
   redis:
     image: redis:7-alpine
     container_name: mira_redis
     restart: unless-stopped
+    command: redis-server --appendonly yes
     volumes:
       - redis_data:/data
     ports:
       - "6379:6379"
-    networks:
-      - mira_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
-  # Admin API (опционально)
-  admin:
-    build:
-      context: .
-      dockerfile: Dockerfile.admin
-    container_name: mira_admin
+  # MIRA Bot
+  bot:
+    build: .
+    container_name: mira_bot
     restart: unless-stopped
-    env_file:
-      - .env
     depends_on:
-      postgres:
+      db:
         condition: service_healthy
       redis:
-        condition: service_started
+        condition: service_healthy
+    environment:
+      # Telegram
+      BOT_TOKEN: ${BOT_TOKEN}
+      ADMIN_TELEGRAM_IDS: ${ADMIN_TELEGRAM_IDS}
+      
+      # Claude API
+      CLAUDE_API_KEY: ${CLAUDE_API_KEY}
+      CLAUDE_MODEL: ${CLAUDE_MODEL:-claude-sonnet-4-20250514}
+      
+      # Database
+      DATABASE_URL: postgresql://${DB_USER:-mirabot}:${DB_PASSWORD:-changeme}@db:5432/${DB_NAME:-mira_bot}
+      
+      # Redis
+      REDIS_URL: redis://redis:6379
+      
+      # Settings
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      FREE_MESSAGES_PER_DAY: ${FREE_MESSAGES_PER_DAY:-10}
+      
+    volumes:
+      - ./logs:/app/logs
+      - ./data:/app/data
     ports:
-      - "8000:8000"
-    networks:
-      - mira_network
-    profiles:
-      - admin
+      - "8080:8080"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 
 volumes:
   postgres_data:
+    driver: local
   redis_data:
-
-networks:
-  mira_network:
-    driver: bridge
+    driver: local

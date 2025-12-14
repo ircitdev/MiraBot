@@ -1,0 +1,39 @@
+name: Deploy
+
+on:
+  push:
+    branches: [ main ]
+    tags:
+      - 'v*'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Deploy to production server
+      uses: appleboy/ssh-action@v1.0.0
+      with:
+        host: 31.44.7.144
+        username: root
+        key: ${{ secrets.SSH_PRIVATE_KEY }}
+        script: |
+          cd /root/mira_bot
+          git pull origin main
+          /root/mira_bot/venv/bin/pip install -r requirements.txt
+          /root/mira_bot/venv/bin/alembic upgrade head
+          systemctl restart mirabot
+          sleep 5
+          systemctl status mirabot
+          curl -f http://localhost:8080/health || exit 1
+    
+    - name: Notify on success
+      if: success()
+      run: echo "Deployment successful"
+    
+    - name: Notify on failure
+      if: failure()
+      run: echo "Deployment failed"
