@@ -25,6 +25,8 @@ from bot.handlers.music import check_and_send_music, detect_music_request
 from ai.hint_generator import hint_generator
 from utils.text_parser import extract_name_from_text
 from utils.sanitizer import sanitize_text, sanitize_name, validate_message
+from services.sticker_sender import maybe_send_sticker
+from services.music_forwarder import music_forwarder
 
 
 # Инициализируем сервисы
@@ -149,6 +151,31 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
             message_text=message_text,
             context_tags=result["tags"],
         )
+
+        # 8.6. Отправляем стикер если уместно (по контексту ответа Миры)
+        primary_mood = mood_entry.get("primary_emotion") if mood_entry else None
+        try:
+            await maybe_send_sticker(
+                bot=context.bot,
+                chat_id=update.effective_chat.id,
+                mira_response=result["response"],
+                user_message=message_text,
+                mood=primary_mood,
+            )
+        except Exception as e:
+            logger.debug(f"Sticker send error: {e}")
+
+        # 8.7. Отправляем музыку если Мира предложила
+        try:
+            await _maybe_send_music(
+                update=update,
+                context=context,
+                mira_response=result["response"],
+                user_message=message_text,
+                mood=primary_mood,
+            )
+        except Exception as e:
+            logger.debug(f"Music send error: {e}")
 
         # 9. Добавляем кнопки при кризисе (если streaming уже отправил текст)
         if result["is_crisis"]:
@@ -749,3 +776,91 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         await update.message.reply_text(
             "Прости, не получилось посмотреть фото... Попробуй ещё раз 💛"
         )
+
+
+async def _maybe_send_music(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE,
+    mira_response: str,
+    user_message: str,
+    mood: str = None,
+) -> bool:
+    """
+    Отправляет музыку если Мира предложила её в ответе.
+
+    Returns:
+        True если музыка была отправлена
+    """
+    response_lower = mira_response.lower()
+
+    # Проверяем, предложила ли Мира музыку
+    music_offer_patterns = [
+        "включу", "поставлю", "музык", "послушай", "трек",
+        "мелодию", "песню", "🎧", "🎵", "🎸", "🌙",
+    ]
+
+    offers_music = any(pattern in response_lower for pattern in music_offer_patterns)
+
+    if not offers_music:
+        return False
+
+    # Определяем жанр по контексту
+    chat_id = update.effective_chat.id
+
+    # Инициализируем music_forwarder с ботом
+    music_forwarder.set_bot(context.bot)
+
+    # Определяем топик по контексту
+    topic_key = _detect_music_topic(mira_response, user_message, mood)
+
+    if not topic_key:
+        return False
+
+    # Пробуем отправить музыку
+    success = await music_forwarder.forward_music(chat_id, topic_key)
+
+    if success:
+        logger.info(f"Music sent to {chat_id}, topic={topic_key}")
+
+    return success
+
+
+def _detect_music_topic(mira_response: str, user_message: str, mood: str = None) -> str:
+    """Определяет подходящий топик музыки."""
+    text = f"{mira_response} {user_message}".lower()
+
+    # Романтика
+    if any(w in text for w in ["романтик", "любовь", "близост", "интим", "страст", "свидани", "💋"]):
+        return "sexy"
+
+    # Релакс
+    if any(w in text for w in ["расслаб", "отдых", "спокойн", "релакс", "медитац", "🌙", "устал"]):
+        return "lounge"
+
+    # Энергия
+    if any(w in text for w in ["энерги", "мотивац", "драйв", "работ", "концентр", "🎧"]):
+        return "trance"
+
+    # Злость
+    if any(w in text for w in ["злост", "злюсь", "бесит", "ярост", "🎸"]):
+        return "rock"
+
+    # Веселье
+    if any(w in text for w in ["весел", "праздник", "танц", "радост", "вечеринк", "🎤"]):
+        return "pop"
+
+    # По настроению
+    if mood:
+        mood_mapping = {
+            "sad": "lounge",
+            "angry": "rock",
+            "happy": "pop",
+            "romantic": "sexy",
+            "tired": "lounge",
+            "excited": "trance",
+        }
+        if mood in mood_mapping:
+            return mood_mapping[mood]
+
+    # По умолчанию — хиты
+    return "hits"
