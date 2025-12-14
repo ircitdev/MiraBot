@@ -181,20 +181,8 @@ class MusicForwarder:
         """
         global _message_cache, _cache_loaded
 
-        # Пробуем загрузить из файла
-        if CACHE_FILE.exists():
-            try:
-                with open(CACHE_FILE, "r") as f:
-                    _message_cache = json.load(f)
-                total = sum(len(v) for v in _message_cache.values())
-                logger.info(f"Music cache loaded from file: {total} tracks")
-                _cache_loaded = True
-                return
-            except Exception as e:
-                logger.error(f"Failed to load music cache: {e}")
-
-        # Инициализируем пустой кэш
-        _message_cache = {
+        # Инициализируем базовую структуру
+        base_cache = {
             "trance": [],
             "lounge": [],
             "rock": [],
@@ -203,6 +191,24 @@ class MusicForwarder:
             "hits": [],
         }
 
+        # Пробуем загрузить из файла
+        if CACHE_FILE.exists():
+            try:
+                with open(CACHE_FILE, "r") as f:
+                    loaded = json.load(f)
+                # Мержим загруженные данные с базовой структурой
+                for key in base_cache:
+                    if key in loaded:
+                        base_cache[key] = loaded[key]
+                _message_cache = base_cache
+                total = sum(len(v) for v in _message_cache.values())
+                logger.info(f"Music cache loaded from file: {total} tracks")
+                _cache_loaded = True
+                return
+            except Exception as e:
+                logger.error(f"Failed to load music cache: {e}")
+
+        _message_cache = base_cache
         _cache_loaded = True
         logger.info("Music cache initialized (empty)")
 
