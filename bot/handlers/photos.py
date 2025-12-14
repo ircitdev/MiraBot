@@ -1,6 +1,7 @@
 """
 Photo handler.
-Отправка фотографий по запросу с паузами.
+Отправка фотографий по запросу с отслеживанием отправленных.
+Отправляет 1-2 фото за раз, не повторяется.
 """
 
 import asyncio
@@ -8,9 +9,17 @@ import random
 from pathlib import Path
 from typing import List
 
-from telegram import Update, InputMediaPhoto
+from telegram import Update
 from telegram.ext import ContextTypes
 from loguru import logger
+
+from ai.prompts.mira_legend import (
+    PHOTO_DESCRIPTIONS,
+    PHOTO_LIST,
+    TOTAL_PHOTOS,
+    get_photo_story,
+    get_all_photos_sent_message,
+)
 
 
 # Путь к папке с фотографиями
@@ -30,10 +39,22 @@ def get_all_photos() -> List[Path]:
     return sorted(photos)
 
 
-async def send_photos(update: Update, context: ContextTypes.DEFAULT_TYPE) -> bool:
+async def send_photos(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE,
+    user_data: dict = None,
+) -> bool:
     """
-    Отправляет фотографии если пользователь просит.
-    С паузами и сообщениями для естественности.
+    Отправляет 1-2 фотографии если пользователь просит.
+    Отслеживает какие фото уже отправлены конкретному пользователю.
+
+    Args:
+        update: Telegram update
+        context: Bot context
+        user_data: Данные пользователя из БД (содержит sent_photos)
+
+    Returns:
+        True если обработано, False если это не запрос фото
     """
     message_text = update.message.text.lower() if update.message.text else ""
 
@@ -41,73 +62,110 @@ async def send_photos(update: Update, context: ContextTypes.DEFAULT_TYPE) -> boo
     photo_keywords = [
         "фото", "фотк", "фотограф", "картинк", "покажи себя",
         "как выглядишь", "твоё фото", "твое фото", "скинь фото",
-        "пришли фото", "отправь фото", "покажи фото"
+        "пришли фото", "отправь фото", "покажи фото", "своё фото",
+        "свое фото", "себя покажи", "как ты выглядишь", "увидеть тебя",
     ]
 
     if not any(kw in message_text for kw in photo_keywords):
         return False
 
-    photos = get_all_photos()
+    # Получаем список уже отправленных фото для этого пользователя
+    sent_photos = []
+    if user_data and user_data.get("sent_photos"):
+        sent_photos = user_data.get("sent_photos", [])
 
-    if not photos:
-        await update.message.reply_text(
-            "У меня пока нет фотографий, но я работаю над этим 💛"
-        )
+    # Находим неотправленные фото
+    unsent = [p for p in PHOTO_LIST if p not in sent_photos]
+
+    # Если все фото уже отправлены
+    if not unsent:
+        await update.message.reply_text(get_all_photos_sent_message())
         return True
 
-    # Перемешиваем фотографии
-    random.shuffle(photos)
-    first_batch = photos[:3]
-    remaining = photos[3:]
+    # Выбираем 1-2 фото для отправки
+    num_to_send = min(random.choice([1, 1, 2]), len(unsent))  # чаще 1, иногда 2
+    photos_to_send = random.sample(unsent, num_to_send)
 
-    # 1. Первое сообщение - ищем
-    await update.message.reply_text("Хм, сейчас поищу в архивах... 🔍")
-    await asyncio.sleep(2)
+    # Сообщаем сколько осталось
+    remaining_after = len(unsent) - num_to_send
+
+    # 1. Ищем в архивах
+    search_messages = [
+        "Сейчас поищу что-нибудь... 📱",
+        "Хм, дай подумать какую показать... 🤔",
+        "О, у меня есть кое-что! Секунду... 📸",
+        "Сейчас, полистаю галерею... 🔍",
+    ]
+    await update.message.reply_text(random.choice(search_messages))
+    await asyncio.sleep(random.uniform(1.5, 2.5))
 
     # 2. Показываем "печатает..."
-    await update.message.chat.send_action("typing")
-    await asyncio.sleep(1.5)
-
-    # 3. Нашла!
-    await update.message.reply_text("Кажется, что-то нашла! 📸")
-    await asyncio.sleep(1)
-
-    # 4. Отправляем первые 3 фотографии
     await update.message.chat.send_action("upload_photo")
-    await asyncio.sleep(0.5)
+    await asyncio.sleep(random.uniform(0.5, 1.0))
 
-    if len(first_batch) == 1:
-        with open(first_batch[0], "rb") as photo:
-            await update.message.reply_photo(photo)
-    else:
-        media_group = []
-        for photo_path in first_batch:
-            with open(photo_path, "rb") as f:
-                media_group.append(InputMediaPhoto(f.read()))
-        await update.message.reply_media_group(media_group)
+    # 3. Отправляем фото с историей
+    new_sent = []
 
-    # 5. Если есть ещё фото - отправляем после паузы
-    if remaining:
-        await asyncio.sleep(2)
-        await update.message.chat.send_action("typing")
-        await asyncio.sleep(1)
+    for photo_id in photos_to_send:
+        photo_info = get_photo_story(photo_id)
+        photo_path = PHOTOS_DIR / photo_id
 
-        await update.message.reply_text(f"О, и ещё такие есть! 💛")
-        await asyncio.sleep(1.5)
+        if not photo_path.exists():
+            logger.warning(f"Photo not found: {photo_path}")
+            continue
 
-        # Отправляем оставшиеся фото
-        await update.message.chat.send_action("upload_photo")
-        await asyncio.sleep(0.5)
+        # Отправляем фото
+        with open(photo_path, "rb") as photo:
+            await update.message.reply_photo(
+                photo,
+                caption=f"📸 {photo_info['title']}" if photo_info else None
+            )
 
-        if len(remaining) == 1:
-            with open(remaining[0], "rb") as photo:
-                await update.message.reply_photo(photo)
-        else:
-            media_group = []
-            for photo_path in remaining:
-                with open(photo_path, "rb") as f:
-                    media_group.append(InputMediaPhoto(f.read()))
-            await update.message.reply_media_group(media_group)
+        new_sent.append(photo_id)
 
-    logger.info(f"Sent {len(first_batch)} + {len(remaining)} photos")
+        # Пауза между фото
+        if len(photos_to_send) > 1 and photo_id != photos_to_send[-1]:
+            await asyncio.sleep(random.uniform(1.0, 2.0))
+
+    # 4. Рассказываем историю (для первого фото)
+    if new_sent:
+        first_photo_info = get_photo_story(new_sent[0])
+        if first_photo_info:
+            await asyncio.sleep(random.uniform(0.5, 1.0))
+            await update.message.chat.send_action("typing")
+            await asyncio.sleep(random.uniform(1.0, 1.5))
+
+            # История фото
+            story = first_photo_info["story"].strip()
+            await update.message.reply_text(story)
+
+    # 5. Возвращаем информацию о новых отправленных фото
+    # Это будет сохранено в user_data через message handler
+    context.user_data["new_sent_photos"] = new_sent
+
+    # Логируем
+    logger.info(
+        f"Sent {len(new_sent)} photos to user. "
+        f"Total sent: {len(sent_photos) + len(new_sent)}/{TOTAL_PHOTOS}"
+    )
+
     return True
+
+
+async def get_photo_for_context(photo_id: str) -> dict | None:
+    """
+    Возвращает информацию о фото для использования в контексте AI.
+    """
+    return get_photo_story(photo_id)
+
+
+def check_if_photo_request(text: str) -> bool:
+    """Проверяет, является ли текст запросом фотографии."""
+    text_lower = text.lower()
+    photo_keywords = [
+        "фото", "фотк", "картинк", "покажи себя",
+        "как выглядишь", "скинь фото", "пришли фото",
+        "отправь фото", "покажи фото", "своё фото",
+        "свое фото", "увидеть тебя",
+    ]
+    return any(kw in text_lower for kw in photo_keywords)
