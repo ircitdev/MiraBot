@@ -240,9 +240,9 @@ class HintGenerator:
             text = hint.text
             message = hint.message
 
-            # Убираем эмодзи если пользователь их не использует
+            # Убираем эмодзи из сообщения если пользователь их не использует
+            # НО оставляем в тексте кнопки — они помогают различать варианты
             if emoji_pref == "none":
-                text = re.sub(r'[\U0001F300-\U0001F9FF]', '', text).strip()
                 message = re.sub(r'[\U0001F300-\U0001F9FF]', '', message).strip()
 
             # Сокращаем для коротких сообщений
