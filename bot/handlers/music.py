@@ -4,6 +4,8 @@ Music Handler.
 """
 
 import re
+import asyncio
+import random
 from telegram import Update
 from telegram.ext import ContextTypes
 from loguru import logger
@@ -58,7 +60,30 @@ async def check_and_send_music(
         await update.message.reply_text(suggestion)
 
     logger.info(f"Sent music from {topic_key} to user {update.effective_user.id}")
+
+    # Запускаем отложенный follow-up (30-60 сек)
+    asyncio.create_task(_send_music_followup(context.bot, update.effective_chat.id))
+
     return True
+
+
+async def _send_music_followup(bot, chat_id: int):
+    """Отправляет follow-up сообщение через некоторое время после музыки."""
+    # Ждём 30-60 секунд
+    delay = random.randint(30, 60)
+    await asyncio.sleep(delay)
+
+    followups = [
+        "Как тебе? Заходит? 🎵",
+        "Ну как, нравится? 😊",
+        "Подходит под настроение?",
+        "Как тебе трек?",
+    ]
+
+    try:
+        await bot.send_message(chat_id, random.choice(followups))
+    except Exception as e:
+        logger.debug(f"Failed to send music followup: {e}")
 
 
 def detect_music_request(text: str) -> bool:
