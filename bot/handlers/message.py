@@ -5,6 +5,7 @@ Message handler.
 
 import traceback
 import base64
+import random
 import anthropic
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
@@ -185,33 +186,27 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
                 reply_markup=keyboard,
             )
 
-        # 9.5. Контекстные подсказки (кнопки быстрых ответов)
-        if not result["is_crisis"]:
-            # Получаем количество сообщений для контекста
+        # 9.5. Контекстные подсказки (20% шанс, только при вопросах)
+        response_text = result["response"]
+        # Показываем подсказки только если Мира задала вопрос и рандом < 20%
+        if (not result["is_crisis"] and
+            response_text.rstrip().endswith("?") and
+            random.random() < 0.20):
             message_count = await conversation_repo.count_by_user(user.id)
-
-            # Генерируем подсказки с учётом настроения и стиля общения
             hints = hint_generator.generate(
-                response_text=result["response"],
+                response_text=response_text,
                 tags=result["tags"],
                 mood_data=mood_entry,
                 message_count=message_count,
                 communication_style=user.communication_style,
             )
-
             if hints:
-                # Сохраняем подсказки в context для callback обработчика
                 context.user_data["current_hints"] = [
                     {"text": h.text, "message": h.message}
                     for h in hints
                 ]
-
-                # Отправляем кнопки
                 keyboard = get_hints_keyboard(hints)
-                await update.message.reply_text(
-                    "💬",
-                    reply_markup=keyboard,
-                )
+                await update.message.reply_text("💬", reply_markup=keyboard)
 
         # 10. Проверяем триггеры реферала
         if not is_premium:
