@@ -387,6 +387,48 @@
             color: white;
         }
 
+        /* Feature Grid */
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .feature-card {
+            background: white;
+            border-radius: 16px;
+            padding: 20px;
+            border: 1px solid rgba(255, 183, 133, 0.2);
+            box-shadow: 0 4px 15px rgba(139, 90, 43, 0.08);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(139, 90, 43, 0.15);
+        }
+
+        .feature-card h4 {
+            font-size: 16px;
+            color: #5D4037;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .feature-card .feature-icon {
+            font-size: 24px;
+        }
+
+        .feature-card p {
+            font-size: 14px;
+            color: #6D4C41;
+            line-height: 1.5;
+            margin-bottom: 10px;
+        }
+
         /* Tech Stack Grid */
         .tech-grid {
             display: grid;
@@ -551,101 +593,59 @@
             Возможности
         </div>
 
-        <div class="accordion">
-            <div class="accordion-item">
-                <div class="accordion-header" onclick="toggleAccordion(this)">
-                    <h3>
-                        <span class="accordion-icon">🤖</span>
-                        AI-диалог
-                    </h3>
-                    <span class="accordion-arrow">▼</span>
-                </div>
-                <div class="accordion-content">
-                    <div class="accordion-body">
-                        <p>Streaming ответы через Claude Sonnet 4.5 с контекстом до 200K токенов. Сообщения обновляются в реальном времени по мере генерации.</p>
-                        <p><span class="badge badge-primary">Streaming</span> <span class="badge badge-success">200K context</span></p>
-                    </div>
-                </div>
+        <div class="feature-grid">
+            <div class="feature-card">
+                <h4><span class="feature-icon">🤖</span> AI-диалог</h4>
+                <p>Streaming ответы через Claude Sonnet 4.5 с контекстом до 200K токенов. Сообщения обновляются в реальном времени по мере генерации.</p>
+                <p><span class="badge badge-primary">Streaming</span> <span class="badge badge-success">200K context</span></p>
             </div>
 
-            <div class="accordion-item">
-                <div class="accordion-header" onclick="toggleAccordion(this)">
-                    <h3>
-                        <span class="accordion-icon">😊</span>
-                        Mood Tracking
-                    </h3>
-                    <span class="accordion-arrow">▼</span>
-                </div>
-                <div class="accordion-content">
-                    <div class="accordion-body">
-                        <p>Автоматический анализ настроения пользователя по 12 эмоциям с расчётом уверенности и динамики изменений.</p>
-                        <p><span class="badge badge-primary">12 emotions</span> <span class="badge badge-success">Confidence scoring</span></p>
-                    </div>
-                </div>
+            <div class="feature-card">
+                <h4><span class="feature-icon">😊</span> Mood Tracking</h4>
+                <p>Автоматический анализ настроения пользователя по 12 эмоциям с расчётом уверенности и динамики изменений.</p>
+                <p><span class="badge badge-primary">12 emotions</span> <span class="badge badge-success">Confidence scoring</span></p>
             </div>
 
-            <div class="accordion-item">
-                <div class="accordion-header" onclick="toggleAccordion(this)">
-                    <h3>
-                        <span class="accordion-icon">💡</span>
-                        Контекстные подсказки
-                    </h3>
-                    <span class="accordion-arrow">▼</span>
-                </div>
-                <div class="accordion-content">
-                    <div class="accordion-body">
-                        <p>Умные quick reply кнопки, адаптирующиеся к контексту диалога с приоритезацией по релевантности.</p>
-                        <p><span class="badge badge-primary">Context-aware</span> <span class="badge badge-success">Priority-based</span></p>
-                    </div>
-                </div>
+            <div class="feature-card">
+                <h4><span class="feature-icon">💡</span> Контекстные подсказки</h4>
+                <p>Умные quick reply кнопки, адаптирующиеся к контексту диалога с приоритезацией по релевантности.</p>
+                <p><span class="badge badge-primary">Context-aware</span> <span class="badge badge-success">Priority-based</span></p>
             </div>
 
-            <div class="accordion-item">
-                <div class="accordion-header" onclick="toggleAccordion(this)">
-                    <h3>
-                        <span class="accordion-icon">🚨</span>
-                        Кризис-детекция
-                    </h3>
-                    <span class="accordion-arrow">▼</span>
-                </div>
-                <div class="accordion-content">
-                    <div class="accordion-body">
-                        <p>Автоматическое выявление суицидальных мыслей, панических атак и кризисных состояний с немедленным предложением помощи.</p>
-                        <p><span class="badge badge-danger">Critical</span> <span class="badge badge-warning">Auto-detect</span></p>
-                    </div>
-                </div>
+            <div class="feature-card">
+                <h4><span class="feature-icon">🚨</span> Кризис-детекция</h4>
+                <p>Автоматическое выявление суицидальных мыслей, панических атак и кризисных состояний с немедленным предложением помощи.</p>
+                <p><span class="badge badge-danger">Critical</span> <span class="badge badge-warning">Auto-detect</span></p>
             </div>
 
-            <div class="accordion-item">
-                <div class="accordion-header" onclick="toggleAccordion(this)">
-                    <h3>
-                        <span class="accordion-icon">👤</span>
-                        Персонализация
-                    </h3>
-                    <span class="accordion-arrow">▼</span>
-                </div>
-                <div class="accordion-content">
-                    <div class="accordion-body">
-                        <p>Запоминание имени пользователя, персоны (Мира/Макс), пола, партнёра и предпочтений в диалоге.</p>
-                        <p><span class="badge badge-primary">Name memory</span> <span class="badge badge-success">Persona switch</span></p>
-                    </div>
-                </div>
+            <div class="feature-card">
+                <h4><span class="feature-icon">👤</span> Персонализация</h4>
+                <p>Запоминание имени пользователя, персоны (Мира/Макс), пола, партнёра и предпочтений в диалоге.</p>
+                <p><span class="badge badge-primary">Name memory</span> <span class="badge badge-success">Persona switch</span></p>
             </div>
 
-            <div class="accordion-item">
-                <div class="accordion-header" onclick="toggleAccordion(this)">
-                    <h3>
-                        <span class="accordion-icon">💎</span>
-                        Подписки
-                    </h3>
-                    <span class="accordion-arrow">▼</span>
-                </div>
-                <div class="accordion-content">
-                    <div class="accordion-body">
-                        <p>Free план (5 сообщений/день) и Premium (безлимит). Интеграция с ЮKassa для оплаты.</p>
-                        <p><span class="badge badge-primary">Free tier</span> <span class="badge badge-success">Premium</span></p>
-                    </div>
-                </div>
+            <div class="feature-card">
+                <h4><span class="feature-icon">💎</span> Подписки</h4>
+                <p>Free план (5 сообщений/день) и Premium (безлимит). Интеграция с ЮKassa для оплаты.</p>
+                <p><span class="badge badge-primary">Free tier</span> <span class="badge badge-success">Premium</span></p>
+            </div>
+
+            <div class="feature-card">
+                <h4><span class="feature-icon">🎁</span> Реферальная программа</h4>
+                <p>Уникальные реферальные ссылки, отслеживание приглашённых пользователей и бонусы за активность.</p>
+                <p><span class="badge badge-success">Rewards</span> <span class="badge badge-primary">Tracking</span></p>
+            </div>
+
+            <div class="feature-card">
+                <h4><span class="feature-icon">🧘</span> Ритуалы</h4>
+                <p>Медитации, дыхательные практики, аффирмации и музыкальная терапия для поддержки ментального здоровья.</p>
+                <p><span class="badge badge-primary">Meditation</span> <span class="badge badge-success">Breathing</span></p>
+            </div>
+
+            <div class="feature-card">
+                <h4><span class="feature-icon">⚙️</span> Админ-панель</h4>
+                <p>FastAPI dashboard для управления пользователями, статистикой, подписками и экспортом данных в Excel.</p>
+                <p><span class="badge badge-warning">Admin only</span> <span class="badge badge-primary">FastAPI</span></p>
             </div>
         </div>
 
@@ -656,7 +656,7 @@
         </div>
 
         <div class="accordion">
-            <div class="accordion-item">
+            <div class="accordion-item active">
                 <div class="accordion-header" onclick="toggleAccordion(this)">
                     <h3>
                         <span class="accordion-icon">😊</span>
