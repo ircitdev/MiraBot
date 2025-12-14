@@ -257,12 +257,13 @@ class MusicForwarder:
             return False
 
         try:
-            # Пересылаем сообщение
+            # Пересылаем сообщение пользователю
+            # Примечание: message_thread_id нужен только для групп с топиками,
+            # в личный чат он не передаётся
             await self.bot.forward_message(
                 chat_id=chat_id,
                 from_chat_id=self.supergroup_id,
                 message_id=message_id,
-                message_thread_id=topic_info["thread_id"],
             )
 
             logger.info(f"Forwarded music from {topic_key} to chat {chat_id}")
