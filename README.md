@@ -120,7 +120,7 @@ python -m bot.main
 
 ### Компоненты системы
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────────┐
 │                        Telegram User                            │
 └───────────────────────────┬─────────────────────────────────────┘
@@ -172,6 +172,68 @@ python -m bot.main
 9. **Сохранение** → Database (messages + mood_entries)
 10. **Отправка подсказок** → Inline кнопки
 
+### Ключевые модули
+
+#### Context Builder - Построение контекста
+
+```python
+# Загрузка последних N сообщений из истории
+history = await conversation_repo.get_history(
+    user_id=user.id,
+    limit=20  # Free: 10, Premium: 20
+)
+
+# Форматирование для Claude API
+messages = [
+    {"role": "user", "content": "..."},
+    {"role": "assistant", "content": "..."}
+]
+```
+
+#### Rate Limiting - Ограничение частоты
+
+```python
+# Redis-based ограничения
+async def check_rate_limit(user_id: int, is_premium: bool):
+    if is_premium:
+        return True  # Безлимит
+
+    # Free: 10 сообщений/день
+    count = await redis.incr(f"msg_count:{user_id}:{today}")
+    await redis.expire(f"msg_count:{user_id}:{today}", 86400)
+
+    return count <= FREE_MESSAGES_PER_DAY
+```
+
+#### Text Parsing - Парсинг имени
+
+```python
+# Извлечение имени из текста пользователя
+def extract_name_from_text(text: str) -> str:
+    # "Меня зовут Аня" → "Аня"
+    # "Я Маша" → "Маша"
+    patterns = [
+        r"(?:зовут|имя)\s+([А-ЯЁа-яё]+)",
+        r"^я\s+([А-ЯЁа-яё]+)",
+        r"меня\s+([А-ЯЁа-яё]+)",
+    ]
+    # Санитизация через sanitize_name()
+```
+
+#### Error Handling - Обработка ошибок
+
+```python
+# Graceful degradation
+try:
+    response = await claude.generate_response(...)
+except anthropic.APIConnectionError:
+    await notify_user("Не могу связаться с сервером...")
+    await save_message(tags=["error:api_connection"])
+except anthropic.RateLimitError:
+    await notify_user("Слишком много запросов...")
+    await save_message(tags=["error:rate_limit"])
+```
+
 ### Безопасность
 
 #### Санитизация входных данных
@@ -203,7 +265,7 @@ python -m bot.main
 
 ## Структура проекта
 
-```
+```text
 mira_bot/
 ├── ai/                      # AI модули
 │   ├── claude_client.py     # Claude API клиент
@@ -362,6 +424,7 @@ curl http://localhost:8080/health
 ```
 
 Ответ:
+
 ```json
 {
   "status": "healthy",
