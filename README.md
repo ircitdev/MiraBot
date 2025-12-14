@@ -116,6 +116,91 @@ python -m bot.main
 
 Подробнее: [DEVELOPMENT.md](DEVELOPMENT.md)
 
+## Архитектура
+
+### Компоненты системы
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                        Telegram User                            │
+└───────────────────────────┬─────────────────────────────────────┘
+                            │
+                ┌───────────▼──────────────┐
+                │   python-telegram-bot    │
+                │   (Webhooks/Polling)     │
+                └───────────┬──────────────┘
+                            │
+        ┌───────────────────┼───────────────────┐
+        │                   │                   │
+   ┌────▼─────┐      ┌──────▼──────┐    ┌──────▼──────┐
+   │ Message  │      │   Voice     │    │   Photo     │
+   │ Handler  │      │   Handler   │    │   Handler   │
+   └────┬─────┘      └──────┬──────┘    └──────┬──────┘
+        │                   │                   │
+        └───────────────────┼───────────────────┘
+                            │
+                ┌───────────▼──────────────┐
+                │   ClaudeClient           │
+                │   (Anthropic API)        │
+                └───────────┬──────────────┘
+                            │
+        ┌───────────────────┼───────────────────┐
+        │                   │                   │
+   ┌────▼─────┐      ┌──────▼──────┐    ┌──────▼──────┐
+   │  Mood    │      │    Hint     │    │  Sticker    │
+   │ Analyzer │      │  Generator  │    │   Sender    │
+   └────┬─────┘      └──────┬──────┘    └──────┬──────┘
+        │                   │                   │
+        └───────────────────┼───────────────────┘
+                            │
+                ┌───────────▼──────────────┐
+                │   Database (PostgreSQL)  │
+                │   Redis (Cache/Limits)   │
+                └──────────────────────────┘
+```
+
+### Message Flow
+
+1. **Получение сообщения** → Telegram Bot API
+2. **Валидация** → `sanitizer.validate_message()`
+3. **Проверка лимитов** → Redis rate limiting
+4. **Получение контекста** → `conversation_repo.get_history()`
+5. **AI генерация** → Claude API (streaming)
+6. **Анализ настроения** → `mood_analyzer.analyze()`
+7. **Генерация подсказок** → `hint_generator.generate()`
+8. **Отправка стикера** → `maybe_send_sticker()`
+9. **Сохранение** → Database (messages + mood_entries)
+10. **Отправка подсказок** → Inline кнопки
+
+### Безопасность
+
+#### Санитизация входных данных
+
+- Максимальная длина сообщения: 4096 символов
+- Блокировка SQL injection паттернов
+- Фильтрация XSS попыток
+- Валидация имён и текста через regex
+
+#### Rate Limiting
+
+- Redis-based ограничения
+- Free: 10 сообщений/день
+- Premium: безлимит
+- Anti-flood защита
+
+#### Защита данных
+
+- Санитизация перед сохранением в БД
+- Параметризованные SQL запросы (SQLAlchemy ORM)
+- Безопасное хранение токенов в `.env`
+- PID file locking (предотвращение multiple instances)
+
+#### Обработка кризисных ситуаций
+
+- Детекция суицидальных мыслей
+- Автоматическое предложение телефона доверия
+- Логирование кризисных сообщений для модерации
+
 ## Структура проекта
 
 ```
@@ -124,18 +209,33 @@ mira_bot/
 │   ├── claude_client.py     # Claude API клиент
 │   ├── mood_analyzer.py     # Анализ настроения
 │   ├── hint_generator.py    # Генерация подсказок
+│   ├── style_analyzer.py    # Анализ стиля общения
 │   └── prompts/             # Системные промпты
+│       ├── system_prompt.py # Основной промпт Миры
+│       └── mira_legend.py   # Легенда персонажа
 ├── bot/                     # Telegram bot
 │   ├── handlers/            # Обработчики команд
+│   │   ├── message.py       # Текстовые сообщения
+│   │   ├── voice.py         # Голосовые сообщения
+│   │   ├── photos.py        # Фотографии
+│   │   ├── start.py         # /start, онбординг
+│   │   └── admin.py         # Админ-панель
 │   ├── keyboards/           # Inline клавиатуры
 │   └── middlewares/         # Middlewares (rate limit)
 ├── database/                # База данных
 │   ├── models.py            # SQLAlchemy модели
 │   ├── repositories/        # Repository pattern
+│   │   ├── user.py
+│   │   ├── conversation.py
+│   │   ├── mood.py
+│   │   └── subscription.py
 │   └── migrations/          # Alembic миграции
 ├── services/                # Бизнес-логика
-│   ├── scheduler.py         # APScheduler
+│   ├── scheduler.py         # APScheduler (ритуалы)
 │   ├── referral.py          # Реферальная система
+│   ├── health.py            # Health check сервер
+│   ├── redis_client.py      # Redis клиент
+│   ├── sticker_sender.py    # Отправка стикеров
 │   └── export.py            # Экспорт данных
 ├── utils/                   # Утилиты
 │   ├── text_parser.py       # Парсинг текста
@@ -145,7 +245,8 @@ mira_bot/
 │   ├── backup_db.sh         # Бэкап БД
 │   └── restore_db.sh        # Восстановление БД
 ├── config/                  # Конфигурация
-│   └── settings.py          # Pydantic Settings
+│   ├── settings.py          # Pydantic Settings
+│   └── constants.py         # Константы
 └── docs/                    # Документация
 ```
 
