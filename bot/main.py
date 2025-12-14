@@ -37,6 +37,11 @@ from bot.handlers.payments import (
     handle_subscription_callback,
     handle_payment_callback,
 )
+from bot.handlers.content import (
+    exercises_command,
+    affirmation_command,
+    handle_content_callback,
+)
 from services.scheduler import start_scheduler, stop_scheduler
 from services.redis_client import redis_client
 from services.health import health_server
@@ -257,6 +262,8 @@ def create_application() -> Application:
     application.add_handler(CommandHandler("referral", referral_command))
     application.add_handler(CommandHandler("rituals", rituals_command))
     application.add_handler(CommandHandler("privacy", privacy_command))
+    application.add_handler(CommandHandler("exercises", exercises_command))
+    application.add_handler(CommandHandler("affirmation", affirmation_command))
 
     # Админ-панель с ConversationHandler
     admin_conv_handler = ConversationHandler(
@@ -317,8 +324,12 @@ def create_application() -> Application:
         pattern=r"^pay:"
     ))
     application.add_handler(CallbackQueryHandler(
+        handle_content_callback,
+        pattern=r"^(ex:|aff:)"  # Упражнения и аффирмации
+    ))
+    application.add_handler(CallbackQueryHandler(
         handle_callback,
-        pattern=r"^(?!subscribe:|pay:)"  # Все остальные
+        pattern=r"^(?!subscribe:|pay:|ex:|aff:)"  # Все остальные
     ))
     
     # Обработчик голосовых сообщений
