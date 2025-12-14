@@ -198,7 +198,7 @@ class HintGenerator:
 
         for pattern, trigger_hints in self.RESPONSE_TRIGGERS.items():
             # Пропускаем паттерн "предложить музыку" если музыка уже играет
-            if music_is_playing and "Включи!" in [h.text for h in trigger_hints]:
+            if music_is_playing and any("Включи" in h.text for h in trigger_hints):
                 continue
             if re.search(pattern, response_lower):
                 hints.extend(trigger_hints)
