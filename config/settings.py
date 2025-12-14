@@ -32,6 +32,12 @@ class Settings(BaseSettings):
     # =====================================
     OPENAI_API_KEY: str = Field(default="", description="API ключ OpenAI для Whisper")
     WHISPER_MODEL: str = Field(default="whisper-1", description="Модель Whisper")
+
+    # =====================================
+    # YANDEX SPEECHKIT (TTS)
+    # =====================================
+    YANDEX_API_KEY: str = Field(default="", description="API ключ Yandex Cloud")
+    YANDEX_FOLDER_ID: str = Field(default="", description="ID каталога Yandex Cloud")
     
     # =====================================
     # DATABASE

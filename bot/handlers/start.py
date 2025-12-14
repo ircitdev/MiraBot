@@ -112,6 +112,7 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
 **Команды:**
 /exercises — упражнения (дыхание, релаксация, заземление)
 /affirmation — аффирмация дня
+/meditation — медитации (тексты для практики)
 /settings — настройки бота
 /subscription — твоя подписка
 /referral — пригласи подругу

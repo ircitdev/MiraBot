@@ -40,6 +40,7 @@ from bot.handlers.payments import (
 from bot.handlers.content import (
     exercises_command,
     affirmation_command,
+    meditation_command,
     handle_content_callback,
 )
 from services.scheduler import start_scheduler, stop_scheduler
@@ -264,6 +265,7 @@ def create_application() -> Application:
     application.add_handler(CommandHandler("privacy", privacy_command))
     application.add_handler(CommandHandler("exercises", exercises_command))
     application.add_handler(CommandHandler("affirmation", affirmation_command))
+    application.add_handler(CommandHandler("meditation", meditation_command))
 
     # Админ-панель с ConversationHandler
     admin_conv_handler = ConversationHandler(
@@ -325,11 +327,11 @@ def create_application() -> Application:
     ))
     application.add_handler(CallbackQueryHandler(
         handle_content_callback,
-        pattern=r"^(ex:|aff:)"  # Упражнения и аффирмации
+        pattern=r"^(ex:|aff:|med:)"  # Упражнения, аффирмации, медитации
     ))
     application.add_handler(CallbackQueryHandler(
         handle_callback,
-        pattern=r"^(?!subscribe:|pay:|ex:|aff:)"  # Все остальные
+        pattern=r"^(?!subscribe:|pay:|ex:|aff:|med:)"  # Все остальные
     ))
     
     # Обработчик голосовых сообщений

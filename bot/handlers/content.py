@@ -23,6 +23,14 @@ from content.affirmations import (
     format_affirmation,
     AFFIRMATION_CATEGORIES,
 )
+from content.meditations import (
+    MEDITATIONS,
+    MeditationType,
+    get_meditation_by_id,
+    get_meditations_by_type,
+    format_meditation,
+    format_meditation_script,
+)
 
 
 async def exercises_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -73,6 +81,39 @@ async def affirmation_command(update: Update, context: ContextTypes.DEFAULT_TYPE
             InlineKeyboardButton("📚 Категории", callback_data="aff:categories"),
         ],
     ]
+
+    await update.message.reply_text(
+        text,
+        reply_markup=InlineKeyboardMarkup(keyboard),
+        parse_mode="Markdown",
+    )
+
+
+async def meditation_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Обработчик команды /meditation — показывает меню медитаций."""
+
+    keyboard = [
+        [
+            InlineKeyboardButton("🌬️ Быстрая (2 мин)", callback_data="med:quick_breath"),
+        ],
+        [
+            InlineKeyboardButton("🌊 При тревоге", callback_data="med:anxiety_relief"),
+            InlineKeyboardButton("🧘‍♀️ Расслабление", callback_data="med:body_relaxation"),
+        ],
+        [
+            InlineKeyboardButton("🌅 Утренняя", callback_data="med:morning_intention"),
+            InlineKeyboardButton("🌙 Перед сном", callback_data="med:sleep_preparation"),
+        ],
+        [
+            InlineKeyboardButton("💛 Самосострадание", callback_data="med:self_compassion"),
+        ],
+    ]
+
+    text = """🧘 **Медитации**
+
+Выбери медитацию — я отправлю тебе аудио-гид или текст, который можно читать себе вслух.
+
+Найди спокойное место, устройся поудобнее."""
 
     await update.message.reply_text(
         text,
@@ -263,6 +304,82 @@ async def handle_content_callback(update: Update, context: ContextTypes.DEFAULT_
 
         await query.edit_message_text(
             f"**{category_name}**\n\n✨ {affirmation}",
+            reply_markup=InlineKeyboardMarkup(keyboard),
+            parse_mode="Markdown",
+        )
+
+    # === МЕДИТАЦИИ ===
+
+    elif data.startswith("med:"):
+        # Показать медитацию
+        meditation_id = data.replace("med:", "")
+        meditation = get_meditation_by_id(meditation_id)
+
+        if meditation:
+            keyboard = [
+                [
+                    InlineKeyboardButton("📖 Читать текст", callback_data=f"med:text:{meditation_id}"),
+                ],
+                [
+                    InlineKeyboardButton("🔄 Другая медитация", callback_data="med:menu"),
+                ],
+            ]
+
+            await query.edit_message_text(
+                format_meditation(meditation),
+                reply_markup=InlineKeyboardMarkup(keyboard),
+                parse_mode="Markdown",
+            )
+
+    elif data.startswith("med:text:"):
+        # Показать текст медитации для чтения
+        meditation_id = data.replace("med:text:", "")
+        meditation = get_meditation_by_id(meditation_id)
+
+        if meditation:
+            script = format_meditation_script(meditation)
+
+            # Telegram имеет лимит 4096 символов, разбиваем если нужно
+            if len(script) <= 4000:
+                keyboard = [
+                    [
+                        InlineKeyboardButton("◀️ Назад", callback_data=f"med:{meditation_id}"),
+                    ],
+                ]
+                await query.edit_message_text(
+                    f"🧘 **{meditation.name}**\n\n{script}",
+                    reply_markup=InlineKeyboardMarkup(keyboard),
+                    parse_mode="Markdown",
+                )
+            else:
+                # Для длинных текстов отправляем новым сообщением
+                await query.edit_message_text(
+                    f"🧘 **{meditation.name}**\n\nТекст медитации ниже 👇",
+                    parse_mode="Markdown",
+                )
+                await query.message.reply_text(script)
+
+    elif data == "med:menu":
+        # Вернуться в меню медитаций
+        keyboard = [
+            [
+                InlineKeyboardButton("🌬️ Быстрая (2 мин)", callback_data="med:quick_breath"),
+            ],
+            [
+                InlineKeyboardButton("🌊 При тревоге", callback_data="med:anxiety_relief"),
+                InlineKeyboardButton("🧘‍♀️ Расслабление", callback_data="med:body_relaxation"),
+            ],
+            [
+                InlineKeyboardButton("🌅 Утренняя", callback_data="med:morning_intention"),
+                InlineKeyboardButton("🌙 Перед сном", callback_data="med:sleep_preparation"),
+            ],
+            [
+                InlineKeyboardButton("💛 Самосострадание", callback_data="med:self_compassion"),
+            ],
+        ]
+
+        await query.edit_message_text(
+            "🧘 **Медитации**\n\nВыбери медитацию:",
             reply_markup=InlineKeyboardMarkup(keyboard),
             parse_mode="Markdown",
         )
