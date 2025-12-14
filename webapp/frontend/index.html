@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Мира — Настройки и Статистика</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+    <div id="app">
+        <!-- Tabs -->
+        <div class="tabs">
+            <button class="tab active" data-tab="stats">Статистика</button>
+            <button class="tab" data-tab="settings">Настройки</button>
+        </div>
+
+        <!-- Stats Tab -->
+        <div id="stats-tab" class="tab-content active">
+            <div class="section">
+                <h2>📊 Статистика</h2>
+
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-value" id="total-messages">-</div>
+                        <div class="stat-label">Всего сообщений</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="week-messages">-</div>
+                        <div class="stat-label">За неделю</div>
+                    </div>
+                </div>
+
+                <div class="subscription-card">
+                    <h3 id="subscription-title">Premium</h3>
+                    <p id="subscription-info"></p>
+                </div>
+            </div>
+
+            <div class="section">
+                <h3>📈 Настроение за неделю</h3>
+                <canvas id="mood-chart"></canvas>
+            </div>
+
+            <div class="section">
+                <h3>💭 Топ темы</h3>
+                <div id="topics-list"></div>
+            </div>
+
+            <div class="section">
+                <h3>😊 Эмоции</h3>
+                <div id="emotions-list"></div>
+            </div>
+        </div>
+
+        <!-- Settings Tab -->
+        <div id="settings-tab" class="tab-content">
+            <div class="section">
+                <h2>⚙️ Настройки</h2>
+
+                <div class="setting-group">
+                    <label for="display-name">Как к тебе обращаться</label>
+                    <input type="text" id="display-name" placeholder="Имя">
+                </div>
+
+                <div class="setting-group">
+                    <label for="persona">Персона</label>
+                    <select id="persona">
+                        <option value="mira">Мира (подруга, 42)</option>
+                        <option value="mark">Марк (друг, 45)</option>
+                    </select>
+                </div>
+
+                <div class="setting-group">
+                    <label for="partner-name">Имя партнёра</label>
+                    <input type="text" id="partner-name" placeholder="Имя партнёра">
+                </div>
+
+                <div class="setting-group">
+                    <label for="partner-gender">Пол партнёра</label>
+                    <select id="partner-gender">
+                        <option value="">Не указано</option>
+                        <option value="male">Мужской</option>
+                        <option value="female">Женский</option>
+                    </select>
+                </div>
+
+                <div class="setting-group">
+                    <label>Праздничные даты</label>
+                    <input type="date" id="birthday" placeholder="День рождения">
+                    <label class="small-label">День рождения</label>
+                    <input type="date" id="anniversary" placeholder="Годовщина">
+                    <label class="small-label">Годовщина свадьбы</label>
+                </div>
+
+                <div class="setting-group">
+                    <label>Ритуалы</label>
+                    <div class="checkbox-group">
+                        <label>
+                            <input type="checkbox" id="ritual-morning" data-ritual="morning">
+                            Утренний check-in
+                        </label>
+                        <label>
+                            <input type="checkbox" id="ritual-evening" data-ritual="evening">
+                            Вечерний check-in
+                        </label>
+                    </div>
+                </div>
+
+                <div class="setting-group" id="time-settings">
+                    <label for="morning-time">Время утреннего ритуала</label>
+                    <input type="time" id="morning-time">
+
+                    <label for="evening-time">Время вечернего ритуала</label>
+                    <input type="time" id="evening-time">
+                </div>
+
+                <div class="setting-group">
+                    <label>
+                        <input type="checkbox" id="proactive-messages">
+                        Проактивные сообщения
+                    </label>
+                    <span class="hint">Мира будет иногда писать первой</span>
+                </div>
+
+                <button id="save-settings" class="btn-primary">Сохранить</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/app.js"></script>
+</body>
+</html>

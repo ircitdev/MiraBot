@@ -39,6 +39,64 @@ mood_repo = MoodRepository()
 referral_service = ReferralService()
 
 
+async def _get_fresh_user_data(user) -> dict:
+    """
+    Получает актуальные данные пользователя из БД.
+    ВАЖНО: Всегда перечитывает display_name из БД, чтобы учесть изменения.
+    """
+    fresh_user = await user_repo.get(user.id)
+    return {
+        "persona": user.persona,
+        "display_name": fresh_user.display_name if fresh_user else user.display_name,
+        "partner_name": user.partner_name,
+        "children_info": user.children_info,
+        "marriage_years": user.marriage_years,
+        "partner_gender": getattr(user, "partner_gender", None),
+        "communication_style": getattr(user, "communication_style", None),
+    }
+
+
+def _get_opening_question() -> str:
+    """
+    Возвращает приветственный вопрос в зависимости от времени суток.
+    Добавляет разнообразие и делает общение более естественным.
+    """
+    from datetime import datetime
+
+    hour = datetime.now().hour
+
+    # Утро (6:00 - 11:59)
+    if 6 <= hour < 12:
+        questions = [
+            "Как начался день?",
+            "Как утро?",
+            "Что на душе сегодня?",
+        ]
+    # День (12:00 - 17:59)
+    elif 12 <= hour < 18:
+        questions = [
+            "Как дела?",
+            "Как день проходит?",
+            "Что у тебя на душе?",
+        ]
+    # Вечер (18:00 - 22:59)
+    elif 18 <= hour < 23:
+        questions = [
+            "Как прошёл день?",
+            "Как дела сегодня?",
+            "О чём думаешь?",
+        ]
+    # Ночь (23:00 - 5:59)
+    else:
+        questions = [
+            "Не спится?",
+            "Что не даёт уснуть?",
+            "О чём думаешь?",
+        ]
+
+    return random.choice(questions)
+
+
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Основной обработчик текстовых сообщений."""
 
@@ -69,7 +127,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
                 "Если считаешь, что это ошибка — напиши в поддержку."
             )
             return
-        
+
         # 3. Проверяем онбординг
         if not user.onboarding_completed:
             await _handle_onboarding(update, context, user, message_text)
@@ -94,7 +152,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 
         # 4. Проверяем лимиты
         subscription = await subscription_repo.get_active(user.id)
-        is_premium = subscription and subscription.plan == "premium"
+        is_premium = subscription and subscription.plan in ("premium", "trial")
         
         if not is_premium:
             # Проверяем дневной лимит
@@ -110,15 +168,16 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         await user_repo.update_last_active(user.id)
         
         # 6. Подготавливаем данные пользователя
-        user_data = {
-            "persona": user.persona,
-            "display_name": user.display_name,
-            "partner_name": user.partner_name,
-            "children_info": user.children_info,
-            "marriage_years": user.marriage_years,
-            "partner_gender": getattr(user, "partner_gender", None),
-            "communication_style": user.communication_style,
-        }
+        # ВАЖНО: Всегда получаем актуальные данные из БД (включая display_name)
+        user_data = await _get_fresh_user_data(user)
+
+        # 6.5. Добавляем контекст последнего фото если есть
+        # Это помогает Claude понимать вопросы вроде "Сколько ему?" после показа фото
+        last_photo_context = context.user_data.get("last_photo_context")
+        if last_photo_context:
+            user_data["last_photo_sent"] = last_photo_context
+            # Очищаем контекст после использования
+            context.user_data.pop("last_photo_context", None)
 
         # 7. Streaming ответ от Claude
         result = await _generate_and_stream_response(
@@ -314,6 +373,14 @@ async def _generate_and_stream_response(
     Редактирует сообщение по мере получения текста.
     """
     import time
+    import asyncio
+
+    # 1. Реалистичная задержка перед ответом (имитация "думает")
+    delay = random.uniform(1.0, 5.0)
+
+    # Показываем "typing..." во время задержки
+    await update.message.chat.send_action("typing")
+    await asyncio.sleep(delay)
 
     # Отправляем начальное сообщение
     bot_message = await update.message.reply_text("⏳")
@@ -439,11 +506,13 @@ async def _handle_onboarding(
             )
 
             display_name = user.display_name or "дорогая"
+            opening_question = _get_opening_question()
+
             text = f"""Хорошо, {display_name} 💛
 
 Просто буду рядом. Можешь писать или отправлять голосовые 🎤
 
-Расскажи, что тебя сюда привело? Или начни с чего угодно — как прошёл день, что на душе..."""
+{opening_question}"""
 
             await update.message.reply_text(text)
             return
@@ -482,11 +551,13 @@ async def _handle_onboarding(
         )
 
         display_name = user.display_name or "дорогая"
+        opening_question = _get_opening_question()
+
         text = f"""{display_name}, спасибо что поделилась 💛
 
 Просто буду рядом. Можешь писать или отправлять голосовые 🎤
 
-Расскажи, что тебя сюда привело? Или начни с чего угодно — как прошёл день, что на душе..."""
+{opening_question}"""
 
         await update.message.reply_text(text)
 
@@ -667,7 +738,7 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
 
         # 4. Проверяем лимиты
         subscription = await subscription_repo.get_active(user.id)
-        is_premium = subscription and subscription.plan == "premium"
+        is_premium = subscription and subscription.plan in ("premium", "trial")
 
         if not is_premium:
             if subscription and subscription.messages_today >= settings.FREE_MESSAGES_PER_DAY:
@@ -699,14 +770,7 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         )
 
         # 8. Подготавливаем данные пользователя
-        user_data = {
-            "persona": user.persona,
-            "display_name": user.display_name,
-            "partner_name": user.partner_name,
-            "children_info": user.children_info,
-            "marriage_years": user.marriage_years,
-            "partner_gender": getattr(user, "partner_gender", None),
-        }
+        user_data = await _get_fresh_user_data(user)
 
         # 9. Генерируем ответ на фото через Claude
         result = await claude.generate_response_with_image(

@@ -67,11 +67,12 @@ class UserRepository:
             await session.commit()
             await session.refresh(user)
             
-            # Создаём бесплатную подписку
+            # Создаём trial подписку на 3 дня
             subscription = Subscription(
                 user_id=user.id,
-                plan="free",
+                plan="trial",
                 status="active",
+                expires_at=datetime.now() + timedelta(days=3),
             )
             session.add(subscription)
             await session.commit()

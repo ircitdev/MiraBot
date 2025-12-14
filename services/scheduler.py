@@ -60,7 +60,15 @@ def start_scheduler(application: Application) -> None:
         id="check_celebrations",
         replace_existing=True,
     )
-    
+
+    # Конвертация истёкших trial подписок в free — каждый час
+    scheduler.add_job(
+        convert_expired_trials,
+        trigger=IntervalTrigger(hours=1),
+        id="convert_trials",
+        replace_existing=True,
+    )
+
     scheduler.start()
     logger.info("Scheduler started")
 
@@ -467,3 +475,35 @@ async def _generate_anniversary_message(user) -> str:
         persona_name = "Мира" if user.persona == "mira" else "Марк"
         name = user.display_name or "подруга"
         return f"Привет, {name}! Сегодня особенный день — годовщина 💛 Это {persona_name}. Думаю о тебе."
+
+
+async def convert_expired_trials() -> None:
+    """Конвертирует истёкшие trial подписки в free."""
+    from database.session import get_session_context
+    from database.models import Subscription
+
+    async with get_session_context() as session:
+        # Находим истёкшие trial подписки
+        result = await session.execute(
+            select(Subscription).where(
+                and_(
+                    Subscription.plan == "trial",
+                    Subscription.status == "active",
+                    Subscription.expires_at <= datetime.now()
+                )
+            )
+        )
+        expired_trials = result.scalars().all()
+
+        for sub in expired_trials:
+            # Конвертируем в free
+            sub.plan = "free"
+            sub.expires_at = None
+            sub.messages_today = 0
+            sub.messages_reset_at = datetime.now().date()
+            logger.info(f"Converted trial subscription {sub.id} (user {sub.user_id}) to free")
+
+        await session.commit()
+
+        if expired_trials:
+            logger.info(f"Converted {len(expired_trials)} expired trial subscriptions to free")

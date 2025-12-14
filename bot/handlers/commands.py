@@ -19,10 +19,26 @@ referral_service = ReferralService()
 
 
 async def settings_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Обработчик команды /settings."""
-    
+    """Обработчик команды /settings - открывает WebApp с настройками."""
+
+    # WebApp URL (нужно будет настроить в production)
+    webapp_url = f"https://{settings.WEBAPP_DOMAIN or 'localhost:8081'}"
+
+    keyboard = InlineKeyboardMarkup([
+        [InlineKeyboardButton("⚙️ Открыть настройки", web_app=WebAppInfo(url=webapp_url))]
+    ])
+
+    await update.message.reply_text(
+        "Настройки и статистика теперь в удобном веб-приложении!",
+        reply_markup=keyboard
+    )
+
+
+async def settings_legacy_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Старый обработчик команды /settings (для совместимости)."""
+
     user = await user_repo.get_by_telegram_id(update.effective_user.id)
-    
+
     if not user:
         await update.message.reply_text("Сначала напиши /start 💛")
         return
@@ -37,10 +53,6 @@ async def settings_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -
         [InlineKeyboardButton(
             "⏰ Время ритуалов",
             callback_data="settings:ritual_time"
-        )],
-        [InlineKeyboardButton(
-            "📝 Изменить имя",
-            callback_data="settings:change_name"
         )],
     ]
     
@@ -71,11 +83,11 @@ async def subscription_command(update: Update, context: ContextTypes.DEFAULT_TYP
     if not subscription or subscription.plan == "free":
         # Бесплатный план
         messages_left = settings.FREE_MESSAGES_PER_DAY - (subscription.messages_today if subscription else 0)
-        
+
         keyboard = [
             [InlineKeyboardButton("✨ Подключить Premium", callback_data="subscribe:show")]
         ]
-        
+
         text = f"""📊 **Твоя подписка:** Free
 
 **Доступно сегодня:** {messages_left} сообщений из {settings.FREE_MESSAGES_PER_DAY}
@@ -92,7 +104,29 @@ async def subscription_command(update: Update, context: ContextTypes.DEFAULT_TYP
 • Еженедельные рефлексии
 
 Хочешь больше?"""
-        
+
+    elif subscription.plan == "trial":
+        # Trial период
+        days_left = (subscription.expires_at - datetime.now()).days if subscription.expires_at else 0
+
+        keyboard = [
+            [InlineKeyboardButton("✨ Продлить Premium", callback_data="subscribe:show")]
+        ]
+
+        text = f"""🎁 **Твоя подписка:** Trial Premium
+
+**Осталось дней:** {days_left} из 3
+
+Сейчас у тебя полный доступ:
+• Безлимитное общение
+• Полная память о наших разговорах
+• Все ритуалы и проактивные сообщения
+• Еженедельные рефлексии
+
+После окончания trial периода подписка автоматически перейдёт на бесплатный план ({settings.FREE_MESSAGES_PER_DAY} сообщений в день).
+
+Хочешь продлить Premium?"""
+
     else:
         # Премиум план
         days_left = (subscription.expires_at - datetime.now()).days if subscription.expires_at else "∞"

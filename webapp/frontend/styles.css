@@ -1,0 +1,244 @@
+/* Telegram WebApp Colors */
+:root {
+    --tg-theme-bg-color: #ffffff;
+    --tg-theme-text-color: #000000;
+    --tg-theme-hint-color: #999999;
+    --tg-theme-link-color: #2481cc;
+    --tg-theme-button-color: #2481cc;
+    --tg-theme-button-text-color: #ffffff;
+    --tg-theme-secondary-bg-color: #f4f4f5;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    background-color: var(--tg-theme-bg-color);
+    color: var(--tg-theme-text-color);
+    padding: 0;
+    margin: 0;
+}
+
+#app {
+    max-width: 600px;
+    margin: 0 auto;
+    padding-bottom: 20px;
+}
+
+/* Tabs */
+.tabs {
+    display: flex;
+    background: var(--tg-theme-secondary-bg-color);
+    padding: 8px;
+    gap: 8px;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.tab {
+    flex: 1;
+    padding: 12px;
+    border: none;
+    background: transparent;
+    color: var(--tg-theme-hint-color);
+    font-size: 15px;
+    font-weight: 500;
+    cursor: pointer;
+    border-radius: 8px;
+    transition: all 0.3s;
+}
+
+.tab.active {
+    background: var(--tg-theme-button-color);
+    color: var(--tg-theme-button-text-color);
+}
+
+.tab-content {
+    display: none;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+/* Sections */
+.section {
+    padding: 20px;
+    margin-bottom: 12px;
+}
+
+h2 {
+    font-size: 24px;
+    margin-bottom: 16px;
+}
+
+h3 {
+    font-size: 18px;
+    margin-bottom: 12px;
+    color: var(--tg-theme-hint-color);
+}
+
+/* Stats */
+.stats-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.stat-card {
+    background: var(--tg-theme-secondary-bg-color);
+    padding: 20px;
+    border-radius: 12px;
+    text-align: center;
+}
+
+.stat-value {
+    font-size: 32px;
+    font-weight: 700;
+    color: var(--tg-theme-button-color);
+}
+
+.stat-label {
+    font-size: 13px;
+    color: var(--tg-theme-hint-color);
+    margin-top: 4px;
+}
+
+.subscription-card {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 20px;
+    border-radius: 12px;
+    margin-bottom: 20px;
+}
+
+.subscription-card h3 {
+    color: white;
+    margin-bottom: 8px;
+}
+
+.subscription-card p {
+    opacity: 0.9;
+}
+
+/* Chart */
+#mood-chart {
+    width: 100%;
+    height: 200px;
+    background: var(--tg-theme-secondary-bg-color);
+    border-radius: 12px;
+}
+
+/* Lists */
+#topics-list, #emotions-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.topic-item, .emotion-item {
+    background: var(--tg-theme-secondary-bg-color);
+    padding: 12px 16px;
+    border-radius: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.topic-name, .emotion-name {
+    font-weight: 500;
+}
+
+.topic-count, .emotion-count {
+    color: var(--tg-theme-hint-color);
+    font-size: 14px;
+}
+
+/* Settings */
+.setting-group {
+    margin-bottom: 20px;
+}
+
+.setting-group label {
+    display: block;
+    font-weight: 500;
+    margin-bottom: 8px;
+    color: var(--tg-theme-text-color);
+}
+
+.small-label {
+    font-size: 13px;
+    color: var(--tg-theme-hint-color);
+    font-weight: 400;
+    margin-top: 4px;
+    margin-bottom: 8px;
+}
+
+.setting-group input[type="text"],
+.setting-group input[type="date"],
+.setting-group input[type="time"],
+.setting-group select {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    font-size: 16px;
+    background: var(--tg-theme-bg-color);
+    color: var(--tg-theme-text-color);
+    margin-bottom: 8px;
+}
+
+.checkbox-group {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.checkbox-group label {
+    display: flex;
+    align-items: center;
+    font-weight: 400;
+}
+
+.checkbox-group input[type="checkbox"] {
+    margin-right: 12px;
+    width: 20px;
+    height: 20px;
+}
+
+.hint {
+    display: block;
+    font-size: 13px;
+    color: var(--tg-theme-hint-color);
+    margin-top: 4px;
+}
+
+.btn-primary {
+    width: 100%;
+    padding: 14px;
+    background: var(--tg-theme-button-color);
+    color: var(--tg-theme-button-text-color);
+    border: none;
+    border-radius: 12px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 20px;
+}
+
+.btn-primary:active {
+    opacity: 0.8;
+}
+
+/* Loading */
+.loading {
+    text-align: center;
+    padding: 40px;
+    color: var(--tg-theme-hint-color);
+}

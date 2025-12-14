@@ -177,6 +177,18 @@ class Settings(BaseSettings):
     )
 
     # =====================================
+    # WEBAPP
+    # =====================================
+    WEBAPP_DOMAIN: str = Field(
+        default="",
+        description="Домен для WebApp (например: webapp.mirabot.com)"
+    )
+    WEBAPP_PORT: int = Field(
+        default=8081,
+        description="Порт для WebApp сервера"
+    )
+
+    # =====================================
     # ЛОГИРОВАНИЕ
     # =====================================
     LOG_LEVEL: str = Field(default="INFO", description="Уровень логирования")
