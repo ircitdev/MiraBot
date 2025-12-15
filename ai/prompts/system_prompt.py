@@ -310,7 +310,9 @@ def _build_user_context_block(context: Dict[str, Any]) -> str:
     
     if context.get("long_term_memory"):
         parts.append("\n**Что ты помнишь о ней:**")
-        for memory in context["long_term_memory"][:10]:  # Максимум 10 записей
+        parts.append("⚠️ КРИТИЧЕСКИ ВАЖНО: ВСЕГДА используй эти факты в разговоре!")
+        parts.append("НЕ игнорируй профессию, место работы и другие важные детали!")
+        for memory in context["long_term_memory"][:15]:  # Увеличили до 15 записей
             content = memory.get("content", "") if isinstance(memory, dict) else str(memory)
             parts.append(f"- {content}")
     

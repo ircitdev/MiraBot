@@ -59,6 +59,12 @@ class ContextBuilder:
             "children_info": user_data.get("children_info"),
         }
 
+        # Добавляем контекст последнего отправленного фото если есть
+        # Это помогает Claude понимать вопросы вроде "Сколько ему?" после показа фото
+        last_photo_sent = user_data.get("last_photo_sent")
+        if last_photo_sent:
+            context["last_photo_sent"] = last_photo_sent
+
         # Получаем недавние темы из тегов
         recent_topics = await self._get_recent_topics(user_id, limit=5)
         if recent_topics:
@@ -175,16 +181,23 @@ class ContextBuilder:
         self,
         user_id: int,
     ) -> List[Dict[str, Any]]:
-        """Получает важные записи из долговременной памяти."""
+        """
+        Получает важные записи из долговременной памяти.
+
+        КРИТИЧЕСКИ ВАЖНО: Приоритет отдаётся ФАКТАМ о пользователе:
+        - Профессия, место работы
+        - Семейные факты
+        - Важные события из жизни
+        """
         categories = [
             MEMORY_CATEGORY_FAMILY,
             MEMORY_CATEGORY_PROBLEMS,
             MEMORY_CATEGORY_INSIGHTS,
             MEMORY_CATEGORY_PATTERNS,
         ]
-        
+
         all_memories = []
-        
+
         for category in categories:
             memories = await self.memory_repo.get_by_user(
                 user_id=user_id,
@@ -192,19 +205,33 @@ class ContextBuilder:
                 min_importance=5,  # Только важные
                 limit=5,  # Максимум 5 на категорию
             )
-            
+
             for mem in memories:
                 all_memories.append({
                     "category": category,
                     "content": mem.content,
                     "importance": mem.importance,
                 })
-        
+
+        # УЛУЧШЕНИЕ: Повышаем важность ФАКТОВ о работе/профессии
+        # Эти факты должны ВСЕГДА быть в контексте!
+        for memory in all_memories:
+            content_lower = memory["content"].lower()
+            # Проверяем ключевые слова профессии/работы
+            if any(keyword in content_lower for keyword in [
+                "работаю", "работа:", "профессия:", "я медсестра", "я врач",
+                "я учитель", "я менеджер", "я программист", "в больнице",
+                "в школе", "в офисе", "должность:", "специальность:"
+            ]):
+                # Повышаем важность до максимума
+                memory["importance"] = max(memory["importance"], 10)
+                logger.debug(f"Boosted work-related memory importance: {memory['content'][:50]}")
+
         # Сортируем по важности
         all_memories.sort(key=lambda x: x["importance"], reverse=True)
-        
-        # Возвращаем топ-10
-        return all_memories[:10]
+
+        # Возвращаем топ-15 (увеличил лимит для большего контекста)
+        return all_memories[:15]
 
     async def _get_mood_summary(
         self,
