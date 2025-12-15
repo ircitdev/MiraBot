@@ -11,6 +11,7 @@ from database.repositories.memory import MemoryRepository
 from database.repositories.conversation import ConversationRepository
 from database.repositories.mood import MoodRepository
 from database.repositories.user import UserRepository
+from database.repositories.trigger import TriggerRepository
 from ai.style_analyzer import style_analyzer
 from ai.question_type_detector import question_type_detector
 from config.constants import (
@@ -34,6 +35,7 @@ class ContextBuilder:
         self.conversation_repo = ConversationRepository()
         self.mood_repo = MoodRepository()
         self.user_repo = UserRepository()
+        self.trigger_repo = TriggerRepository()
     
     async def build(
         self,
@@ -95,6 +97,11 @@ class ContextBuilder:
         mood_summary = await self._get_mood_summary(user_id)
         if mood_summary and mood_summary.get("has_data"):
             context["mood_summary"] = mood_summary
+
+        # Чувствительные темы (триггеры)
+        sensitive_topics = await self._get_sensitive_topics(user_id)
+        if sensitive_topics:
+            context["sensitive_topics"] = sensitive_topics
 
         # Долговременная память (только для премиум)
         if include_long_term_memory:
@@ -395,4 +402,36 @@ class ContextBuilder:
 
         except Exception as e:
             logger.warning(f"Error getting time context: {e}")
+            return None
+
+    async def _get_sensitive_topics(self, user_id: int) -> Optional[List[Dict[str, Any]]]:
+        """
+        Получает чувствительные темы (триггеры) пользователя.
+
+        Args:
+            user_id: ID пользователя
+
+        Returns:
+            Список триггеров или None
+        """
+        try:
+            triggers = await self.trigger_repo.get_active_triggers(user_id)
+
+            if not triggers:
+                return None
+
+            # Форматируем для промпта
+            sensitive_topics = []
+            for trigger in triggers:
+                sensitive_topics.append({
+                    "topic": trigger.topic,
+                    "severity": trigger.severity,
+                    "description": trigger.description,
+                })
+
+            logger.debug(f"Loaded {len(sensitive_topics)} sensitive topics for user {user_id}")
+            return sensitive_topics
+
+        except Exception as e:
+            logger.warning(f"Error getting sensitive topics: {e}")
             return None

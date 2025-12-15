@@ -17,6 +17,8 @@ from ai.memory.context_builder import ContextBuilder
 from ai.crisis_detector import CrisisDetector
 from ai.memory.attempt_detector import attempt_detector
 from ai.question_type_detector import question_type_detector
+from ai.trigger_detector import trigger_detector
+from database.repositories.trigger import TriggerRepository
 from config.constants import MEMORY_CATEGORY_ATTEMPTS
 
 
@@ -27,6 +29,7 @@ class ClaudeClient:
         self.client = anthropic.Anthropic(api_key=settings.ANTHROPIC_API_KEY)
         self.memory_repo = MemoryRepository()
         self.conversation_repo = ConversationRepository()
+        self.trigger_repo = TriggerRepository()
         self.context_builder = ContextBuilder()
         self.crisis_detector = CrisisDetector()
         self.max_retries = 3
@@ -107,6 +110,13 @@ class ClaudeClient:
                 user_id=user_id,
                 user_message=user_message,
                 response_text=response_text,
+            )
+
+            # 8. Детектим негативные реакции на темы (триггеры)
+            await self._detect_and_save_trigger(
+                user_id=user_id,
+                user_message=user_message,
+                bot_response=response_text,
             )
 
             logger.info(
@@ -218,6 +228,13 @@ class ClaudeClient:
                 user_id=user_id,
                 user_message=user_message,
                 response_text=full_response,
+            )
+
+            # 8. Детектим негативные реакции на темы (триггеры)
+            await self._detect_and_save_trigger(
+                user_id=user_id,
+                user_message=user_message,
+                bot_response=full_response,
             )
 
             logger.info(
@@ -656,3 +673,46 @@ class ClaudeClient:
         except Exception as e:
             # Не падаем если не удалось сохранить попытку
             logger.warning(f"Failed to detect/save attempt: {e}")
+
+    async def _detect_and_save_trigger(
+        self,
+        user_id: int,
+        user_message: str,
+        bot_response: str,
+    ) -> None:
+        """
+        Детектит негативную реакцию на тему и сохраняет триггер.
+
+        Args:
+            user_id: ID пользователя
+            user_message: Сообщение пользователя
+            bot_response: Ответ бота
+        """
+        try:
+            # Детектим негативную реакцию
+            trigger_info = trigger_detector.detect_negative_reaction(
+                user_message=user_message,
+                previous_bot_message=bot_response,
+            )
+
+            if not trigger_info or not trigger_info.get("has_negative_reaction"):
+                return
+
+            topic = trigger_info.get("topic")
+            if not topic:
+                logger.debug("Negative reaction detected but topic unknown")
+                return
+
+            # Сохраняем триггер
+            await self.trigger_repo.create(
+                user_id=user_id,
+                topic=topic,
+                description=trigger_info.get("reason"),
+                severity=trigger_info.get("severity", 5),
+            )
+
+            logger.info(f"Saved trigger for user {user_id}: {topic} (severity={trigger_info['severity']})")
+
+        except Exception as e:
+            # Не падаем если не удалось сохранить триггер
+            logger.warning(f"Failed to detect/save trigger: {e}")

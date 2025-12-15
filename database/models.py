@@ -517,3 +517,43 @@ class PromoCodeUsage(Base):
 
     def __repr__(self) -> str:
         return f"<PromoCodeUsage(id={self.id}, promo_code_id={self.promo_code_id}, user_id={self.user_id})>"
+
+
+class UserTrigger(Base):
+    """Модель для хранения чувствительных тем (триггеров) пользователя."""
+
+    __tablename__ = "user_triggers"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    user_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("users.id"), nullable=False)
+
+    # Тема триггера
+    topic: Mapped[str] = mapped_column(String(100), nullable=False)  # Например: "свекровь", "развод", "здоровье"
+
+    # Описание (опционально)
+    description: Mapped[Optional[str]] = mapped_column(Text)  # Контекст почему это триггер
+
+    # Степень чувствительности (1-10)
+    severity: Mapped[int] = mapped_column(Integer, default=5)  # 1=мягко избегать, 10=критично не поднимать
+
+    # Когда последний раз упоминалась тема
+    last_mentioned_at: Mapped[Optional[datetime]] = mapped_column(DateTime)
+
+    # Активен ли триггер
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+
+    # Метаданные
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=func.now(), onupdate=func.now())
+
+    # Связи
+    user: Mapped["User"] = relationship("User")
+
+    # Индексы
+    __table_args__ = (
+        Index("idx_user_triggers_user", "user_id"),
+        Index("idx_user_triggers_active", "user_id", "is_active"),
+    )
+
+    def __repr__(self) -> str:
+        return f"<UserTrigger(id={self.id}, user_id={self.user_id}, topic={self.topic}, severity={self.severity})>"

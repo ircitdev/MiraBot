@@ -391,6 +391,21 @@ def _build_user_context_block(context: Dict[str, Any]) -> str:
     if context.get("recent_topics"):
         parts.append(f"\n**Недавние темы:** {', '.join(context['recent_topics'][:5])}")
 
+    # Чувствительные темы (триггеры)
+    if context.get("sensitive_topics"):
+        parts.append("\n**🚨 ЧУВСТВИТЕЛЬНЫЕ ТЕМЫ — ИЗБЕГАЙ ИЛИ БУДЬ ОЧЕНЬ ОСТОРОЖНА:**")
+        for topic in context["sensitive_topics"]:
+            severity_emoji = "🔴" if topic["severity"] >= 8 else "🟠" if topic["severity"] >= 6 else "🟡"
+            parts.append(f"{severity_emoji} **{topic['topic']}** (чувствительность: {topic['severity']}/10)")
+            if topic.get("description"):
+                parts.append(f"   Контекст: {topic['description']}")
+
+        parts.append("\n**ВАЖНО для чувствительных тем:**")
+        parts.append("- НЕ поднимай эти темы без запроса пользователя")
+        parts.append("- Если пользователь сам заговорил — будь ОЧЕНЬ тактичной")
+        parts.append("- При высокой чувствительности (8-10) — лучше мягко перевести разговор")
+        parts.append("- Если видишь негативную реакцию ('не хочу об этом') — сразу сменить тему")
+
     # Паттерны разговора — детекция зацикливания
     if context.get("conversation_patterns") and context["conversation_patterns"].get("needs_breakthrough"):
         pattern = context["conversation_patterns"]
