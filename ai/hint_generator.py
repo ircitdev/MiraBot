@@ -24,10 +24,11 @@ class HintGenerator:
     MAX_HINTS = 3
 
     # Подсказки по тегам/темам
+    # ВАЖНО: Убраны агрессивные формулировки, добавлены мягкие альтернативы
     TOPIC_HINTS = {
         "topic:husband": [
             Hint("Расскажу подробнее", "Хочу рассказать подробнее о ситуации с мужем...", 5),
-            Hint("А как у тебя?", "А как у тебя с Андреем? Бывает так же?", 3),
+            Hint("А как у тебя?", "А как у тебя? Бывает так же?", 3),
             Hint("Не знаю что делать", "Честно, не знаю что с этим делать...", 4),
         ],
         "topic:children": [
@@ -41,7 +42,7 @@ class HintGenerator:
             Hint("Мечтаю о...", "Знаешь, я мечтаю о...", 3),
         ],
         "topic:relatives": [
-            Hint("Она меня бесит", "Честно? Она меня просто бесит...", 4),
+            Hint("Сложные отношения", "У нас сложные отношения...", 4),
             Hint("Не могу сказать нет", "Я не могу ей отказать, и это проблема...", 5),
             Hint("Муж не защищает", "Муж не встаёт на мою сторону...", 4),
         ],
@@ -51,9 +52,9 @@ class HintGenerator:
             Hint("Боюсь говорить", "Боюсь об этом говорить с ним...", 4),
         ],
         "topic:work": [
-            Hint("Выгораю", "Кажется, я выгораю на работе...", 5),
-            Hint("Хочу уйти", "Думаю уйти, но страшно...", 4),
-            Hint("Не ценят", "Чувствую, что меня не ценят...", 4),
+            Hint("Устаю на работе", "В последнее время очень устаю на работе...", 5),
+            Hint("Думаю о переменах", "Думаю о переменах, но пока не решилась...", 4),
+            Hint("Сложная ситуация", "На работе сложная ситуация...", 4),
         ],
     }
 
@@ -155,6 +156,7 @@ class HintGenerator:
         mood_data: Optional[Dict[str, Any]] = None,
         message_count: int = 0,
         communication_style: Optional[Dict[str, Any]] = None,
+        user_message: Optional[str] = None,
     ) -> List[Hint]:
         """
         Генерирует подсказки на основе контекста.
@@ -204,10 +206,12 @@ class HintGenerator:
                 pass
             else:
                 # Для сложных рассуждений используем тематические и эмоциональные
-                # Анализируем теги тем
+                # Анализируем теги тем С КОНТЕКСТНОЙ ПРОВЕРКОЙ
                 for tag in tags:
                     if tag in self.TOPIC_HINTS:
-                        hints.extend(self.TOPIC_HINTS[tag])
+                        # Проверяем что тема действительно активна в текущем сообщении
+                        if self._is_topic_active(tag, user_message or "", response_text):
+                            hints.extend(self.TOPIC_HINTS[tag])
 
                 # Анализируем эмоциональное состояние
                 if mood_data:
@@ -302,6 +306,82 @@ class HintGenerator:
             Hint("Расскажу историю", "Хочу рассказать, что там было...", 6),
             Hint("А у тебя есть?", "А у тебя есть похожие фото?", 4),
         ]
+
+    def _is_topic_active(
+        self,
+        topic_tag: str,
+        user_message: str,
+        response_text: str,
+    ) -> bool:
+        """
+        Проверяет, активна ли тема в текущем обмене сообщениями.
+        Возвращает True только если тема действительно обсуждается СЕЙЧАС.
+
+        Args:
+            topic_tag: Тег темы (например, "topic:work")
+            user_message: Сообщение пользователя
+            response_text: Ответ бота
+
+        Returns:
+            True если тема активна в контексте
+        """
+        # Объединяем оба сообщения для анализа
+        combined = (user_message + " " + response_text).lower()
+
+        # Для каждой темы — СТРОГИЕ критерии активности
+        # Тема считается активной только если она ЦЕНТРАЛЬНАЯ в сообщении
+
+        if topic_tag == "topic:work":
+            # НЕ достаточно просто упомянуть "работа"
+            # Нужны фразы которые показывают что тема ОБСУЖДАЕТСЯ
+            work_active_phrases = [
+                "на работе", "работе трудно", "работе тяжело",
+                "начальник", "коллеги меня", "устала на работе",
+                "выгораю", "карьера", "увольняться", "уволить",
+                "рабочий день", "работе не ценят", "работе стресс"
+            ]
+            return any(phrase in combined for phrase in work_active_phrases)
+
+        elif topic_tag == "topic:husband":
+            husband_active_phrases = [
+                "с мужем", "муж не", "муж сказал", "муж сделал",
+                "супруг", "мужа бесит", "мужем отношения",
+                "муж меня", "мужу сказала", "мужа просила"
+            ]
+            return any(phrase in combined for phrase in husband_active_phrases)
+
+        elif topic_tag == "topic:children":
+            children_active_phrases = [
+                "дети", "ребёнок", "ребенок", "сын", "дочь",
+                "детьми", "детей", "ребёнка", "школ", "детский сад"
+            ]
+            return any(phrase in combined for phrase in children_active_phrases)
+
+        elif topic_tag == "topic:relatives":
+            relatives_active_phrases = [
+                "свекровь", "тёща", "теща", "родители",
+                "свекрови", "родственник", "мама", "папа",
+                "родня", "семья мужа"
+            ]
+            return any(phrase in combined for phrase in relatives_active_phrases)
+
+        elif topic_tag == "topic:intimacy":
+            intimacy_active_phrases = [
+                "близост", "секс", "интим", "нежност",
+                "охлаждени", "страст", "желани"
+            ]
+            return any(phrase in combined for phrase in intimacy_active_phrases)
+
+        elif topic_tag == "topic:self":
+            self_active_phrases = [
+                "я хочу", "моя жизнь", "мне нужно", "я мечтаю",
+                "для себя", "о себе", "саморазвитие",
+                "мои желания", "кто я"
+            ]
+            return any(phrase in combined for phrase in self_active_phrases)
+
+        # По умолчанию — считаем тему неактивной
+        return False
 
 
 # Глобальный экземпляр

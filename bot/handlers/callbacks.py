@@ -46,6 +46,12 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     elif data.startswith("hint:"):
         await _handle_hint_selection(query, data, context)
 
+    elif data == "privacy":
+        await _show_privacy_info(query)
+
+    elif data == "help":
+        await _show_help_info(query)
+
     else:
         logger.warning(f"Unknown callback: {data}")
 
@@ -98,7 +104,7 @@ async def _handle_settings(query, data: str) -> None:
             ],
             [InlineKeyboardButton("« Назад", callback_data="settings:back")],
         ]
-        
+
         await query.edit_message_text(
             "Выбери новую персону:\n\n"
             "**Мира** — подруга 42 года, прошла через кризис в браке\n"
@@ -106,13 +112,7 @@ async def _handle_settings(query, data: str) -> None:
             reply_markup=InlineKeyboardMarkup(keyboard),
             parse_mode="Markdown",
         )
-    
-    elif action == "change_name":
-        await query.edit_message_text(
-            "Напиши своё новое имя — я буду обращаться к тебе так 💛"
-        )
-        # TODO: установить флаг ожидания имени
-    
+
     elif action == "back":
         # Возвращаемся к основному меню настроек
         from bot.handlers.commands import settings_command
@@ -344,14 +344,8 @@ async def _handle_hint_selection(query, data: str, context: ContextTypes.DEFAULT
                 await subscription_repo.increment_messages(subscription.id)
 
         # Подготавливаем данные
-        user_data = {
-            "persona": user.persona,
-            "display_name": user.display_name,
-            "partner_name": user.partner_name,
-            "children_info": user.children_info,
-            "marriage_years": user.marriage_years,
-            "partner_gender": getattr(user, "partner_gender", None),
-        }
+        from bot.handlers.message import _get_fresh_user_data
+        user_data = await _get_fresh_user_data(user)
 
         # Отправляем "печатает..."
         await query.message.chat.send_action("typing")
@@ -389,6 +383,7 @@ async def _handle_hint_selection(query, data: str, context: ContextTypes.DEFAULT
             response_text=result["response"],
             tags=result["tags"],
             message_count=message_count,
+            user_message=message_text,  # ВАЖНО: передаём текст для контекстной проверки
         )
 
         if hints:
@@ -404,3 +399,71 @@ async def _handle_hint_selection(query, data: str, context: ContextTypes.DEFAULT
     except Exception as e:
         logger.error(f"Error handling hint: {e}")
         await query.answer("Произошла ошибка, попробуй написать сообщение сам 💛")
+
+
+async def _show_privacy_info(query) -> None:
+    """Показывает информацию о конфиденциальности."""
+    from telegram import WebAppInfo
+
+    privacy_url = "https://tools.uspeshnyy.ru/mirabot/privacy.html"
+
+    keyboard = [
+        [InlineKeyboardButton(
+            "🔐 Открыть",
+            web_app=WebAppInfo(url=privacy_url)
+        )],
+    ]
+
+    text = """🔐 Конфиденциальность и безопасность
+
+Твоя безопасность — мой приоритет.
+Все наши переписки защищены шифрованием.
+
+Нажми кнопку, чтобы узнать подробнее:"""
+
+    await query.answer()
+    await query.message.reply_text(
+        text,
+        reply_markup=InlineKeyboardMarkup(keyboard),
+    )
+
+
+async def _show_help_info(query) -> None:
+    """Показывает справку о боте."""
+
+    text = """**Что я умею** 💛
+
+Я — твой друг. Не психолог, не терапевт — просто тот, кто выслушает и поддержит.
+
+**О чём можно говорить:**
+• Отношения в браке
+• Материнство и дети
+• Самореализация
+• Усталость и выгорание
+• Всё, что на душе
+
+**Команды:**
+/exercises — упражнения (дыхание, релаксация, заземление)
+/affirmation — аффирмация дня
+/meditation — медитации (тексты для практики)
+/settings — настройки бота
+/subscription — твоя подписка
+/referral — пригласи подругу
+/rituals — настрой ритуалы
+/privacy — соглашение о неразглашении
+
+**Голосовые сообщения:**
+Можешь говорить — я пойму! Отправь голосовое сообщение, я его расшифрую и отвечу 🎤
+
+**Фото:**
+Можешь отправить мне фото — я посмотрю и мы обсудим 📸
+
+**Важно:**
+Если тебе очень тяжело — я рядом. Но в серьёзных ситуациях я направлю тебя к людям, которые могут помочь профессионально. Это не слабость — это забота о себе.
+
+Телефон доверия: 8-800-2000-122 (бесплатно, круглосуточно)
+
+Просто напиши или скажи — я слушаю 💛"""
+
+    await query.answer()
+    await query.message.reply_text(text, parse_mode="Markdown")

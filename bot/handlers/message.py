@@ -258,6 +258,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
                 mood_data=mood_entry,
                 message_count=message_count,
                 communication_style=user.communication_style,
+                user_message=message_text,  # ВАЖНО: передаём текст пользователя для контекстной проверки
             )
             if hints:
                 context.user_data["current_hints"] = [
