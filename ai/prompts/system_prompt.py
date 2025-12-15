@@ -406,6 +406,40 @@ def _build_user_context_block(context: Dict[str, Any]) -> str:
         parts.append("- При высокой чувствительности (8-10) — лучше мягко перевести разговор")
         parts.append("- Если видишь негативную реакцию ('не хочу об этом') — сразу сменить тему")
 
+    # Активные цели пользователя
+    if context.get("active_goals"):
+        parts.append("\n**🎯 АКТИВНЫЕ ЦЕЛИ ПОЛЬЗОВАТЕЛЯ:**")
+        for goal in context["active_goals"]:
+            progress_bar = "▓" * (goal["progress"] // 10) + "░" * (10 - goal["progress"] // 10)
+            parts.append(f"\n**Цель:** {goal['smart_goal'] or goal['original_goal']}")
+            parts.append(f"   Прогресс: [{progress_bar}] {goal['progress']}%")
+
+            if goal.get("days_until_deadline") is not None:
+                days = goal["days_until_deadline"]
+                if days < 0:
+                    parts.append(f"   ⚠️ Дедлайн ПРОСРОЧЕН на {abs(days)} дней!")
+                elif days <= 3:
+                    parts.append(f"   🔥 Дедлайн через {days} дней — СРОЧНО!")
+                elif days <= 7:
+                    parts.append(f"   ⏰ Дедлайн через {days} дней")
+                else:
+                    parts.append(f"   Дедлайн через {days} дней")
+
+            if goal.get("milestones"):
+                parts.append(f"   Шаги: {goal['milestones']}")
+
+            if goal.get("last_check_in_days_ago"):
+                days_ago = goal["last_check_in_days_ago"]
+                if days_ago >= 7:
+                    parts.append(f"   📌 Последний check-in был {days_ago} дней назад — спроси про прогресс!")
+
+        parts.append("\n**ВАЖНО для работы с целями:**")
+        parts.append("- Празднуй прогресс (даже маленький!): 'Слушай, ты уже на {progress}% — это круто!'")
+        parts.append("- Если прогресс застрял — спроси что мешает")
+        parts.append("- Если дедлайн близко — помоги разбить на мелкие шаги")
+        parts.append("- Если цель просрочена — НЕ критикуй, а помоги скорректировать дедлайн")
+        parts.append("- Можешь ненавязчиво спросить про цель если давно не обсуждали")
+
     # Паттерны разговора — детекция зацикливания
     if context.get("conversation_patterns") and context["conversation_patterns"].get("needs_breakthrough"):
         pattern = context["conversation_patterns"]

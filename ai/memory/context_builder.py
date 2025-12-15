@@ -12,6 +12,7 @@ from database.repositories.conversation import ConversationRepository
 from database.repositories.mood import MoodRepository
 from database.repositories.user import UserRepository
 from database.repositories.trigger import TriggerRepository
+from database.repositories.goal import GoalRepository
 from ai.style_analyzer import style_analyzer
 from ai.question_type_detector import question_type_detector
 from config.constants import (
@@ -36,6 +37,7 @@ class ContextBuilder:
         self.mood_repo = MoodRepository()
         self.user_repo = UserRepository()
         self.trigger_repo = TriggerRepository()
+        self.goal_repo = GoalRepository()
     
     async def build(
         self,
@@ -102,6 +104,11 @@ class ContextBuilder:
         sensitive_topics = await self._get_sensitive_topics(user_id)
         if sensitive_topics:
             context["sensitive_topics"] = sensitive_topics
+
+        # Активные цели пользователя
+        active_goals = await self._get_active_goals(user_id)
+        if active_goals:
+            context["active_goals"] = active_goals
 
         # Долговременная память (только для премиум)
         if include_long_term_memory:
@@ -434,4 +441,57 @@ class ContextBuilder:
 
         except Exception as e:
             logger.warning(f"Error getting sensitive topics: {e}")
+            return None
+
+    async def _get_active_goals(self, user_id: int) -> Optional[List[Dict[str, Any]]]:
+        """
+        Получает активные цели пользователя.
+
+        Args:
+            user_id: ID пользователя
+
+        Returns:
+            Список активных целей или None
+        """
+        try:
+            goals = await self.goal_repo.get_active_goals(user_id)
+
+            if not goals:
+                return None
+
+            # Форматируем для промпта
+            active_goals = []
+            for goal in goals:
+                # Вычисляем дни до дедлайна
+                days_until_deadline = None
+                if goal.time_bound:
+                    delta = goal.time_bound - datetime.utcnow()
+                    days_until_deadline = delta.days
+
+                # Статус milestone'ов
+                milestones_total = len(goal.milestones) if goal.milestones else 0
+                milestones_completed = (
+                    sum(1 for m in goal.milestones if m.get("completed"))
+                    if goal.milestones else 0
+                )
+
+                active_goals.append({
+                    "id": goal.id,
+                    "original_goal": goal.original_goal,
+                    "smart_goal": goal.smart_goal,
+                    "category": goal.category,
+                    "progress": goal.progress,
+                    "days_until_deadline": days_until_deadline,
+                    "milestones": f"{milestones_completed}/{milestones_total}" if milestones_total > 0 else None,
+                    "last_check_in_days_ago": (
+                        (datetime.utcnow() - goal.last_check_in).days
+                        if goal.last_check_in else None
+                    ),
+                })
+
+            logger.debug(f"Loaded {len(active_goals)} active goals for user {user_id}")
+            return active_goals
+
+        except Exception as e:
+            logger.warning(f"Error getting active goals: {e}")
             return None

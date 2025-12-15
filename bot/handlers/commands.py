@@ -9,12 +9,14 @@ from datetime import datetime
 
 from database.repositories.user import UserRepository
 from database.repositories.subscription import SubscriptionRepository
+from database.repositories.goal import GoalRepository
 from services.referral import ReferralService
 from config.settings import settings
 
 
 user_repo = UserRepository()
 subscription_repo = SubscriptionRepository()
+goal_repo = GoalRepository()
 referral_service = ReferralService()
 
 
@@ -298,3 +300,63 @@ async def privacy_command(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         text,
         reply_markup=InlineKeyboardMarkup(keyboard),
     )
+
+
+async def goals_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Обработчик команды /goals - показывает активные цели пользователя."""
+
+    user = await user_repo.get_by_telegram_id(update.effective_user.id)
+
+    if not user:
+        await update.message.reply_text("Сначала напиши /start 💛")
+        return
+
+    # Получаем активные цели
+    active_goals = await goal_repo.get_active_goals(user.id)
+
+    if not active_goals:
+        text = """🎯 **Мои цели**
+
+У тебя пока нет активных целей.
+
+Просто напиши мне о том, чего хочешь достичь, и я помогу превратить это в конкретный план!
+
+Например:
+• "Хочу похудеть"
+• "Хочу научиться медитировать"
+• "Хочу улучшить отношения с мужем"
+"""
+        await update.message.reply_text(text, parse_mode="Markdown")
+        return
+
+    # Форматируем список целей
+    parts = ["🎯 **Мои активные цели:**\n"]
+
+    for i, goal in enumerate(active_goals, 1):
+        # Progress bar
+        progress_bar = "▓" * (goal.progress // 10) + "░" * (10 - goal.progress // 10)
+
+        parts.append(f"\n**{i}. {goal.smart_goal or goal.original_goal}**")
+        parts.append(f"Прогресс: [{progress_bar}] {goal.progress}%")
+
+        # Deadline
+        if goal.time_bound:
+            days_left = (goal.time_bound - datetime.utcnow()).days
+            if days_left < 0:
+                parts.append(f"⚠️ Дедлайн просрочен на {abs(days_left)} дней")
+            elif days_left <= 3:
+                parts.append(f"🔥 Осталось {days_left} дней!")
+            elif days_left <= 7:
+                parts.append(f"⏰ Осталось {days_left} дней")
+            else:
+                parts.append(f"До дедлайна: {days_left} дней")
+
+        # Milestones
+        if goal.milestones:
+            completed = sum(1 for m in goal.milestones if m.get("completed"))
+            total = len(goal.milestones)
+            parts.append(f"Шаги: {completed}/{total}")
+
+    parts.append("\n\nПросто напиши мне про прогресс по любой цели, и я обновлю её статус!")
+
+    await update.message.reply_text("\n".join(parts), parse_mode="Markdown")

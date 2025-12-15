@@ -77,6 +77,14 @@ def start_scheduler(application: Application) -> None:
         replace_existing=True,
     )
 
+    # Check-in по целям — каждый день в 20:00
+    scheduler.add_job(
+        send_goal_checkins,
+        trigger=CronTrigger(hour=20, minute=0),
+        id="goal_checkins",
+        replace_existing=True,
+    )
+
     scheduler.start()
     logger.info("Scheduler started")
 
@@ -579,3 +587,104 @@ async def send_biweekly_summaries() -> None:
             logger.error(f"Failed to send summary to user {user.id}: {e}")
 
     logger.info(f"Bi-weekly summaries job complete: {summaries_sent} summaries sent")
+
+
+async def send_goal_checkins() -> None:
+    """
+    Отправляет check-in сообщения по активным целям.
+    Запускается каждый день.
+    """
+    global app
+
+    if not app:
+        return
+
+    from database.repositories.goal import GoalRepository
+    from database.repositories.user import UserRepository
+
+    goal_repo = GoalRepository()
+    user_repo = UserRepository()
+
+    # Получаем цели которым нужен check-in
+    goals_needing_checkin = await goal_repo.get_goals_needing_checkin(limit=50)
+
+    checkins_sent = 0
+
+    for goal in goals_needing_checkin:
+        try:
+            # Получаем пользователя
+            user = await user_repo.get(goal.user_id)
+
+            if not user:
+                continue
+
+            # Формируем сообщение check-in
+            checkin_message = _build_checkin_message(goal)
+
+            # Отправляем пользователю
+            await app.bot.send_message(
+                chat_id=user.telegram_id,
+                text=checkin_message,
+            )
+
+            # Обновляем last_check_in и next_check_in
+            goal.last_check_in = datetime.utcnow()
+
+            # Вычисляем следующий check-in
+            if goal.reminder_frequency:
+                if goal.reminder_frequency == "daily":
+                    goal.next_check_in = datetime.utcnow() + timedelta(days=1)
+                elif goal.reminder_frequency == "weekly":
+                    goal.next_check_in = datetime.utcnow() + timedelta(days=7)
+                elif goal.reminder_frequency == "biweekly":
+                    goal.next_check_in = datetime.utcnow() + timedelta(days=14)
+
+            # Сохраняем изменения (через update_progress чтобы триггерить updated_at)
+            await goal_repo.update_progress(
+                goal_id=goal.id,
+                progress=goal.progress,
+                notes=None,
+            )
+
+            checkins_sent += 1
+            logger.info(f"Sent goal check-in to user {user.id} for goal {goal.id}")
+
+        except Exception as e:
+            logger.error(f"Failed to send goal check-in for goal {goal.id}: {e}")
+
+    logger.info(f"Goal check-ins job complete: {checkins_sent} check-ins sent")
+
+
+def _build_checkin_message(goal) -> str:
+    """
+    Строит сообщение check-in для цели.
+
+    Args:
+        goal: Объект UserGoal
+
+    Returns:
+        Текст сообщения
+    """
+    parts = [
+        f"Привет! Как дела с целью **{goal.smart_goal or goal.original_goal}**?",
+        "",
+    ]
+
+    # Текущий прогресс
+    progress_bar = "▓" * (goal.progress // 10) + "░" * (10 - goal.progress // 10)
+    parts.append(f"Текущий прогресс: [{progress_bar}] {goal.progress}%")
+
+    # Информация о дедлайне
+    if goal.time_bound:
+        days_left = (goal.time_bound - datetime.utcnow()).days
+        if days_left < 0:
+            parts.append(f"⚠️ Дедлайн просрочен на {abs(days_left)} дней")
+        elif days_left <= 3:
+            parts.append(f"🔥 Осталось всего {days_left} дней!")
+        else:
+            parts.append(f"До дедлайна: {days_left} дней")
+
+    parts.append("")
+    parts.append("Расскажи, что получилось за это время? Что-то мешает двигаться дальше?")
+
+    return "\n".join(parts)

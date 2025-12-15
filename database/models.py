@@ -557,3 +557,71 @@ class UserTrigger(Base):
 
     def __repr__(self) -> str:
         return f"<UserTrigger(id={self.id}, user_id={self.user_id}, topic={self.topic}, severity={self.severity})>"
+
+
+class UserGoal(Base):
+    """Модель для отслеживания целей пользователя (SMART goals)."""
+
+    __tablename__ = "user_goals"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    user_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("users.id"), nullable=False)
+
+    # Цель
+    original_goal: Mapped[str] = mapped_column(Text, nullable=False)  # Исходная формулировка от пользователя
+    smart_goal: Mapped[Optional[str]] = mapped_column(Text)  # SMART-версия цели
+
+    # SMART компоненты
+    specific: Mapped[Optional[str]] = mapped_column(Text)  # Что конкретно
+    measurable: Mapped[Optional[str]] = mapped_column(String(255))  # Как измерить
+    achievable: Mapped[Optional[str]] = mapped_column(Text)  # Почему достижимо
+    relevant: Mapped[Optional[str]] = mapped_column(Text)  # Почему важно
+    time_bound: Mapped[Optional[datetime]] = mapped_column(DateTime)  # Дедлайн
+
+    # Статус
+    status: Mapped[str] = mapped_column(String(20), default="active")
+    # Статусы: 'active', 'completed', 'abandoned', 'on_hold'
+
+    # Прогресс (0-100%)
+    progress: Mapped[int] = mapped_column(Integer, default=0)
+
+    # Категория цели
+    category: Mapped[Optional[str]] = mapped_column(String(50))
+    # Категории: 'health', 'relationships', 'work', 'personal_growth', 'habits', 'other'
+
+    # Заметки и обновления
+    notes: Mapped[Optional[str]] = mapped_column(Text)  # Заметки о прогрессе
+
+    # Подцели / шаги
+    milestones: Mapped[Optional[list]] = mapped_column(JSONB, default=list)
+    # Структура milestones:
+    # [
+    #   {"title": "Шаг 1", "completed": false, "completed_at": null},
+    #   {"title": "Шаг 2", "completed": true, "completed_at": "2025-01-15T..."}
+    # ]
+
+    # Напоминания
+    reminder_frequency: Mapped[Optional[str]] = mapped_column(String(20))
+    # 'daily', 'weekly', 'biweekly', 'none'
+
+    last_check_in: Mapped[Optional[datetime]] = mapped_column(DateTime)  # Последний раз спросили про прогресс
+    next_check_in: Mapped[Optional[datetime]] = mapped_column(DateTime)  # Следующее напоминание
+
+    # Метаданные
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=func.now(), onupdate=func.now())
+    completed_at: Mapped[Optional[datetime]] = mapped_column(DateTime)
+    abandoned_at: Mapped[Optional[datetime]] = mapped_column(DateTime)
+
+    # Связи
+    user: Mapped["User"] = relationship("User")
+
+    # Индексы
+    __table_args__ = (
+        Index("idx_user_goals_user", "user_id"),
+        Index("idx_user_goals_status", "user_id", "status"),
+        Index("idx_user_goals_next_checkin", "next_check_in", "status"),
+    )
+
+    def __repr__(self) -> str:
+        return f"<UserGoal(id={self.id}, user_id={self.user_id}, status={self.status}, progress={self.progress}%)>"
