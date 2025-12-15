@@ -8,7 +8,7 @@ from typing import Optional, List
 from sqlalchemy import select, and_, or_
 from loguru import logger
 
-from database.base import AsyncSessionLocal
+from database.session import get_session_context
 from database.models import UserFollowUp
 
 
@@ -42,7 +42,7 @@ class FollowUpRepository:
         Returns:
             Созданный объект UserFollowUp
         """
-        async with AsyncSessionLocal() as session:
+        async with get_session_context() as session:
             followup = UserFollowUp(
                 user_id=user_id,
                 action=action,
@@ -67,7 +67,7 @@ class FollowUpRepository:
 
     async def get(self, followup_id: int) -> Optional[UserFollowUp]:
         """Получает follow-up по ID."""
-        async with AsyncSessionLocal() as session:
+        async with get_session_context() as session:
             result = await session.execute(
                 select(UserFollowUp).where(UserFollowUp.id == followup_id)
             )
@@ -88,7 +88,7 @@ class FollowUpRepository:
         Returns:
             Список pending follow-ups
         """
-        async with AsyncSessionLocal() as session:
+        async with get_session_context() as session:
             query = select(UserFollowUp).where(
                 and_(
                     UserFollowUp.user_id == user_id,
@@ -115,7 +115,7 @@ class FollowUpRepository:
         Returns:
             Список follow-ups готовых к отправке
         """
-        async with AsyncSessionLocal() as session:
+        async with get_session_context() as session:
             now = datetime.utcnow()
 
             query = select(UserFollowUp).where(
@@ -138,7 +138,7 @@ class FollowUpRepository:
         end_date: datetime,
     ) -> List[UserFollowUp]:
         """Получает follow-ups в диапазоне дат."""
-        async with AsyncSessionLocal() as session:
+        async with get_session_context() as session:
             result = await session.execute(
                 select(UserFollowUp).where(
                     and_(
@@ -160,7 +160,7 @@ class FollowUpRepository:
         Returns:
             Обновленный объект UserFollowUp
         """
-        async with AsyncSessionLocal() as session:
+        async with get_session_context() as session:
             result = await session.execute(
                 select(UserFollowUp).where(UserFollowUp.id == followup_id)
             )
@@ -196,7 +196,7 @@ class FollowUpRepository:
         Returns:
             Обновленный объект UserFollowUp
         """
-        async with AsyncSessionLocal() as session:
+        async with get_session_context() as session:
             result = await session.execute(
                 select(UserFollowUp).where(UserFollowUp.id == followup_id)
             )
@@ -236,7 +236,7 @@ class FollowUpRepository:
         Returns:
             Обновленный объект UserFollowUp
         """
-        async with AsyncSessionLocal() as session:
+        async with get_session_context() as session:
             result = await session.execute(
                 select(UserFollowUp).where(UserFollowUp.id == followup_id)
             )
@@ -271,7 +271,7 @@ class FollowUpRepository:
         Returns:
             Обновленный объект UserFollowUp
         """
-        async with AsyncSessionLocal() as session:
+        async with get_session_context() as session:
             result = await session.execute(
                 select(UserFollowUp).where(UserFollowUp.id == followup_id)
             )
@@ -306,7 +306,7 @@ class FollowUpRepository:
         Returns:
             Список completed follow-ups с outcomes
         """
-        async with AsyncSessionLocal() as session:
+        async with get_session_context() as session:
             cutoff_date = datetime.utcnow() - timedelta(days=days)
 
             result = await session.execute(
