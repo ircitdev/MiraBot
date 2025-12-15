@@ -378,9 +378,15 @@ def _build_user_context_block(context: Dict[str, Any]) -> str:
         parts.append("\n**Эмоциональный фон (последние дни):**")
 
         # АДАПТАЦИЯ ТОНА на основе эмоционального состояния
-        avg_score = mood.get("average_score", 0)
-        avg_anxiety = mood.get("avg_anxiety", 0)
+        avg_score = mood.get("average_score")
+        avg_anxiety = mood.get("avg_anxiety")
         dominant_emotion = mood.get("dominant_emotion", "neutral")
+
+        # Проверяем что данные есть
+        if avg_score is None:
+            avg_score = 0
+        if avg_anxiety is None:
+            avg_anxiety = 0
 
         # Критическое состояние (очень низкий mood или высокая тревога)
         if avg_score < -2 or avg_anxiety >= 7:
