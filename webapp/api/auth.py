@@ -67,8 +67,21 @@ def verify_telegram_webapp(init_data: str) -> dict:
 
 async def get_current_user(
     x_telegram_init_data: Optional[str] = Header(None),
+    authorization: Optional[str] = Header(None),
 ) -> dict:
     """Dependency для получения текущего пользователя."""
+    # Попробовать Basic Auth для админов
+    if authorization and authorization.startswith("Bearer "):
+        token = authorization.replace("Bearer ", "")
+        # Проверить админский токен
+        if hasattr(settings, 'ADMIN_TOKEN') and token == settings.ADMIN_TOKEN:
+            # Вернуть данные для админа
+            return {
+                "user_id": getattr(settings, 'ADMIN_TELEGRAM_ID', 65876198),
+                "username": "admin",
+                "first_name": "Admin",
+            }
+
     if not x_telegram_init_data:
         raise HTTPException(status_code=401, detail="Not authorized")
 

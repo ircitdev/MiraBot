@@ -353,10 +353,33 @@ def _build_user_context_block(context: Dict[str, Any]) -> str:
         parts.append("\n**Что ты помнишь о ней:**")
         parts.append("⚠️ КРИТИЧЕСКИ ВАЖНО: ВСЕГДА используй эти факты в разговоре!")
         parts.append("НЕ игнорируй профессию, место работы и другие важные детали!")
-        for memory in context["long_term_memory"][:15]:  # Увеличили до 15 записей
+
+        # Разделяем память на попытки решения и всё остальное
+        attempts = []
+        other_memories = []
+        for memory in context["long_term_memory"][:15]:
             content = memory.get("content", "") if isinstance(memory, dict) else str(memory)
+            category = memory.get("category", "") if isinstance(memory, dict) else ""
+
+            if category == "attempts" or content.startswith("Попытка:"):
+                attempts.append(content)
+            else:
+                other_memories.append(content)
+
+        # Сначала показываем обычную память
+        for content in other_memories:
             parts.append(f"- {content}")
-    
+
+        # Потом попытки решения (если есть) — в отдельной секции
+        if attempts:
+            parts.append("\n**⚠️ ЧТО УЖЕ ПРОБОВАЛА (НЕ ПРЕДЛАГАЙ ЭТО СНОВА!):**")
+            for attempt in attempts:
+                # Убираем префикс "Попытка:" для читаемости
+                clean_attempt = attempt.replace("Попытка: ", "")
+                parts.append(f"- {clean_attempt}")
+            parts.append("**КРИТИЧЕСКИ ВАЖНО:** НЕ предлагай решения из этого списка!")
+            parts.append("Если она говорит что что-то пробовала — признай это: 'Да, ты уже пыталась...'")
+
     if context.get("recent_topics"):
         parts.append(f"\n**Недавние темы:** {', '.join(context['recent_topics'][:5])}")
 

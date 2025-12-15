@@ -1,0 +1,2528 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Админ-панель - Мира</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+
+    <!-- Material Design 3 -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+    <style>
+        :root {
+            /* Light theme colors */
+            --md-sys-color-primary: #6750A4;
+            --md-sys-color-on-primary: #FFFFFF;
+            --md-sys-color-primary-container: #EADDFF;
+            --md-sys-color-on-primary-container: #21005D;
+
+            --md-sys-color-secondary: #625B71;
+            --md-sys-color-on-secondary: #FFFFFF;
+            --md-sys-color-secondary-container: #E8DEF8;
+            --md-sys-color-on-secondary-container: #1D192B;
+
+            --md-sys-color-surface: #FEF7FF;
+            --md-sys-color-on-surface: #1D1B20;
+            --md-sys-color-surface-variant: #E7E0EC;
+            --md-sys-color-on-surface-variant: #49454F;
+
+            --md-sys-color-background: #FEF7FF;
+            --md-sys-color-on-background: #1D1B20;
+
+            --md-sys-color-error: #B3261E;
+            --md-sys-color-on-error: #FFFFFF;
+
+            --md-sys-color-outline: #79747E;
+            --md-sys-color-shadow: #000000;
+
+            /* Elevation */
+            --md-sys-elevation-1: 0 1px 2px rgba(0,0,0,0.3), 0 1px 3px 1px rgba(0,0,0,0.15);
+            --md-sys-elevation-2: 0 1px 2px rgba(0,0,0,0.3), 0 2px 6px 2px rgba(0,0,0,0.15);
+            --md-sys-elevation-3: 0 4px 8px 3px rgba(0,0,0,0.15), 0 1px 3px rgba(0,0,0,0.3);
+        }
+
+        [data-theme="dark"] {
+            /* Dark theme colors */
+            --md-sys-color-primary: #D0BCFF;
+            --md-sys-color-on-primary: #381E72;
+            --md-sys-color-primary-container: #4F378B;
+            --md-sys-color-on-primary-container: #EADDFF;
+
+            --md-sys-color-secondary: #CCC2DC;
+            --md-sys-color-on-secondary: #332D41;
+            --md-sys-color-secondary-container: #4A4458;
+            --md-sys-color-on-secondary-container: #E8DEF8;
+
+            --md-sys-color-surface: #1D1B20;
+            --md-sys-color-on-surface: #E6E0E9;
+            --md-sys-color-surface-variant: #49454F;
+            --md-sys-color-on-surface-variant: #CAC4D0;
+
+            --md-sys-color-background: #1D1B20;
+            --md-sys-color-on-background: #E6E0E9;
+
+            --md-sys-color-error: #F2B8B5;
+            --md-sys-color-on-error: #601410;
+
+            --md-sys-color-outline: #938F99;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Roboto', sans-serif;
+            background: var(--md-sys-color-background);
+            color: var(--md-sys-color-on-background);
+            transition: background 0.3s, color 0.3s;
+        }
+
+        .app-bar {
+            background: var(--md-sys-color-surface);
+            color: var(--md-sys-color-on-surface);
+            padding: 16px 24px;
+            box-shadow: var(--md-sys-elevation-2);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .app-bar h1 {
+            font-size: 22px;
+            font-weight: 400;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .theme-toggle {
+            background: transparent;
+            border: none;
+            color: var(--md-sys-color-on-surface);
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 50%;
+            transition: background 0.2s;
+        }
+
+        .theme-toggle:hover {
+            background: var(--md-sys-color-surface-variant);
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 24px;
+        }
+
+        /* Stats Cards */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 32px;
+        }
+
+        .stat-card {
+            background: var(--md-sys-color-surface);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: var(--md-sys-elevation-1);
+            transition: box-shadow 0.2s;
+        }
+
+        .stat-card:hover {
+            box-shadow: var(--md-sys-elevation-2);
+        }
+
+        .stat-value {
+            font-size: 32px;
+            font-weight: 500;
+            color: var(--md-sys-color-primary);
+            margin-bottom: 4px;
+        }
+
+        .stat-label {
+            font-size: 14px;
+            color: var(--md-sys-color-on-surface-variant);
+        }
+
+        .stat-hint {
+            font-size: 11px;
+            color: var(--md-sys-color-on-surface-variant);
+            opacity: 0.7;
+            margin-top: 2px;
+        }
+
+        /* Search and Actions */
+        .toolbar {
+            background: var(--md-sys-color-surface);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 16px;
+            box-shadow: var(--md-sys-elevation-1);
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .search-field {
+            flex: 1;
+            min-width: 200px;
+            position: relative;
+        }
+
+        .search-field input {
+            width: 100%;
+            padding: 12px 16px 12px 48px;
+            border: 1px solid var(--md-sys-color-outline);
+            border-radius: 28px;
+            background: var(--md-sys-color-surface);
+            color: var(--md-sys-color-on-surface);
+            font-size: 14px;
+            transition: border-color 0.2s;
+        }
+
+        .search-field input:focus {
+            outline: none;
+            border-color: var(--md-sys-color-primary);
+        }
+
+        .search-field .material-icons {
+            position: absolute;
+            left: 16px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--md-sys-color-on-surface-variant);
+        }
+
+        .md-button {
+            padding: 10px 24px;
+            border: none;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s;
+        }
+
+        .md-button-filled {
+            background: var(--md-sys-color-primary);
+            color: var(--md-sys-color-on-primary);
+        }
+
+        .md-button-filled:hover {
+            box-shadow: var(--md-sys-elevation-2);
+        }
+
+        .md-button-outlined {
+            background: transparent;
+            color: var(--md-sys-color-primary);
+            border: 1px solid var(--md-sys-color-outline);
+        }
+
+        /* Users Table */
+        .table-container {
+            background: var(--md-sys-color-surface);
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: var(--md-sys-elevation-1);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        thead {
+            background: var(--md-sys-color-surface-variant);
+        }
+
+        th {
+            padding: 16px;
+            text-align: left;
+            font-weight: 500;
+            font-size: 14px;
+            color: var(--md-sys-color-on-surface-variant);
+        }
+
+        th.sortable {
+            cursor: pointer;
+            user-select: none;
+            position: relative;
+            padding-right: 32px;
+        }
+
+        th.sortable:hover {
+            background: rgba(0, 0, 0, 0.05);
+        }
+
+        th.sortable .sort-icon {
+            position: absolute;
+            right: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 18px;
+            opacity: 0.3;
+            transition: opacity 0.2s;
+        }
+
+        th.sortable.sorted .sort-icon {
+            opacity: 1;
+        }
+
+        /* Bulk Actions Panel */
+        .bulk-actions-panel {
+            background: var(--md-sys-color-primary-container);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 16px;
+            box-shadow: var(--md-sys-elevation-2);
+            animation: slideDown 0.3s ease;
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .bulk-actions-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+
+        .bulk-actions-info {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--md-sys-color-on-primary-container);
+            font-weight: 500;
+        }
+
+        .bulk-actions-info .material-icons {
+            color: var(--md-sys-color-primary);
+        }
+
+        .bulk-actions-buttons {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .bulk-action-button {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 16px;
+            background: var(--md-sys-color-primary);
+            color: var(--md-sys-color-on-primary);
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .bulk-action-button:hover {
+            background: var(--md-sys-color-primary);
+            box-shadow: var(--md-sys-elevation-2);
+            transform: translateY(-1px);
+        }
+
+        .bulk-action-button.cancel {
+            background: var(--md-sys-color-error);
+            color: var(--md-sys-color-on-error);
+        }
+
+        .bulk-action-button.cancel:hover {
+            background: var(--md-sys-color-error);
+        }
+
+        .bulk-action-button .material-icons {
+            font-size: 18px;
+        }
+
+        /* Checkbox styling */
+        input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+            accent-color: var(--md-sys-color-primary);
+        }
+
+        td {
+            padding: 16px;
+            border-top: 1px solid var(--md-sys-color-outline);
+            color: var(--md-sys-color-on-surface);
+        }
+
+        tbody tr {
+            transition: background 0.2s;
+        }
+
+        tbody tr:hover {
+            background: var(--md-sys-color-surface-variant);
+        }
+
+        /* Badge */
+        .badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 16px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .badge-premium {
+            background: var(--md-sys-color-primary-container);
+            color: var(--md-sys-color-on-primary-container);
+        }
+
+        .badge-trial {
+            background: var(--md-sys-color-secondary-container);
+            color: var(--md-sys-color-on-secondary-container);
+        }
+
+        .badge-free {
+            background: var(--md-sys-color-surface-variant);
+            color: var(--md-sys-color-on-surface-variant);
+        }
+
+        /* Icon Buttons */
+        .icon-button {
+            background: transparent;
+            border: none;
+            color: var(--md-sys-color-primary);
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 50%;
+            transition: background 0.2s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .icon-button:hover {
+            background: var(--md-sys-color-primary-container);
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: var(--md-sys-color-on-surface-variant);
+        }
+
+        .spinner {
+            border: 3px solid var(--md-sys-color-surface-variant);
+            border-top: 3px solid var(--md-sys-color-primary);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 16px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Dialog */
+        .dialog-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .dialog-overlay.show {
+            display: flex;
+        }
+
+        .dialog {
+            background: var(--md-sys-color-surface);
+            border-radius: 28px;
+            padding: 24px;
+            max-width: 500px;
+            width: 90%;
+            box-shadow: var(--md-sys-elevation-3);
+        }
+
+        .dialog h2 {
+            font-size: 24px;
+            font-weight: 400;
+            margin-bottom: 16px;
+            color: var(--md-sys-color-on-surface);
+        }
+
+        .dialog-content {
+            margin: 16px 0;
+            color: var(--md-sys-color-on-surface-variant);
+            line-height: 1.5;
+        }
+
+        .dialog-actions {
+            display: flex;
+            gap: 8px;
+            justify-content: flex-end;
+            margin-top: 24px;
+        }
+
+        /* Chat Dialog */
+        .chat-dialog {
+            max-width: 800px;
+            max-height: 80vh;
+            width: 90%;
+        }
+
+        .chat-messages {
+            max-height: 60vh;
+            overflow-y: auto;
+            margin: 16px 0;
+        }
+
+        .message {
+            margin-bottom: 16px;
+            padding: 12px 16px;
+            border-radius: 12px;
+            line-height: 1.5;
+        }
+
+        .message-user {
+            background: var(--md-sys-color-primary-container);
+            color: var(--md-sys-color-on-primary-container);
+            margin-left: 20%;
+        }
+
+        .message-assistant {
+            background: var(--md-sys-color-secondary-container);
+            color: var(--md-sys-color-on-secondary-container);
+            margin-right: 20%;
+        }
+
+        .message-header {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            opacity: 0.8;
+            margin-bottom: 4px;
+        }
+
+        .message-role {
+            font-weight: 500;
+        }
+
+        .message-date {
+            font-size: 11px;
+        }
+
+        .message-content {
+            word-wrap: break-word;
+        }
+
+        .message-tags {
+            margin-top: 8px;
+            font-size: 11px;
+            opacity: 0.7;
+        }
+
+        /* Toast Notifications */
+        .toast-container {
+            position: fixed;
+            top: 80px;
+            right: 24px;
+            z-index: 2000;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            max-width: 400px;
+        }
+
+        .toast {
+            background: var(--md-sys-color-surface);
+            color: var(--md-sys-color-on-surface);
+            padding: 16px 20px;
+            border-radius: 12px;
+            box-shadow: var(--md-sys-elevation-3);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            animation: slideIn 0.3s ease;
+            min-width: 300px;
+        }
+
+        .toast.success {
+            background: #2E7D32;
+            color: #FFFFFF;
+        }
+
+        .toast.error {
+            background: var(--md-sys-color-error);
+            color: var(--md-sys-color-on-error);
+        }
+
+        .toast.warning {
+            background: #F57C00;
+            color: #FFFFFF;
+        }
+
+        .toast.info {
+            background: var(--md-sys-color-primary);
+            color: var(--md-sys-color-on-primary);
+        }
+
+        .toast-icon {
+            font-size: 24px;
+            flex-shrink: 0;
+        }
+
+        .toast-message {
+            flex: 1;
+            font-size: 14px;
+        }
+
+        .toast-close {
+            background: transparent;
+            border: none;
+            color: inherit;
+            cursor: pointer;
+            padding: 4px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s;
+            flex-shrink: 0;
+        }
+
+        .toast-close:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes slideOut {
+            from {
+                transform: translateX(0);
+                opacity: 1;
+            }
+            to {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+        }
+
+        .toast.hiding {
+            animation: slideOut 0.3s ease;
+        }
+
+        /* Confirmation Dialog */
+        .confirm-dialog {
+            max-width: 400px;
+        }
+
+        .confirm-dialog .dialog-content {
+            font-size: 16px;
+            line-height: 1.6;
+        }
+
+        .confirm-actions {
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+            margin-top: 24px;
+        }
+
+        /* Pagination */
+        .pagination-container {
+            background: var(--md-sys-color-surface);
+            border-radius: 12px;
+            padding: 16px;
+            margin-top: 16px;
+            box-shadow: var(--md-sys-elevation-1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+
+        .pagination-info {
+            color: var(--md-sys-color-on-surface-variant);
+            font-size: 14px;
+        }
+
+        .pagination-controls {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .pagination-button {
+            background: transparent;
+            border: 1px solid var(--md-sys-color-outline);
+            color: var(--md-sys-color-primary);
+            padding: 8px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .pagination-button:hover:not(:disabled) {
+            background: var(--md-sys-color-primary-container);
+        }
+
+        .pagination-button:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        .pagination-select {
+            padding: 8px 12px;
+            border: 1px solid var(--md-sys-color-outline);
+            border-radius: 20px;
+            background: var(--md-sys-color-surface);
+            color: var(--md-sys-color-on-surface);
+            font-size: 14px;
+            cursor: pointer;
+        }
+
+        /* Filters */
+        .filters-container {
+            background: var(--md-sys-color-surface);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 16px;
+            box-shadow: var(--md-sys-elevation-1);
+        }
+
+        .filters-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 12px;
+            margin-top: 12px;
+        }
+
+        .filter-field {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .filter-field label {
+            font-size: 12px;
+            color: var(--md-sys-color-on-surface-variant);
+            font-weight: 500;
+        }
+
+        .filter-field select,
+        .filter-field input {
+            padding: 8px 12px;
+            border: 1px solid var(--md-sys-color-outline);
+            border-radius: 8px;
+            background: var(--md-sys-color-surface);
+            color: var(--md-sys-color-on-surface);
+            font-size: 14px;
+        }
+
+        .filters-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .filters-toggle {
+            background: transparent;
+            border: none;
+            color: var(--md-sys-color-primary);
+            cursor: pointer;
+            padding: 8px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .filters-content {
+            display: none;
+        }
+
+        .filters-content.show {
+            display: block;
+        }
+
+        /* Analytics Section */
+        .analytics-section {
+            background: var(--md-sys-color-surface);
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 32px;
+            box-shadow: var(--md-sys-elevation-1);
+        }
+
+        .analytics-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+
+        .analytics-header h2 {
+            font-size: 20px;
+            font-weight: 500;
+            color: var(--md-sys-color-on-surface);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin: 0;
+        }
+
+        .analytics-controls {
+            display: flex;
+            gap: 8px;
+        }
+
+        .analytics-tab-button {
+            padding: 8px 20px;
+            border: none;
+            border-radius: 20px;
+            background: var(--md-sys-color-surface-variant);
+            color: var(--md-sys-color-on-surface-variant);
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .analytics-tab-button:hover {
+            background: var(--md-sys-color-secondary-container);
+            color: var(--md-sys-color-on-secondary-container);
+        }
+
+        .analytics-tab-button.active {
+            background: var(--md-sys-color-primary);
+            color: var(--md-sys-color-on-primary);
+        }
+
+        .analytics-content {
+            position: relative;
+        }
+
+        .analytics-tab {
+            width: 100%;
+        }
+
+        .chart-controls {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+            justify-content: center;
+        }
+
+        .chart-period-button {
+            padding: 6px 16px;
+            border: 1px solid var(--md-sys-color-outline);
+            border-radius: 16px;
+            background: transparent;
+            color: var(--md-sys-color-on-surface);
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .chart-period-button:hover {
+            background: var(--md-sys-color-surface-variant);
+        }
+
+        .chart-period-button.active {
+            background: var(--md-sys-color-primary-container);
+            color: var(--md-sys-color-on-primary-container);
+            border-color: var(--md-sys-color-primary);
+        }
+
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-height: 400px;
+        }
+
+        .chart-container canvas {
+            max-width: 100%;
+            max-height: 400px;
+        }
+    </style>
+</head>
+<body data-theme="light">
+    <!-- App Bar -->
+    <div class="app-bar">
+        <h1>
+            <span class="material-icons">dashboard</span>
+            Админ-панель Мира
+        </h1>
+        <button class="theme-toggle" onclick="toggleTheme()">
+            <span class="material-icons">dark_mode</span>
+        </button>
+    </div>
+
+    <div class="container">
+        <!-- Stats Grid -->
+        <div class="stats-grid" id="stats-grid">
+            <div class="stat-card">
+                <div class="stat-value" id="total-users">-</div>
+                <div class="stat-label">Всего пользователей</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="active-today">-</div>
+                <div class="stat-label">Активны сегодня</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="active-week">-</div>
+                <div class="stat-label">Активны за неделю</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="total-messages">-</div>
+                <div class="stat-label">Всего сообщений</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="messages-today">-</div>
+                <div class="stat-label">Сообщений сегодня</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="premium-users">-</div>
+                <div class="stat-label">Premium пользователей</div>
+            </div>
+        </div>
+
+        <!-- Retention Metrics Section -->
+        <div class="analytics-section">
+            <div class="analytics-header">
+                <h2>
+                    <span class="material-icons">trending_up</span>
+                    Retention Метрики
+                </h2>
+            </div>
+            <div class="stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));">
+                <div class="stat-card">
+                    <div class="stat-value" id="retention-dau">-</div>
+                    <div class="stat-label">DAU</div>
+                    <div class="stat-hint">Daily Active Users</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="retention-wau">-</div>
+                    <div class="stat-label">WAU</div>
+                    <div class="stat-hint">Weekly Active Users</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="retention-mau">-</div>
+                    <div class="stat-label">MAU</div>
+                    <div class="stat-hint">Monthly Active Users</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="retention-dau-wau">-</div>
+                    <div class="stat-label">DAU/WAU</div>
+                    <div class="stat-hint">Stickiness (дневная)</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="retention-wau-mau">-</div>
+                    <div class="stat-label">WAU/MAU</div>
+                    <div class="stat-hint">Stickiness (недельная)</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Analytics Section -->
+        <div class="analytics-section">
+            <div class="analytics-header">
+                <h2>
+                    <span class="material-icons">analytics</span>
+                    Аналитика
+                </h2>
+                <div class="analytics-controls">
+                    <button class="analytics-tab-button active" onclick="switchAnalyticsTab('activity')">
+                        Активность
+                    </button>
+                    <button class="analytics-tab-button" onclick="switchAnalyticsTab('subscriptions')">
+                        Подписки
+                    </button>
+                    <button class="analytics-tab-button" onclick="switchAnalyticsTab('mood')">
+                        Настроение
+                    </button>
+                    <button class="analytics-tab-button" onclick="switchAnalyticsTab('emotions')">
+                        Эмоции
+                    </button>
+                    <button class="analytics-tab-button" onclick="switchAnalyticsTab('tags')">
+                        Топ-теги
+                    </button>
+                </div>
+            </div>
+
+            <div class="analytics-content">
+                <!-- Activity Chart -->
+                <div class="analytics-tab" id="analytics-activity">
+                    <div class="chart-controls">
+                        <button class="chart-period-button active" onclick="changeActivityPeriod(7)">
+                            7 дней
+                        </button>
+                        <button class="chart-period-button" onclick="changeActivityPeriod(30)">
+                            30 дней
+                        </button>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="activity-chart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Subscriptions Chart -->
+                <div class="analytics-tab" id="analytics-subscriptions" style="display: none;">
+                    <div class="chart-container" style="max-width: 500px; margin: 0 auto;">
+                        <canvas id="subscriptions-chart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Mood Over Time Chart -->
+                <div class="analytics-tab" id="analytics-mood" style="display: none;">
+                    <div class="chart-controls">
+                        <button class="chart-period-button active" onclick="changeMoodPeriod(7)">
+                            7 дней
+                        </button>
+                        <button class="chart-period-button" onclick="changeMoodPeriod(30)">
+                            30 дней
+                        </button>
+                        <button class="chart-period-button" onclick="changeMoodPeriod(90)">
+                            90 дней
+                        </button>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="mood-chart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Emotions Distribution Chart -->
+                <div class="analytics-tab" id="analytics-emotions" style="display: none;">
+                    <div class="chart-controls">
+                        <button class="chart-period-button active" onclick="changeEmotionsPeriod(7)">
+                            7 дней
+                        </button>
+                        <button class="chart-period-button" onclick="changeEmotionsPeriod(30)">
+                            30 дней
+                        </button>
+                        <button class="chart-period-button" onclick="changeEmotionsPeriod(90)">
+                            90 дней
+                        </button>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="emotions-chart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Top Tags -->
+                <div class="analytics-tab" id="analytics-tags" style="display: none;">
+                    <div class="chart-controls">
+                        <button class="chart-period-button active" onclick="changeTagsPeriod(7)">
+                            7 дней
+                        </button>
+                        <button class="chart-period-button" onclick="changeTagsPeriod(30)">
+                            30 дней
+                        </button>
+                        <button class="chart-period-button" onclick="changeTagsPeriod(90)">
+                            90 дней
+                        </button>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="tags-chart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Toolbar -->
+        <div class="toolbar">
+            <div class="search-field">
+                <span class="material-icons">search</span>
+                <input type="text" id="search-input" placeholder="Поиск по имени, username..." onkeypress="if(event.key==='Enter')searchUsers()">
+            </div>
+            <button class="md-button md-button-filled" onclick="searchUsers()">
+                <span class="material-icons">search</span>
+                Поиск
+            </button>
+            <button class="md-button md-button-outlined" onclick="loadUsers()">
+                <span class="material-icons">refresh</span>
+                Обновить
+            </button>
+        </div>
+
+        <!-- Filters -->
+        <div class="filters-container">
+            <div class="filters-header">
+                <button class="filters-toggle" onclick="toggleFilters()">
+                    <span class="material-icons" id="filters-icon">expand_more</span>
+                    Фильтры
+                </button>
+                <button class="md-button md-button-outlined" onclick="clearFilters()" style="font-size: 13px; padding: 6px 16px;">
+                    Сбросить
+                </button>
+            </div>
+            <div class="filters-content" id="filters-content">
+                <div class="filters-grid">
+                    <div class="filter-field">
+                        <label>Подписка</label>
+                        <select id="filter-subscription">
+                            <option value="">Все</option>
+                            <option value="premium">Premium</option>
+                            <option value="trial">Trial</option>
+                            <option value="free">Free</option>
+                        </select>
+                    </div>
+                    <div class="filter-field">
+                        <label>Активность</label>
+                        <select id="filter-activity">
+                            <option value="">Все</option>
+                            <option value="today">Сегодня</option>
+                            <option value="week">За неделю</option>
+                            <option value="month">За месяц</option>
+                            <option value="inactive">Неактивные >30 дней</option>
+                        </select>
+                    </div>
+                    <div class="filter-field">
+                        <label>Онбординг</label>
+                        <select id="filter-onboarding">
+                            <option value="">Все</option>
+                            <option value="completed">Завершён</option>
+                            <option value="incomplete">Не завершён</option>
+                        </select>
+                    </div>
+                    <div class="filter-field">
+                        <label>Дата регистрации</label>
+                        <select id="filter-registration">
+                            <option value="">Все время</option>
+                            <option value="today">Сегодня</option>
+                            <option value="week">За неделю</option>
+                            <option value="month">За месяц</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bulk Actions Panel -->
+        <div class="bulk-actions-panel" id="bulk-actions-panel" style="display: none;">
+            <div class="bulk-actions-content">
+                <div class="bulk-actions-info">
+                    <span class="material-icons">check_circle</span>
+                    <span id="selected-count">0</span> пользователей выбрано
+                </div>
+                <div class="bulk-actions-buttons">
+                    <button class="bulk-action-button" onclick="bulkGrantPremium()">
+                        <span class="material-icons">star</span>
+                        Выдать Premium
+                    </button>
+                    <button class="bulk-action-button" onclick="bulkExport()">
+                        <span class="material-icons">file_download</span>
+                        Экспортировать
+                    </button>
+                    <button class="bulk-action-button cancel" onclick="clearSelection()">
+                        <span class="material-icons">close</span>
+                        Снять выделение
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Users Table -->
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width: 50px;">
+                            <input type="checkbox" id="select-all" onclick="toggleSelectAll()" />
+                        </th>
+                        <th class="sortable" data-sort="telegram_id" onclick="sortTable('telegram_id')">
+                            ID
+                            <span class="material-icons sort-icon">unfold_more</span>
+                        </th>
+                        <th class="sortable" data-sort="name" onclick="sortTable('name')">
+                            Имя
+                            <span class="material-icons sort-icon">unfold_more</span>
+                        </th>
+                        <th>Username</th>
+                        <th class="sortable" data-sort="subscription_plan" onclick="sortTable('subscription_plan')">
+                            Подписка
+                            <span class="material-icons sort-icon">unfold_more</span>
+                        </th>
+                        <th class="sortable" data-sort="total_messages" onclick="sortTable('total_messages')">
+                            Сообщений
+                            <span class="material-icons sort-icon">unfold_more</span>
+                        </th>
+                        <th class="sortable" data-sort="last_active_at" onclick="sortTable('last_active_at')">
+                            Последняя активность
+                            <span class="material-icons sort-icon">unfold_more</span>
+                        </th>
+                        <th>Действия</th>
+                    </tr>
+                </thead>
+                <tbody id="users-table-body">
+                    <tr>
+                        <td colspan="8">
+                            <div class="loading">
+                                <div class="spinner"></div>
+                                <div>Загрузка...</div>
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination -->
+        <div class="pagination-container">
+            <div class="pagination-info" id="pagination-info">
+                Показано 0-0 из 0 пользователей
+            </div>
+            <div class="pagination-controls">
+                <select id="page-size" class="pagination-select" onchange="changePageSize()">
+                    <option value="25">25</option>
+                    <option value="50" selected>50</option>
+                    <option value="100">100</option>
+                </select>
+                <button class="pagination-button" id="prev-page" onclick="previousPage()" disabled>
+                    <span class="material-icons">chevron_left</span>
+                    Назад
+                </button>
+                <button class="pagination-button" id="next-page" onclick="nextPage()">
+                    Вперёд
+                    <span class="material-icons">chevron_right</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- User Detail Dialog -->
+    <div class="dialog-overlay" id="user-dialog">
+        <div class="dialog">
+            <h2>Информация о пользователе</h2>
+            <div class="dialog-content" id="user-dialog-content"></div>
+            <div class="dialog-actions">
+                <button class="md-button md-button-outlined" onclick="closeDialog()">Закрыть</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Chat Dialog -->
+    <div class="dialog-overlay" id="chat-dialog">
+        <div class="dialog chat-dialog">
+            <h2>Переписка с пользователем</h2>
+            <div class="chat-messages" id="chat-messages">
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <div>Загрузка сообщений...</div>
+                </div>
+            </div>
+            <div class="dialog-actions">
+                <button class="md-button md-button-outlined" onclick="closeChatDialog()">Закрыть</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Confirmation Dialog -->
+    <div class="dialog-overlay" id="confirm-dialog">
+        <div class="dialog confirm-dialog">
+            <h2 id="confirm-title">Подтверждение</h2>
+            <div class="dialog-content" id="confirm-message"></div>
+            <div class="confirm-actions">
+                <button class="md-button md-button-outlined" onclick="closeConfirmDialog(false)">Отмена</button>
+                <button class="md-button md-button-filled" onclick="closeConfirmDialog(true)" id="confirm-btn">Подтвердить</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div class="toast-container" id="toast-container"></div>
+
+    <script>
+        const tg = window.Telegram?.WebApp;
+        if (tg) tg.expand();
+
+        const API_BASE = '/api/admin';
+
+        // Toast Notifications
+        function showToast(message, type = 'info', duration = 4000) {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+
+            const icons = {
+                success: 'check_circle',
+                error: 'error',
+                warning: 'warning',
+                info: 'info'
+            };
+
+            toast.innerHTML = `
+                <span class="material-icons toast-icon">${icons[type]}</span>
+                <div class="toast-message">${message}</div>
+                <button class="toast-close" onclick="this.parentElement.remove()">
+                    <span class="material-icons">close</span>
+                </button>
+            `;
+
+            container.appendChild(toast);
+
+            // Auto remove
+            setTimeout(() => {
+                toast.classList.add('hiding');
+                setTimeout(() => toast.remove(), 300);
+            }, duration);
+        }
+
+        // Confirmation Dialog
+        let confirmCallback = null;
+
+        function confirm(message, title = 'Подтверждение', confirmText = 'Подтвердить') {
+            return new Promise((resolve) => {
+                document.getElementById('confirm-title').textContent = title;
+                document.getElementById('confirm-message').textContent = message;
+                document.getElementById('confirm-btn').textContent = confirmText;
+                document.getElementById('confirm-dialog').classList.add('show');
+
+                confirmCallback = resolve;
+            });
+        }
+
+        function closeConfirmDialog(result) {
+            document.getElementById('confirm-dialog').classList.remove('show');
+            if (confirmCallback) {
+                confirmCallback(result);
+                confirmCallback = null;
+            }
+        }
+
+        // Theme management
+        function toggleTheme() {
+            const html = document.documentElement;
+            const currentTheme = html.getAttribute('data-theme');
+            const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+            html.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+
+            const icon = document.querySelector('.theme-toggle .material-icons');
+            icon.textContent = newTheme === 'light' ? 'dark_mode' : 'light_mode';
+        }
+
+        // Load saved theme
+        const savedTheme = localStorage.getItem('theme') || 'light';
+        document.documentElement.setAttribute('data-theme', savedTheme);
+        document.querySelector('.theme-toggle .material-icons').textContent =
+            savedTheme === 'light' ? 'dark_mode' : 'light_mode';
+
+        // Token management
+        const urlParams = new URLSearchParams(window.location.search);
+        const tokenFromUrl = urlParams.get('token');
+        if (tokenFromUrl) {
+            localStorage.setItem('admin_token', tokenFromUrl);
+            window.history.replaceState({}, document.title, window.location.pathname);
+        }
+        const adminToken = localStorage.getItem('admin_token');
+
+        // Pagination state
+        let currentPage = 0;
+        let pageSize = 50;
+        let totalUsers = 0;
+        let allUsers = []; // Кеш всех пользователей для клиентской фильтрации
+
+        // Sorting state
+        let currentSortField = null;
+        let currentSortDirection = 'asc'; // 'asc' или 'desc'
+
+        async function apiRequest(endpoint, options = {}) {
+            const headers = {
+                'Content-Type': 'application/json',
+            };
+
+            if (adminToken) {
+                headers['Authorization'] = `Bearer ${adminToken}`;
+            } else if (tg && tg.initData) {
+                headers['X-Telegram-Init-Data'] = tg.initData;
+            }
+
+            const response = await fetch(`${API_BASE}${endpoint}`, {
+                ...options,
+                headers: {
+                    ...headers,
+                    ...options.headers,
+                },
+            });
+
+            if (!response.ok) {
+                if (response.status === 401) {
+                    showToast('Не авторизован. Используйте ссылку с токеном.', 'error');
+                    throw new Error('Unauthorized');
+                }
+                if (response.status === 403) {
+                    showToast('Доступ запрещён. Только для администраторов.', 'error');
+                    throw new Error('Access denied');
+                }
+                throw new Error(`API error: ${response.statusText}`);
+            }
+
+            return response.json();
+        }
+
+        async function loadSystemStats() {
+            try {
+                const data = await apiRequest('/stats/system');
+
+                document.getElementById('total-users').textContent = data.total_users;
+                document.getElementById('active-today').textContent = data.active_users_today;
+                document.getElementById('active-week').textContent = data.active_users_week;
+                document.getElementById('total-messages').textContent = data.total_messages;
+                document.getElementById('messages-today').textContent = data.messages_today;
+                document.getElementById('premium-users').textContent = data.premium_users;
+            } catch (error) {
+                console.error('Failed to load system stats:', error);
+            }
+        }
+
+        async function loadRetentionMetrics() {
+            try {
+                const data = await apiRequest('/analytics/retention');
+
+                document.getElementById('retention-dau').textContent = data.dau;
+                document.getElementById('retention-wau').textContent = data.wau;
+                document.getElementById('retention-mau').textContent = data.mau;
+                document.getElementById('retention-dau-wau').textContent = data.dau_wau_ratio + '%';
+                document.getElementById('retention-wau-mau').textContent = data.wau_mau_ratio + '%';
+            } catch (error) {
+                console.error('Failed to load retention metrics:', error);
+            }
+        }
+
+        async function loadUsers(search = '') {
+            try {
+                // Загрузить всех пользователей если кеш пуст или поиск изменился
+                if (allUsers.length === 0 || search) {
+                    const params = new URLSearchParams();
+                    if (search) params.append('search', search);
+                    params.append('limit', 500); // Загрузить больше для клиентской фильтрации
+
+                    allUsers = await apiRequest(`/users?${params.toString()}`);
+                }
+
+                // Применить фильтры
+                let filteredUsers = applyFilters(allUsers);
+
+                // Применить сортировку
+                filteredUsers = applySorting(filteredUsers);
+
+                totalUsers = filteredUsers.length;
+
+                // Применить пагинацию
+                const startIndex = currentPage * pageSize;
+                const endIndex = startIndex + pageSize;
+                const paginatedUsers = filteredUsers.slice(startIndex, endIndex);
+
+                // Обновить UI таблицы
+                const tbody = document.getElementById('users-table-body');
+                tbody.innerHTML = '';
+
+                if (paginatedUsers.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="8"><div class="loading">Пользователи не найдены</div></td></tr>';
+                    updatePaginationInfo();
+                    return;
+                }
+
+                paginatedUsers.forEach(user => {
+                    const row = document.createElement('tr');
+
+                    const badgeClass = user.subscription_plan === 'premium' ? 'badge-premium' :
+                                      user.subscription_plan === 'trial' ? 'badge-trial' : 'badge-free';
+
+                    const lastActive = user.last_active_at
+                        ? new Date(user.last_active_at).toLocaleString('ru-RU')
+                        : 'Никогда';
+
+                    row.innerHTML = `
+                        <td>
+                            <input type="checkbox" class="user-checkbox"
+                                   data-user-id="${user.telegram_id}"
+                                   onchange="updateSelection()" />
+                        </td>
+                        <td>${user.telegram_id}</td>
+                        <td>${user.display_name || user.first_name || '-'}</td>
+                        <td>@${user.username || '-'}</td>
+                        <td><span class="badge ${badgeClass}">${user.subscription_plan}</span></td>
+                        <td>${user.total_messages}</td>
+                        <td>${lastActive}</td>
+                        <td>
+                            <button class="icon-button" onclick="viewUser(${user.telegram_id})" title="Просмотр">
+                                <span class="material-icons">visibility</span>
+                            </button>
+                            <button class="icon-button" onclick="viewConversation(${user.telegram_id})" title="Переписка">
+                                <span class="material-icons">chat</span>
+                            </button>
+                            <button class="icon-button" onclick="grantPremium(${user.telegram_id})" title="Выдать Premium">
+                                <span class="material-icons">star</span>
+                            </button>
+                            <button class="icon-button" onclick="exportUserHistory(${user.telegram_id})" title="Экспорт истории">
+                                <span class="material-icons">download</span>
+                            </button>
+                        </td>
+                    `;
+
+                    tbody.appendChild(row);
+                });
+
+                // Обновить информацию о пагинации
+                updatePaginationInfo();
+            } catch (error) {
+                console.error('Failed to load users:', error);
+            }
+        }
+
+        function searchUsers() {
+            const search = document.getElementById('search-input').value;
+            currentPage = 0; // Сбросить на первую страницу
+            allUsers = []; // Очистить кеш для новой загрузки
+            loadUsers(search);
+        }
+
+        async function viewUser(telegramId) {
+            try {
+                const user = await apiRequest(`/users/${telegramId}`);
+
+                const content = `
+                    <p><strong>ID:</strong> ${user.telegram_id}</p>
+                    <p><strong>Имя:</strong> ${user.display_name || user.first_name}</p>
+                    <p><strong>Username:</strong> @${user.username || 'не указан'}</p>
+                    <p><strong>Подписка:</strong> ${user.subscription_plan}</p>
+                    <p><strong>Сообщений:</strong> ${user.total_messages} (за неделю: ${user.messages_this_week})</p>
+                    <p><strong>Партнёр:</strong> ${user.partner_name || 'не указан'}</p>
+                    <p><strong>Ритуалы:</strong> ${user.rituals_enabled.join(', ') || 'нет'}</p>
+                    <p><strong>Заблокирован:</strong> ${user.is_blocked ? 'Да (' + user.block_reason + ')' : 'Нет'}</p>
+                `;
+
+                document.getElementById('user-dialog-content').innerHTML = content;
+                document.getElementById('user-dialog').classList.add('show');
+            } catch (error) {
+                console.error('Failed to view user:', error);
+                showToast('Ошибка загрузки пользователя', 'error');
+            }
+        }
+
+        function closeDialog() {
+            document.getElementById('user-dialog').classList.remove('show');
+        }
+
+        function closeChatDialog() {
+            document.getElementById('chat-dialog').classList.remove('show');
+        }
+
+        // === Bulk Actions ===
+
+        function toggleSelectAll() {
+            const selectAllCheckbox = document.getElementById('select-all');
+            const checkboxes = document.querySelectorAll('.user-checkbox');
+
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = selectAllCheckbox.checked;
+            });
+
+            updateSelection();
+        }
+
+        function updateSelection() {
+            const checkboxes = document.querySelectorAll('.user-checkbox:checked');
+            const count = checkboxes.length;
+
+            const bulkPanel = document.getElementById('bulk-actions-panel');
+            const countElement = document.getElementById('selected-count');
+
+            if (count > 0) {
+                bulkPanel.style.display = 'block';
+                countElement.textContent = count;
+            } else {
+                bulkPanel.style.display = 'none';
+                document.getElementById('select-all').checked = false;
+            }
+        }
+
+        function clearSelection() {
+            document.querySelectorAll('.user-checkbox').forEach(checkbox => {
+                checkbox.checked = false;
+            });
+            document.getElementById('select-all').checked = false;
+            updateSelection();
+        }
+
+        function getSelectedUserIds() {
+            const checkboxes = document.querySelectorAll('.user-checkbox:checked');
+            return Array.from(checkboxes).map(cb => parseInt(cb.dataset.userId));
+        }
+
+        async function bulkGrantPremium() {
+            const userIds = getSelectedUserIds();
+
+            if (userIds.length === 0) {
+                showToast('Выберите хотя бы одного пользователя', 'warning');
+                return;
+            }
+
+            const days = prompt('Сколько дней Premium выдать?', '30');
+            if (!days) return;
+
+            const confirmed = await confirm(
+                `Выдать Premium подписку на ${days} дней для ${userIds.length} пользователей?`,
+                'Массовая выдача Premium',
+                'Выдать'
+            );
+
+            if (!confirmed) return;
+
+            showToast(`Выдача Premium для ${userIds.length} пользователей...`, 'info');
+
+            let successCount = 0;
+            let failCount = 0;
+
+            for (const userId of userIds) {
+                try {
+                    await apiRequest(`/users/${userId}/subscription`, {
+                        method: 'POST',
+                        body: JSON.stringify({
+                            plan: 'premium',
+                            days: parseInt(days)
+                        })
+                    });
+                    successCount++;
+                } catch (error) {
+                    console.error(`Failed to grant premium to ${userId}:`, error);
+                    failCount++;
+                }
+            }
+
+            if (successCount > 0) {
+                showToast(`✅ Premium выдан ${successCount} пользователям`, 'success');
+            }
+            if (failCount > 0) {
+                showToast(`❌ Ошибка для ${failCount} пользователей`, 'error');
+            }
+
+            clearSelection();
+            loadUsers();
+        }
+
+        async function bulkExport() {
+            const userIds = getSelectedUserIds();
+
+            if (userIds.length === 0) {
+                showToast('Выберите хотя бы одного пользователя', 'warning');
+                return;
+            }
+
+            showToast(`Экспорт данных ${userIds.length} пользователей...`, 'info');
+
+            try {
+                // Собрать данные всех выбранных пользователей
+                const usersData = [];
+
+                for (const userId of userIds) {
+                    try {
+                        const user = await apiRequest(`/users/${userId}`);
+                        const messages = await apiRequest(`/users/${userId}/messages?limit=1000`);
+
+                        usersData.push({
+                            user: user,
+                            messages: messages
+                        });
+                    } catch (error) {
+                        console.error(`Failed to fetch data for user ${userId}:`, error);
+                    }
+                }
+
+                // Создать CSV
+                let csv = 'Telegram ID,Имя,Username,Подписка,Сообщений,Роль,Текст,Дата\n';
+
+                usersData.forEach(({ user, messages }) => {
+                    messages.forEach(msg => {
+                        const row = [
+                            user.telegram_id,
+                            user.display_name || user.first_name || '-',
+                            user.username || '-',
+                            user.subscription_plan,
+                            user.total_messages,
+                            msg.role === 'user' ? 'Пользователь' : 'Мира',
+                            `"${msg.content.replace(/"/g, '""')}"`,
+                            new Date(msg.created_at).toLocaleString('ru-RU')
+                        ];
+                        csv += row.join(',') + '\n';
+                    });
+                });
+
+                // Скачать файл
+                const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = `mira_bulk_export_${userIds.length}_users_${Date.now()}.csv`;
+                link.click();
+                URL.revokeObjectURL(url);
+
+                showToast(`✅ Экспорт завершён для ${usersData.length} пользователей`, 'success');
+                clearSelection();
+            } catch (error) {
+                console.error('Bulk export failed:', error);
+                showToast('Ошибка массового экспорта', 'error');
+            }
+        }
+
+        async function grantPremium(telegramId) {
+            const days = prompt('Сколько дней Premium выдать?', '30');
+            if (!days) return;
+
+            const confirmed = await confirm(
+                `Выдать Premium подписку на ${days} дней пользователю ${telegramId}?`,
+                'Выдача Premium',
+                'Выдать'
+            );
+
+            if (!confirmed) return;
+
+            try {
+                await apiRequest(`/users/${telegramId}/subscription`, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        plan: 'premium',
+                        days: parseInt(days)
+                    })
+                });
+
+                showToast(`Premium на ${days} дней выдан пользователю ${telegramId}`, 'success');
+                loadUsers();
+            } catch (error) {
+                console.error('Failed to grant premium:', error);
+                showToast('Ошибка выдачи Premium', 'error');
+            }
+        }
+
+        async function viewConversation(telegramId) {
+            try {
+                // Показать диалог с загрузкой
+                document.getElementById('chat-dialog').classList.add('show');
+                document.getElementById('chat-messages').innerHTML = `
+                    <div class="loading">
+                        <div class="spinner"></div>
+                        <div>Загрузка сообщений...</div>
+                    </div>
+                `;
+
+                // Получить сообщения через API
+                const headers = {};
+                if (adminToken) {
+                    headers['Authorization'] = `Bearer ${adminToken}`;
+                } else if (tg && tg.initData) {
+                    headers['X-Telegram-Init-Data'] = tg.initData;
+                }
+
+                const response = await fetch(`/api/admin/users/${telegramId}/messages`, {
+                    headers: headers
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to fetch messages');
+                }
+
+                const messages = await response.json();
+
+                // Отобразить сообщения
+                const chatContainer = document.getElementById('chat-messages');
+                chatContainer.innerHTML = '';
+
+                if (messages.length === 0) {
+                    chatContainer.innerHTML = '<div class="loading">Сообщений нет</div>';
+                    return;
+                }
+
+                messages.forEach(msg => {
+                    const messageDiv = document.createElement('div');
+                    const isUser = msg.role === 'user';
+                    messageDiv.className = `message ${isUser ? 'message-user' : 'message-assistant'}`;
+
+                    const date = new Date(msg.created_at).toLocaleString('ru-RU');
+                    const roleName = isUser ? 'Пользователь' : 'Мира';
+
+                    let tagsHtml = '';
+                    if (msg.tags && msg.tags.length > 0) {
+                        tagsHtml = `<div class="message-tags">🏷️ ${msg.tags.join(', ')}</div>`;
+                    }
+
+                    messageDiv.innerHTML = `
+                        <div class="message-header">
+                            <span class="message-role">${roleName}</span>
+                            <span class="message-date">${date}</span>
+                        </div>
+                        <div class="message-content">${msg.content}</div>
+                        ${tagsHtml}
+                    `;
+
+                    chatContainer.appendChild(messageDiv);
+                });
+
+                // Прокрутить вниз
+                chatContainer.scrollTop = chatContainer.scrollHeight;
+
+            } catch (error) {
+                console.error('Failed to view conversation:', error);
+                document.getElementById('chat-messages').innerHTML = `
+                    <div class="loading">Ошибка загрузки сообщений</div>
+                `;
+            }
+        }
+
+        async function exportUserHistory(telegramId) {
+            try {
+                const headers = {};
+                if (adminToken) {
+                    headers['Authorization'] = `Bearer ${adminToken}`;
+                } else if (tg && tg.initData) {
+                    headers['X-Telegram-Init-Data'] = tg.initData;
+                }
+
+                const response = await fetch(`/api/admin/users/${telegramId}/export/history`, {
+                    headers: headers
+                });
+
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `admin_export_${telegramId}_history.csv`;
+                a.click();
+
+                showToast('История успешно экспортирована', 'success');
+            } catch (error) {
+                console.error('Export failed:', error);
+                showToast('Ошибка экспорта истории', 'error');
+            }
+        }
+
+        // Close dialog on overlay click
+        document.getElementById('user-dialog').addEventListener('click', (e) => {
+            if (e.target.classList.contains('dialog-overlay')) {
+                closeDialog();
+            }
+        });
+
+        document.getElementById('chat-dialog').addEventListener('click', (e) => {
+            if (e.target.classList.contains('dialog-overlay')) {
+                closeChatDialog();
+            }
+        });
+
+        document.getElementById('confirm-dialog').addEventListener('click', (e) => {
+            if (e.target.classList.contains('dialog-overlay')) {
+                closeConfirmDialog(false);
+            }
+        });
+
+        // ========== Фильтрация и пагинация ==========
+
+        function sortTable(field) {
+            // Если кликнули по той же колонке - меняем направление
+            if (currentSortField === field) {
+                currentSortDirection = currentSortDirection === 'asc' ? 'desc' : 'asc';
+            } else {
+                currentSortField = field;
+                currentSortDirection = 'asc';
+            }
+
+            // Обновляем иконки сортировки в заголовках
+            document.querySelectorAll('th.sortable').forEach(th => {
+                th.classList.remove('sorted');
+                const icon = th.querySelector('.sort-icon');
+                if (icon) {
+                    icon.textContent = 'unfold_more';
+                }
+            });
+
+            const currentTh = document.querySelector(`th[data-sort="${field}"]`);
+            if (currentTh) {
+                currentTh.classList.add('sorted');
+                const icon = currentTh.querySelector('.sort-icon');
+                if (icon) {
+                    icon.textContent = currentSortDirection === 'asc' ? 'arrow_upward' : 'arrow_downward';
+                }
+            }
+
+            // Сохраняем сортировку в localStorage
+            localStorage.setItem('admin_sort_field', currentSortField);
+            localStorage.setItem('admin_sort_direction', currentSortDirection);
+
+            // Перезагружаем таблицу с новой сортировкой
+            currentPage = 0;
+            loadUsers();
+        }
+
+        function applySorting(users) {
+            if (!currentSortField) return users;
+
+            return [...users].sort((a, b) => {
+                let aVal = a[currentSortField];
+                let bVal = b[currentSortField];
+
+                // Обработка null/undefined значений
+                if (aVal == null) return 1;
+                if (bVal == null) return -1;
+
+                // Обработка дат
+                if (currentSortField === 'last_active_at' || currentSortField === 'created_at') {
+                    aVal = new Date(aVal).getTime();
+                    bVal = new Date(bVal).getTime();
+                }
+
+                // Обработка строк (регистронезависимое сравнение)
+                if (typeof aVal === 'string') {
+                    aVal = aVal.toLowerCase();
+                    bVal = bVal.toLowerCase();
+                }
+
+                // Сравнение
+                let comparison = 0;
+                if (aVal > bVal) {
+                    comparison = 1;
+                } else if (aVal < bVal) {
+                    comparison = -1;
+                }
+
+                return currentSortDirection === 'asc' ? comparison : -comparison;
+            });
+        }
+
+        function applyFilters(users) {
+            let filtered = users;
+
+            // Фильтр по подписке
+            const subscription = document.getElementById('filter-subscription').value;
+            if (subscription) {
+                filtered = filtered.filter(u => u.subscription_plan === subscription);
+            }
+
+            // Фильтр по активности
+            const activity = document.getElementById('filter-activity').value;
+            if (activity) {
+                const now = new Date();
+                filtered = filtered.filter(u => {
+                    if (!u.last_active_at) return false;
+                    const lastActive = new Date(u.last_active_at);
+                    const daysDiff = (now - lastActive) / (1000 * 60 * 60 * 24);
+
+                    switch (activity) {
+                        case 'today': return daysDiff < 1;
+                        case 'week': return daysDiff < 7;
+                        case 'month': return daysDiff < 30;
+                        case 'inactive': return daysDiff > 30;
+                        default: return true;
+                    }
+                });
+            }
+
+            // Фильтр по онбордингу (предполагаем, что поле onboarding_completed есть в ответе)
+            const onboarding = document.getElementById('filter-onboarding').value;
+            if (onboarding) {
+                filtered = filtered.filter(u => {
+                    if (onboarding === 'completed') return u.onboarding_completed === true;
+                    if (onboarding === 'incomplete') return u.onboarding_completed !== true;
+                    return true;
+                });
+            }
+
+            // Фильтр по дате регистрации
+            const registration = document.getElementById('filter-registration').value;
+            if (registration) {
+                const now = new Date();
+                filtered = filtered.filter(u => {
+                    if (!u.created_at) return false;
+                    const created = new Date(u.created_at);
+                    const daysDiff = (now - created) / (1000 * 60 * 60 * 24);
+
+                    switch (registration) {
+                        case 'today': return daysDiff < 1;
+                        case 'week': return daysDiff < 7;
+                        case 'month': return daysDiff < 30;
+                        default: return true;
+                    }
+                });
+            }
+
+            return filtered;
+        }
+
+        function toggleFilters() {
+            const content = document.getElementById('filters-content');
+            const icon = document.getElementById('filters-icon');
+
+            if (content.style.display === 'none') {
+                content.style.display = 'block';
+                icon.textContent = 'expand_less';
+            } else {
+                content.style.display = 'none';
+                icon.textContent = 'expand_more';
+            }
+        }
+
+        function clearFilters() {
+            document.getElementById('filter-subscription').value = '';
+            document.getElementById('filter-activity').value = '';
+            document.getElementById('filter-onboarding').value = '';
+            document.getElementById('filter-registration').value = '';
+
+            currentPage = 0;
+            loadUsers();
+            showToast('Фильтры сброшены', 'info', 2000);
+        }
+
+        function updatePaginationInfo() {
+            const startIndex = currentPage * pageSize + 1;
+            const endIndex = Math.min((currentPage + 1) * pageSize, totalUsers);
+
+            const infoText = totalUsers > 0
+                ? `Показано ${startIndex}-${endIndex} из ${totalUsers} пользователей`
+                : 'Пользователи не найдены';
+
+            document.getElementById('pagination-info').textContent = infoText;
+
+            // Включить/выключить кнопки
+            document.getElementById('prev-page').disabled = currentPage === 0;
+            document.getElementById('next-page').disabled = endIndex >= totalUsers;
+        }
+
+        function previousPage() {
+            if (currentPage > 0) {
+                currentPage--;
+                loadUsers();
+            }
+        }
+
+        function nextPage() {
+            if ((currentPage + 1) * pageSize < totalUsers) {
+                currentPage++;
+                loadUsers();
+            }
+        }
+
+        function changePageSize() {
+            pageSize = parseInt(document.getElementById('page-size').value);
+            currentPage = 0; // Сбросить на первую страницу
+            loadUsers();
+        }
+
+        // Обработчики изменений фильтров
+        document.getElementById('filter-subscription').addEventListener('change', () => {
+            currentPage = 0;
+            loadUsers();
+        });
+
+        document.getElementById('filter-activity').addEventListener('change', () => {
+            currentPage = 0;
+            loadUsers();
+        });
+
+        document.getElementById('filter-onboarding').addEventListener('change', () => {
+            currentPage = 0;
+            loadUsers();
+        });
+
+        document.getElementById('filter-registration').addEventListener('change', () => {
+            currentPage = 0;
+            loadUsers();
+        });
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            // Esc - закрыть диалоги
+            if (e.key === 'Escape') {
+                const userDialog = document.getElementById('user-dialog');
+                const chatDialog = document.getElementById('chat-dialog');
+                const confirmDialog = document.getElementById('confirm-dialog');
+
+                if (confirmDialog.classList.contains('show')) {
+                    closeConfirmDialog(false);
+                } else if (chatDialog.classList.contains('show')) {
+                    closeChatDialog();
+                } else if (userDialog.classList.contains('show')) {
+                    closeDialog();
+                }
+            }
+
+            // / - фокус на поиск
+            if (e.key === '/' && !e.target.matches('input, textarea')) {
+                e.preventDefault();
+                document.getElementById('search-input').focus();
+            }
+
+            // r - обновить
+            if (e.key === 'r' && !e.target.matches('input, textarea')) {
+                e.preventDefault();
+                loadUsers();
+                showToast('Список обновлён', 'info', 2000);
+            }
+        });
+
+        // ========== Analytics Charts ==========
+
+        let activityChart = null;
+        let subscriptionsChart = null;
+        let moodChart = null;
+        let emotionsChart = null;
+        let tagsChart = null;
+        let currentActivityPeriod = 7;
+        let currentMoodPeriod = 30;
+        let currentEmotionsPeriod = 30;
+        let currentTagsPeriod = 30;
+
+        // Switch analytics tab
+        function switchAnalyticsTab(tab) {
+            // Update buttons
+            document.querySelectorAll('.analytics-tab-button').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+
+            // Update tabs
+            document.getElementById('analytics-activity').style.display = tab === 'activity' ? 'block' : 'none';
+            document.getElementById('analytics-subscriptions').style.display = tab === 'subscriptions' ? 'block' : 'none';
+            document.getElementById('analytics-mood').style.display = tab === 'mood' ? 'block' : 'none';
+            document.getElementById('analytics-emotions').style.display = tab === 'emotions' ? 'block' : 'none';
+            document.getElementById('analytics-tags').style.display = tab === 'tags' ? 'block' : 'none';
+
+            // Load chart if needed
+            if (tab === 'mood' && !moodChart) {
+                loadMoodChart(currentMoodPeriod);
+            } else if (tab === 'emotions' && !emotionsChart) {
+                loadEmotionsChart(currentEmotionsPeriod);
+            } else if (tab === 'tags' && !tagsChart) {
+                loadTagsChart(currentTagsPeriod);
+            }
+        }
+
+        // Change activity period
+        function changeActivityPeriod(days) {
+            currentActivityPeriod = days;
+
+            // Update buttons
+            document.querySelectorAll('.chart-period-button').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+
+            // Reload chart
+            loadActivityChart(days);
+        }
+
+        // Load activity chart
+        async function loadActivityChart(days = 7) {
+            try {
+                const data = await apiRequest(`/analytics/activity?days=${days}`);
+
+                const ctx = document.getElementById('activity-chart').getContext('2d');
+
+                if (activityChart) {
+                    activityChart.destroy();
+                }
+
+                activityChart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: data.labels,
+                        datasets: [
+                            {
+                                label: 'Активные пользователи',
+                                data: data.active_users,
+                                borderColor: '#6750A4',
+                                backgroundColor: 'rgba(103, 80, 164, 0.1)',
+                                tension: 0.4,
+                                fill: true,
+                            },
+                            {
+                                label: 'Сообщения',
+                                data: data.messages,
+                                borderColor: '#625B71',
+                                backgroundColor: 'rgba(98, 91, 113, 0.1)',
+                                tension: 0.4,
+                                fill: true,
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'top',
+                            },
+                            title: {
+                                display: true,
+                                text: `Активность за ${days} дней`
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: {
+                                    precision: 0
+                                }
+                            }
+                        }
+                    }
+                });
+            } catch (error) {
+                console.error('Failed to load activity chart:', error);
+                showToast('Ошибка загрузки графика активности', 'error');
+            }
+        }
+
+        // Load subscriptions chart
+        async function loadSubscriptionsChart() {
+            try {
+                const data = await apiRequest('/analytics/subscriptions');
+
+                const ctx = document.getElementById('subscriptions-chart').getContext('2d');
+
+                if (subscriptionsChart) {
+                    subscriptionsChart.destroy();
+                }
+
+                subscriptionsChart = new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: data.labels,
+                        datasets: [{
+                            label: 'Подписки',
+                            data: data.values,
+                            backgroundColor: [
+                                '#6750A4',  // Premium
+                                '#EADDFF',  // Trial
+                                '#E8DEF8',  // Free
+                            ],
+                            borderWidth: 0,
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: true,
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                            },
+                            title: {
+                                display: true,
+                                text: 'Распределение подписок'
+                            }
+                        }
+                    }
+                });
+            } catch (error) {
+                console.error('Failed to load subscriptions chart:', error);
+                showToast('Ошибка загрузки графика подписок', 'error');
+            }
+        }
+
+        // Change mood period
+        function changeMoodPeriod(days) {
+            currentMoodPeriod = days;
+
+            // Update buttons
+            const parent = event.target.parentElement;
+            parent.querySelectorAll('.chart-period-button').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+
+            // Reload chart
+            loadMoodChart(days);
+        }
+
+        // Load mood chart
+        async function loadMoodChart(days = 30) {
+            try {
+                const data = await apiRequest(`/analytics/mood?days=${days}`);
+
+                const ctx = document.getElementById('mood-chart').getContext('2d');
+
+                if (moodChart) {
+                    moodChart.destroy();
+                }
+
+                moodChart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: data.labels,
+                        datasets: [{
+                            label: 'Среднее настроение (балл)',
+                            data: data.average_mood,
+                            borderColor: '#6750A4',
+                            backgroundColor: 'rgba(103, 80, 164, 0.1)',
+                            tension: 0.4,
+                            fill: true,
+                            yAxisID: 'y',
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'top',
+                            },
+                            title: {
+                                display: true,
+                                text: `Настроение пользователей за ${days} дней`
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: false,
+                                min: 0,
+                                max: 10,
+                                title: {
+                                    display: true,
+                                    text: 'Балл настроения'
+                                }
+                            }
+                        }
+                    }
+                });
+            } catch (error) {
+                console.error('Failed to load mood chart:', error);
+                showToast('Ошибка загрузки графика настроения', 'error');
+            }
+        }
+
+        // Change emotions period
+        function changeEmotionsPeriod(days) {
+            currentEmotionsPeriod = days;
+
+            // Update buttons
+            const parent = event.target.parentElement;
+            parent.querySelectorAll('.chart-period-button').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+
+            // Reload chart
+            loadEmotionsChart(days);
+        }
+
+        // Load emotions chart
+        async function loadEmotionsChart(days = 30) {
+            try {
+                const data = await apiRequest(`/analytics/emotions?days=${days}`);
+
+                const ctx = document.getElementById('emotions-chart').getContext('2d');
+
+                if (emotionsChart) {
+                    emotionsChart.destroy();
+                }
+
+                emotionsChart = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: data.labels,
+                        datasets: [{
+                            label: 'Количество записей',
+                            data: data.values,
+                            backgroundColor: [
+                                '#FFEB3B',  // Joy (yellow)
+                                '#2196F3',  // Sadness (blue)
+                                '#FF9800',  // Anxiety (orange)
+                                '#F44336',  // Anger (red)
+                                '#9C27B0',  // Fear (purple)
+                                '#4CAF50',  // Calm (green)
+                                '#FF5722',  // Frustration
+                                '#00BCD4',  // Hope (cyan)
+                                '#607D8B',  // Loneliness (grey)
+                                '#E91E63',  // Overwhelmed (pink)
+                                '#9E9E9E',  // Neutral
+                            ],
+                            borderWidth: 0,
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: false,
+                            },
+                            title: {
+                                display: true,
+                                text: `Распределение эмоций за ${days} дней`
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                title: {
+                                    display: true,
+                                    text: 'Количество'
+                                }
+                            }
+                        }
+                    }
+                });
+            } catch (error) {
+                console.error('Failed to load emotions chart:', error);
+                showToast('Ошибка загрузки графика эмоций', 'error');
+            }
+        }
+
+        // Change tags period
+        function changeTagsPeriod(days) {
+            currentTagsPeriod = days;
+
+            // Update buttons
+            const parent = event.target.parentElement;
+            parent.querySelectorAll('.chart-period-button').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+
+            // Reload chart
+            loadTagsChart(days);
+        }
+
+        // Load tags chart
+        async function loadTagsChart(days = 30) {
+            try {
+                const data = await apiRequest(`/analytics/tags?days=${days}`);
+
+                const ctx = document.getElementById('tags-chart').getContext('2d');
+
+                if (tagsChart) {
+                    tagsChart.destroy();
+                }
+
+                tagsChart = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: data.labels,
+                        datasets: [{
+                            label: 'Количество упоминаний',
+                            data: data.values,
+                            backgroundColor: '#6750A4',
+                            borderWidth: 0,
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        indexAxis: 'y',  // Horizontal bar chart
+                        plugins: {
+                            legend: {
+                                display: false,
+                            },
+                            title: {
+                                display: true,
+                                text: `Топ-5 тегов сообщений за ${days} дней`
+                            }
+                        },
+                        scales: {
+                            x: {
+                                beginAtZero: true,
+                                title: {
+                                    display: true,
+                                    text: 'Количество'
+                                }
+                            }
+                        }
+                    }
+                });
+            } catch (error) {
+                console.error('Failed to load tags chart:', error);
+                showToast('Ошибка загрузки графика тегов', 'error');
+            }
+        }
+
+        // Init
+        document.addEventListener('DOMContentLoaded', () => {
+            // Восстановить сортировку из localStorage
+            const savedSortField = localStorage.getItem('admin_sort_field');
+            const savedSortDirection = localStorage.getItem('admin_sort_direction');
+
+            if (savedSortField) {
+                currentSortField = savedSortField;
+                currentSortDirection = savedSortDirection || 'asc';
+
+                // Установить иконку в заголовке
+                const th = document.querySelector(`th[data-sort="${currentSortField}"]`);
+                if (th) {
+                    th.classList.add('sorted');
+                    const icon = th.querySelector('.sort-icon');
+                    if (icon) {
+                        icon.textContent = currentSortDirection === 'asc' ? 'arrow_upward' : 'arrow_downward';
+                    }
+                }
+            }
+
+            loadSystemStats();
+            loadRetentionMetrics();
+            loadUsers();
+
+            // Load analytics charts
+            loadActivityChart(7);
+            loadSubscriptionsChart();
+
+            if (tg && tg.MainButton) {
+                tg.MainButton.setText('Закрыть');
+                tg.MainButton.onClick(() => tg.close());
+                tg.MainButton.show();
+            }
+        });
+    </script>
+</body>
+</html>

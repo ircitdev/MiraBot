@@ -18,6 +18,7 @@ from config.constants import (
     MEMORY_CATEGORY_INSIGHTS,
     MEMORY_CATEGORY_PATTERNS,
     MEMORY_CATEGORY_PROGRESS,
+    MEMORY_CATEGORY_ATTEMPTS,
 )
 
 # Интервал обновления стиля (в сообщениях)
@@ -205,6 +206,7 @@ class ContextBuilder:
             MEMORY_CATEGORY_PROBLEMS,
             MEMORY_CATEGORY_INSIGHTS,
             MEMORY_CATEGORY_PATTERNS,
+            MEMORY_CATEGORY_ATTEMPTS,  # Попытки решения
         ]
 
         all_memories = []

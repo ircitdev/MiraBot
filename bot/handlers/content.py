@@ -309,27 +309,32 @@ async def handle_content_callback(update: Update, context: ContextTypes.DEFAULT_
         )
 
     # === МЕДИТАЦИИ ===
+    # ВАЖНО: Проверяем более специфичные паттерны ПЕРЕД общими!
 
-    elif data.startswith("med:"):
-        # Показать медитацию
-        meditation_id = data.replace("med:", "")
-        meditation = get_meditation_by_id(meditation_id)
+    elif data == "med:menu":
+        # Вернуться в меню медитаций
+        keyboard = [
+            [
+                InlineKeyboardButton("🌬️ Быстрая (2 мин)", callback_data="med:quick_breath"),
+            ],
+            [
+                InlineKeyboardButton("🌊 При тревоге", callback_data="med:anxiety_relief"),
+                InlineKeyboardButton("🧘‍♀️ Расслабление", callback_data="med:body_relaxation"),
+            ],
+            [
+                InlineKeyboardButton("🌅 Утренняя", callback_data="med:morning_intention"),
+                InlineKeyboardButton("🌙 Перед сном", callback_data="med:sleep_preparation"),
+            ],
+            [
+                InlineKeyboardButton("💛 Самосострадание", callback_data="med:self_compassion"),
+            ],
+        ]
 
-        if meditation:
-            keyboard = [
-                [
-                    InlineKeyboardButton("📖 Читать текст", callback_data=f"med:text:{meditation_id}"),
-                ],
-                [
-                    InlineKeyboardButton("🔄 Другая медитация", callback_data="med:menu"),
-                ],
-            ]
-
-            await query.edit_message_text(
-                format_meditation(meditation),
-                reply_markup=InlineKeyboardMarkup(keyboard),
-                parse_mode="Markdown",
-            )
+        await query.edit_message_text(
+            "🧘 **Медитации**\n\nВыбери медитацию:",
+            reply_markup=InlineKeyboardMarkup(keyboard),
+            parse_mode="Markdown",
+        )
 
     elif data.startswith("med:text:"):
         # Показать текст медитации для чтения
@@ -359,30 +364,73 @@ async def handle_content_callback(update: Update, context: ContextTypes.DEFAULT_
                 )
                 await query.message.reply_text(script)
 
-    elif data == "med:menu":
-        # Вернуться в меню медитаций
-        keyboard = [
-            [
-                InlineKeyboardButton("🌬️ Быстрая (2 мин)", callback_data="med:quick_breath"),
-            ],
-            [
-                InlineKeyboardButton("🌊 При тревоге", callback_data="med:anxiety_relief"),
-                InlineKeyboardButton("🧘‍♀️ Расслабление", callback_data="med:body_relaxation"),
-            ],
-            [
-                InlineKeyboardButton("🌅 Утренняя", callback_data="med:morning_intention"),
-                InlineKeyboardButton("🌙 Перед сном", callback_data="med:sleep_preparation"),
-            ],
-            [
-                InlineKeyboardButton("💛 Самосострадание", callback_data="med:self_compassion"),
-            ],
-        ]
+    elif data.startswith("med:audio:"):
+        # Отправить аудио медитацию
+        meditation_id = data.replace("med:audio:", "")
+        meditation = get_meditation_by_id(meditation_id)
 
-        await query.edit_message_text(
-            "🧘 **Медитации**\n\nВыбери медитацию:",
-            reply_markup=InlineKeyboardMarkup(keyboard),
-            parse_mode="Markdown",
-        )
+        if meditation and meditation.voice_file_id:
+            # Удаляем сообщение с кнопками
+            await query.edit_message_text(
+                f"🎧 **{meditation.name}**\n\nОтправляю аудиозапись...",
+                parse_mode="Markdown",
+            )
+
+            # Отправляем аудио файл
+            await query.message.chat.send_audio(
+                audio=meditation.voice_file_id,
+                title=meditation.name,
+                performer="Мира",
+                duration=meditation.duration,
+            )
+
+            # Отправляем инструкции
+            keyboard = [
+                [
+                    InlineKeyboardButton("📖 Читать текст", callback_data=f"med:text:{meditation_id}"),
+                ],
+                [
+                    InlineKeyboardButton("🔄 Другая медитация", callback_data="med:menu"),
+                ],
+            ]
+
+            await query.message.chat.send_message(
+                "💛 Найди тихое место, устройся поудобнее.\n"
+                "Можно закрыть глаза или смотреть в одну точку.\n\n"
+                "Просто слушай и следуй за голосом.",
+                reply_markup=InlineKeyboardMarkup(keyboard),
+            )
+        else:
+            await query.answer("К сожалению, аудио пока недоступно 💛")
+
+    elif data.startswith("med:"):
+        # Показать медитацию (обрабатываем ПОСЛЕ более специфичных паттернов)
+        meditation_id = data.replace("med:", "")
+        meditation = get_meditation_by_id(meditation_id)
+
+        if meditation:
+            keyboard = []
+
+            # Добавляем кнопку аудио если есть файл
+            if meditation.voice_file_id:
+                keyboard.append([
+                    InlineKeyboardButton("🎧 Слушать аудио", callback_data=f"med:audio:{meditation_id}"),
+                ])
+
+            keyboard.extend([
+                [
+                    InlineKeyboardButton("📖 Читать текст", callback_data=f"med:text:{meditation_id}"),
+                ],
+                [
+                    InlineKeyboardButton("🔄 Другая медитация", callback_data="med:menu"),
+                ],
+            ])
+
+            await query.edit_message_text(
+                format_meditation(meditation),
+                reply_markup=InlineKeyboardMarkup(keyboard),
+                parse_mode="Markdown",
+            )
 
 
 async def suggest_exercise_for_state(

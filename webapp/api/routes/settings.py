@@ -29,6 +29,12 @@ class UserSettings(BaseModel):
     birthday: Optional[date] = None
     anniversary: Optional[date] = None
 
+    # Новые поля
+    topics_avoided: Optional[List[str]] = None
+    content_preferences: Optional[dict] = None
+    quiet_hours_start: Optional[str] = None
+    quiet_hours_end: Optional[str] = None
+
 
 class UserSettingsResponse(BaseModel):
     """Ответ с настройками."""
@@ -47,6 +53,12 @@ class UserSettingsResponse(BaseModel):
     anniversary: Optional[date]
     created_at: datetime
 
+    # Новые поля
+    topics_avoided: List[str]
+    content_preferences: dict
+    quiet_hours_start: Optional[str]
+    quiet_hours_end: Optional[str]
+
 
 @router.get("/", response_model=UserSettingsResponse)
 async def get_settings(current_user: dict = Depends(get_current_user)):
@@ -55,6 +67,14 @@ async def get_settings(current_user: dict = Depends(get_current_user)):
 
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
+
+    # Извлечь topics_avoided из communication_style
+    comm_style = user.communication_style or {}
+    topics_avoided = comm_style.get("topics_avoided", [])
+
+    # Форматировать quiet_hours
+    quiet_start = user.quiet_hours_start.strftime("%H:%M") if user.quiet_hours_start else None
+    quiet_end = user.quiet_hours_end.strftime("%H:%M") if user.quiet_hours_end else None
 
     return {
         "telegram_id": user.telegram_id,
@@ -71,6 +91,10 @@ async def get_settings(current_user: dict = Depends(get_current_user)):
         "birthday": user.birthday,
         "anniversary": user.anniversary,
         "created_at": user.created_at,
+        "topics_avoided": topics_avoided,
+        "content_preferences": user.content_preferences or {},
+        "quiet_hours_start": quiet_start,
+        "quiet_hours_end": quiet_end,
     }
 
 
@@ -87,6 +111,24 @@ async def update_settings(
 
     # Обновляем только переданные поля
     update_data = settings.dict(exclude_unset=True)
+
+    # Обработать topics_avoided - сохранить в communication_style
+    if "topics_avoided" in update_data:
+        comm_style = user.communication_style or {}
+        comm_style["topics_avoided"] = update_data.pop("topics_avoided")
+        comm_style["updated_at"] = datetime.now().isoformat()
+        update_data["communication_style"] = comm_style
+
+    # Обработать quiet_hours - конвертировать строки в time
+    if "quiet_hours_start" in update_data and update_data["quiet_hours_start"]:
+        from datetime import time as dt_time
+        hour, minute = map(int, update_data["quiet_hours_start"].split(":"))
+        update_data["quiet_hours_start"] = dt_time(hour, minute)
+
+    if "quiet_hours_end" in update_data and update_data["quiet_hours_end"]:
+        from datetime import time as dt_time
+        hour, minute = map(int, update_data["quiet_hours_end"].split(":"))
+        update_data["quiet_hours_end"] = dt_time(hour, minute)
 
     if update_data:
         await user_repo.update(user.id, **update_data)

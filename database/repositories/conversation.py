@@ -99,6 +99,19 @@ class ConversationRepository:
             )
             return result.scalar() or 0
 
+    async def count_by_user_since(self, user_id: int, since: datetime) -> int:
+        """Количество сообщений пользователя с определённой даты."""
+        async with get_session_context() as session:
+            result = await session.execute(
+                select(func.count(Message.id)).where(
+                    and_(
+                        Message.user_id == user_id,
+                        Message.created_at >= since
+                    )
+                )
+            )
+            return result.scalar() or 0
+
     async def count_user_messages(self, user_id: int) -> int:
         """Количество сообщений от пользователя (только role='user')."""
         async with get_session_context() as session:

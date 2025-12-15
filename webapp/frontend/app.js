@@ -218,6 +218,35 @@ async function loadSettings() {
 
         document.getElementById('proactive-messages').checked = data.proactive_messages;
 
+        // Новые поля - темы для избегания
+        document.getElementById('topics-avoided').value = (data.topics_avoided || []).join(', ');
+
+        // Контентные предпочтения
+        const contentPrefs = data.content_preferences || {};
+
+        document.getElementById('meditation-enabled').checked = contentPrefs.meditation_enabled || false;
+
+        if (contentPrefs.meditation_enabled) {
+            document.getElementById('meditation-settings').style.display = 'block';
+        }
+
+        const meditationTypes = contentPrefs.meditation_types || [];
+        document.querySelectorAll('.meditation-type').forEach(checkbox => {
+            checkbox.checked = meditationTypes.includes(checkbox.value);
+        });
+
+        document.getElementById('meditation-frequency').value = contentPrefs.meditation_frequency || 'daily';
+
+        document.getElementById('exercises-enabled').checked = contentPrefs.exercises_enabled || false;
+
+        // Тихие часы
+        if (data.quiet_hours_start) {
+            document.getElementById('quiet-start').value = data.quiet_hours_start;
+        }
+        if (data.quiet_hours_end) {
+            document.getElementById('quiet-end').value = data.quiet_hours_end;
+        }
+
     } catch (error) {
         console.error('Failed to load settings:', error);
         tg.showAlert('Ошибка загрузки настроек');
@@ -227,6 +256,30 @@ async function loadSettings() {
 async function saveSettings() {
     try {
         tg.MainButton.showProgress();
+
+        // Темы для избегания
+        const topicsText = document.getElementById('topics-avoided').value;
+        const topicsAvoidedArray = topicsText
+            .split(',')
+            .map(s => s.trim())
+            .filter(s => s.length > 0);
+
+        // Контентные предпочтения
+        const meditationEnabled = document.getElementById('meditation-enabled').checked;
+        const meditationTypes = Array.from(
+            document.querySelectorAll('.meditation-type:checked')
+        ).map(cb => cb.value);
+
+        const contentPreferences = {
+            meditation_enabled: meditationEnabled,
+            meditation_types: meditationTypes,
+            meditation_frequency: document.getElementById('meditation-frequency').value,
+            exercises_enabled: document.getElementById('exercises-enabled').checked
+        };
+
+        // Тихие часы
+        const quietStart = document.getElementById('quiet-start').value;
+        const quietEnd = document.getElementById('quiet-end').value;
 
         const settings = {
             display_name: document.getElementById('display-name').value || null,
@@ -242,6 +295,10 @@ async function saveSettings() {
             preferred_time_morning: document.getElementById('morning-time').value,
             preferred_time_evening: document.getElementById('evening-time').value,
             proactive_messages: document.getElementById('proactive-messages').checked,
+            topics_avoided: topicsAvoidedArray,
+            content_preferences: contentPreferences,
+            quiet_hours_start: quietStart || null,
+            quiet_hours_end: quietEnd || null,
         };
 
         await apiRequest('/settings/', {
@@ -262,17 +319,110 @@ async function saveSettings() {
     }
 }
 
+// Referral
+async function loadReferralData() {
+    try {
+        const codeData = await apiRequest('/referral/code');
+        const statsData = await apiRequest('/referral/stats');
+
+        document.getElementById('referral-link').value = codeData.link;
+        document.getElementById('referral-count').textContent = statsData.invited_count;
+        document.getElementById('referral-bonus').textContent = statsData.bonus_earned_days;
+
+        const progressBar = document.getElementById('milestone-progress');
+        progressBar.style.width = statsData.milestone_progress + '%';
+
+    } catch (error) {
+        console.error('Failed to load referral data:', error);
+    }
+}
+
 // Init
 document.addEventListener('DOMContentLoaded', () => {
     // Tabs
     document.querySelectorAll('.tab').forEach(tab => {
         tab.addEventListener('click', () => {
             showTab(tab.dataset.tab);
+
+            // Загрузить реферальные данные при переключении на настройки
+            if (tab.dataset.tab === 'settings') {
+                loadReferralData();
+            }
         });
     });
 
     // Save button
     document.getElementById('save-settings').addEventListener('click', saveSettings);
+
+    // Показать/скрыть настройки медитаций
+    document.getElementById('meditation-enabled').addEventListener('change', (e) => {
+        const settingsDiv = document.getElementById('meditation-settings');
+        settingsDiv.style.display = e.target.checked ? 'block' : 'none';
+    });
+
+    // Экспорт истории
+    document.getElementById('export-history').addEventListener('click', async () => {
+        try {
+            const response = await fetch('/api/export/history', {
+                headers: {
+                    'X-Telegram-Init-Data': tg.initData
+                }
+            });
+
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'mira_history.csv';
+            a.click();
+
+            tg.showAlert('История скачана');
+        } catch (error) {
+            console.error('Export history failed:', error);
+            tg.showAlert('Ошибка экспорта');
+        }
+    });
+
+    // Экспорт статистики
+    document.getElementById('export-stats').addEventListener('click', async () => {
+        try {
+            const response = await fetch('/api/export/stats', {
+                headers: {
+                    'X-Telegram-Init-Data': tg.initData
+                }
+            });
+
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'mira_mood.csv';
+            a.click();
+
+            tg.showAlert('Статистика скачана');
+        } catch (error) {
+            console.error('Export stats failed:', error);
+            tg.showAlert('Ошибка экспорта');
+        }
+    });
+
+    // Копировать реферальную ссылку
+    document.getElementById('copy-referral').addEventListener('click', () => {
+        const link = document.getElementById('referral-link');
+        link.select();
+        document.execCommand('copy');
+        tg.showAlert('Ссылка скопирована');
+    });
+
+    // Поделиться в Telegram
+    document.getElementById('share-referral').addEventListener('click', () => {
+        const link = document.getElementById('referral-link').value;
+        const text = encodeURIComponent(
+            `Привет! Попробуй Миру — бота для психологической поддержки 💛\n\n${link}`
+        );
+        const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(link)}&text=${text}`;
+        window.open(shareUrl, '_blank');
+    });
 
     // Load data
     loadStats();

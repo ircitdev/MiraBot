@@ -88,6 +88,7 @@ MEMORY_CATEGORY_PROBLEMS = "problems"
 MEMORY_CATEGORY_INSIGHTS = "insights"
 MEMORY_CATEGORY_PATTERNS = "patterns"
 MEMORY_CATEGORY_PROGRESS = "progress"
+MEMORY_CATEGORY_ATTEMPTS = "attempts"  # Попытки решения проблем
 
 # =====================================
 # ТИПЫ РИТУАЛОВ

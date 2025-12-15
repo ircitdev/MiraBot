@@ -93,6 +93,20 @@ class User(Base):
     #   "updated_at": "2024-12-14T..."                   # дата обновления
     # }
 
+    # Предпочтения по контенту
+    content_preferences: Mapped[Optional[dict]] = mapped_column(JSONB, default=dict)
+    # Структура content_preferences:
+    # {
+    #   "meditation_enabled": bool,                       # присылать медитации
+    #   "meditation_types": ["morning", "sleep", ...],   # типы медитаций
+    #   "meditation_frequency": "daily" | "3_per_week" | "weekly",
+    #   "exercises_enabled": bool                         # присылать упражнения
+    # }
+
+    # Тихие часы (когда не беспокоить)
+    quiet_hours_start: Mapped[Optional[datetime]] = mapped_column(Time, nullable=True)
+    quiet_hours_end: Mapped[Optional[datetime]] = mapped_column(Time, nullable=True)
+
     # Метаданные
     created_at: Mapped[datetime] = mapped_column(DateTime, default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=func.now(), onupdate=func.now())

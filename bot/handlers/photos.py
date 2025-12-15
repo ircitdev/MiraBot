@@ -82,9 +82,39 @@ async def send_photos(
         await update.message.reply_text(get_all_photos_sent_message())
         return True
 
+    # Фильтруем фото по контексту запроса (если есть ключевые слова)
+    filtered_photos = unsent
+
+    # Проверяем упоминание конкретных людей
+    if "андре" in message_text or "муж" in message_text:
+        # Ищем фото с мужем
+        filtered_by_people = []
+        for photo_id in unsent:
+            photo_info = get_photo_story(photo_id)
+            if photo_info and "people" in photo_info:
+                people_lower = photo_info["people"].lower()
+                if "андре" in people_lower or "муж" in people_lower:
+                    filtered_by_people.append(photo_id)
+        if filtered_by_people:
+            filtered_photos = filtered_by_people
+            logger.info(f"Filtered {len(filtered_by_people)} photos with husband")
+
+    elif any(word in message_text for word in ["дет", "тим", "алис", "сын", "дочь", "ребен"]):
+        # Ищем фото с детьми
+        filtered_by_people = []
+        for photo_id in unsent:
+            photo_info = get_photo_story(photo_id)
+            if photo_info and "people" in photo_info:
+                people_lower = photo_info["people"].lower()
+                if any(w in people_lower for w in ["тим", "алис", "дочь", "сын", "детьми", "ребен"]):
+                    filtered_by_people.append(photo_id)
+        if filtered_by_people:
+            filtered_photos = filtered_by_people
+            logger.info(f"Filtered {len(filtered_by_people)} photos with children")
+
     # Выбираем 1-2 фото для отправки
-    num_to_send = min(random.choice([1, 1, 2]), len(unsent))  # чаще 1, иногда 2
-    photos_to_send = random.sample(unsent, num_to_send)
+    num_to_send = min(random.choice([1, 1, 2]), len(filtered_photos))  # чаще 1, иногда 2
+    photos_to_send = random.sample(filtered_photos, num_to_send)
 
     # Сообщаем сколько осталось
     remaining_after = len(unsent) - num_to_send
@@ -142,6 +172,17 @@ async def send_photos(
     # 5. Возвращаем информацию о новых отправленных фото
     # Это будет сохранено в user_data через message handler
     context.user_data["new_sent_photos"] = new_sent
+
+    # Сохраняем контекст последнего фото для следующего сообщения
+    # Это поможет Claude понять вопросы вроде "Сколько ему?" после фото
+    if new_sent and first_photo_info:
+        context.user_data["last_photo_context"] = {
+            "photo_id": new_sent[0],
+            "title": first_photo_info.get("title"),
+            "story": first_photo_info.get("story"),
+            "people": first_photo_info.get("people"),
+            "mood": first_photo_info.get("mood"),
+        }
 
     # Логируем
     logger.info(

@@ -60,14 +60,13 @@
 
                 <div class="setting-group">
                     <label for="display-name">Как к тебе обращаться</label>
-                    <input type="text" id="display-name" placeholder="Имя">
+                    <input type="text" id="display-name" placeholder="Имя" disabled>
                 </div>
 
                 <div class="setting-group">
                     <label for="persona">Персона</label>
-                    <select id="persona">
+                    <select id="persona" disabled>
                         <option value="mira">Мира (подруга, 42)</option>
-                        <option value="mark">Марк (друг, 45)</option>
                     </select>
                 </div>
 
@@ -78,7 +77,7 @@
 
                 <div class="setting-group">
                     <label for="partner-gender">Пол партнёра</label>
-                    <select id="partner-gender">
+                    <select id="partner-gender" disabled>
                         <option value="">Не указано</option>
                         <option value="male">Мужской</option>
                         <option value="female">Женский</option>
@@ -121,6 +120,108 @@
                         Проактивные сообщения
                     </label>
                     <span class="hint">Мира будет иногда писать первой</span>
+                </div>
+
+                <!-- Триггеры и темы для избегания -->
+                <div class="setting-group">
+                    <label for="topics-avoided">Темы которые НЕ хочется обсуждать</label>
+                    <textarea id="topics-avoided" placeholder="Например: политика, религия, работа..." rows="3"></textarea>
+                    <span class="hint">Укажите темы через запятую</span>
+                </div>
+
+                <!-- Предпочтения по контенту -->
+                <div class="setting-group">
+                    <label>Предпочтения по контенту</label>
+
+                    <label>
+                        <input type="checkbox" id="meditation-enabled">
+                        Присылать медитации
+                    </label>
+
+                    <div id="meditation-settings" style="margin-left: 20px; display: none;">
+                        <label class="small-label">Типы медитаций:</label>
+                        <div class="checkbox-group">
+                            <label><input type="checkbox" class="meditation-type" value="morning"> 🌅 Утренние</label>
+                            <label><input type="checkbox" class="meditation-type" value="sleep"> 🌙 Для сна</label>
+                            <label><input type="checkbox" class="meditation-type" value="anxiety"> 🌊 При тревоге</label>
+                            <label><input type="checkbox" class="meditation-type" value="relaxation"> 🧘‍♀️ Расслабление</label>
+                        </div>
+
+                        <label for="meditation-frequency" class="small-label">Частота:</label>
+                        <select id="meditation-frequency">
+                            <option value="daily">Ежедневно</option>
+                            <option value="3_per_week">3 раза в неделю</option>
+                            <option value="weekly">Еженедельно</option>
+                        </select>
+                    </div>
+
+                    <label>
+                        <input type="checkbox" id="exercises-enabled">
+                        Присылать упражнения для релаксации
+                    </label>
+                </div>
+
+                <!-- Тихие часы -->
+                <div class="setting-group">
+                    <label>Время когда НЕ беспокоить</label>
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        <div>
+                            <label for="quiet-start" class="small-label">С</label>
+                            <input type="time" id="quiet-start">
+                        </div>
+                        <span>—</span>
+                        <div>
+                            <label for="quiet-end" class="small-label">До</label>
+                            <input type="time" id="quiet-end">
+                        </div>
+                    </div>
+                    <span class="hint">В это время бот не будет писать первым</span>
+                </div>
+
+                <!-- Экспорт данных -->
+                <div class="setting-group">
+                    <h3>📥 Экспорт данных</h3>
+                    <button id="export-history" class="btn-secondary">
+                        📄 Скачать историю переписки
+                    </button>
+                    <button id="export-stats" class="btn-secondary">
+                        📊 Скачать статистику настроения
+                    </button>
+                </div>
+
+                <!-- Реферальная программа -->
+                <div class="setting-group">
+                    <h3>👭 Пригласи подругу</h3>
+                    <p class="hint">Пригласи подругу и получите обе +7 дней Premium!</p>
+
+                    <div class="referral-code-box">
+                        <label class="small-label">Твоя реферальная ссылка:</label>
+                        <div style="display: flex; gap: 5px;">
+                            <input type="text" id="referral-link" readonly style="flex: 1;">
+                            <button id="copy-referral" class="btn-secondary">📋</button>
+                        </div>
+                    </div>
+
+                    <div class="referral-stats">
+                        <div class="stat-row">
+                            <span>Приглашено подруг:</span>
+                            <strong id="referral-count">—</strong>
+                        </div>
+                        <div class="stat-row">
+                            <span>Заработано дней Premium:</span>
+                            <strong id="referral-bonus">—</strong>
+                        </div>
+                        <div class="milestone-box">
+                            <span class="small-label">До следующей награды (3 подруги):</span>
+                            <div class="progress-bar">
+                                <div id="milestone-progress" class="progress-fill"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button id="share-referral" class="btn-primary">
+                        📤 Поделиться в Telegram
+                    </button>
                 </div>
 
                 <button id="save-settings" class="btn-primary">Сохранить</button>

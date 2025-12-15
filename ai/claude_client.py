@@ -15,6 +15,8 @@ from database.repositories.conversation import ConversationRepository
 from ai.prompts.system_prompt import build_system_prompt
 from ai.memory.context_builder import ContextBuilder
 from ai.crisis_detector import CrisisDetector
+from ai.memory.attempt_detector import attempt_detector
+from config.constants import MEMORY_CATEGORY_ATTEMPTS
 
 
 class ClaudeClient:
@@ -94,16 +96,23 @@ class ClaudeClient:
             )
             
             response_text = response.content[0].text
-            
+
             # 6. Извлекаем теги для памяти
             tags = self._extract_tags(user_message, response_text, crisis_check)
-            
+
+            # 7. Детектим и сохраняем упоминания о попытках решения
+            await self._detect_and_save_attempts(
+                user_id=user_id,
+                user_message=user_message,
+                response_text=response_text,
+            )
+
             logger.info(
                 f"Generated response for user {user_id}, "
                 f"tokens: {response.usage.input_tokens + response.usage.output_tokens}, "
                 f"is_crisis: {crisis_check['is_crisis']}"
             )
-            
+
             return {
                 "response": response_text,
                 "is_crisis": crisis_check["is_crisis"],
@@ -200,6 +209,13 @@ class ClaudeClient:
 
             # 6. Извлекаем теги для памяти
             tags = self._extract_tags(user_message, full_response, crisis_check)
+
+            # 7. Детектим и сохраняем упоминания о попытках решения
+            await self._detect_and_save_attempts(
+                user_id=user_id,
+                user_message=user_message,
+                response_text=full_response,
+            )
 
             logger.info(
                 f"Generated streaming response for user {user_id}, "
@@ -572,3 +588,68 @@ class ClaudeClient:
         except Exception as e:
             logger.error(f"Error in generate_simple: {e}")
             raise
+
+    async def _detect_and_save_attempts(
+        self,
+        user_id: int,
+        user_message: str,
+        response_text: str,
+    ) -> None:
+        """
+        Детектит упоминания о попытках решения проблем и сохраняет в память.
+
+        Args:
+            user_id: ID пользователя
+            user_message: Сообщение пользователя
+            response_text: Ответ бота
+        """
+        try:
+            # Детектим попытку
+            attempt_info = attempt_detector.detect(
+                user_message=user_message,
+                assistant_response=response_text,
+            )
+
+            if not attempt_info:
+                return
+
+            # Формируем текст для памяти
+            solution_name = attempt_info["solution_name"]
+            result = attempt_info["result"]
+
+            result_text = {
+                "negative": "не помогло",
+                "positive": "помогло",
+                "neutral": "помогло частично",
+                "unknown": "пыталась",
+            }.get(result, "пыталась")
+
+            memory_content = f"Попытка: {solution_name} — {result_text}"
+
+            # Проверяем, нет ли уже похожей записи
+            existing = await self.memory_repo.search(
+                user_id=user_id,
+                query=solution_name[:30],  # Поиск по названию решения
+                limit=1,
+            )
+
+            if existing and solution_name.lower() in existing[0].content.lower():
+                # Уже есть запись об этом решении — обновляем важность
+                await self.memory_repo.update(
+                    existing[0].id,
+                    importance=max(existing[0].importance, attempt_info["importance"]),
+                )
+                logger.debug(f"Updated existing attempt memory: {solution_name}")
+            else:
+                # Создаём новую запись
+                await self.memory_repo.create(
+                    user_id=user_id,
+                    category=MEMORY_CATEGORY_ATTEMPTS,
+                    content=memory_content,
+                    importance=attempt_info["importance"],
+                )
+                logger.info(f"Saved attempt to memory: {memory_content}")
+
+        except Exception as e:
+            # Не падаем если не удалось сохранить попытку
+            logger.warning(f"Failed to detect/save attempt: {e}")

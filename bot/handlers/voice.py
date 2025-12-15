@@ -29,6 +29,12 @@ async def handle_voice(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     user_tg = update.effective_user
     voice = update.message.voice
 
+    # ВРЕМЕННО: Логирование file_id для медитаций
+    logger.info(f"🎤 VOICE MESSAGE from {user_tg.id}")
+    logger.info(f"   file_id: {voice.file_id}")
+    logger.info(f"   duration: {voice.duration}s")
+    logger.info(f"   file_size: {voice.file_size} bytes")
+
     try:
         # 1. Получаем пользователя
         user, _ = await user_repo.get_or_create(
@@ -105,13 +111,8 @@ async def handle_voice(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         await update.message.chat.send_action("typing")
 
         # 12. Подготавливаем данные пользователя
-        user_data = {
-            "persona": user.persona,
-            "display_name": user.display_name,
-            "partner_name": user.partner_name,
-            "children_info": user.children_info,
-            "marriage_years": user.marriage_years,
-        }
+        from bot.handlers.message import _get_fresh_user_data
+        user_data = await _get_fresh_user_data(user)
 
         # 13. Получаем ответ от Claude
         result = await claude.generate_response(

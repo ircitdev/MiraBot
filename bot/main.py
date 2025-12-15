@@ -133,6 +133,33 @@ async def post_init(app: Application) -> None:
     """Инициализация после запуска бота."""
     logger.info("Initializing bot...")
 
+    # Отключаем кнопку меню
+    try:
+        from telegram import MenuButtonDefault
+        await app.bot.set_chat_menu_button(menu_button=MenuButtonDefault())
+        logger.info("Menu button disabled")
+    except Exception as e:
+        logger.warning(f"Failed to disable menu button: {e}")
+
+    # Настраиваем команды бота для обычных пользователей
+    try:
+        from telegram import BotCommand
+        commands = [
+            BotCommand("start", "Начать общение с Мирой"),
+            BotCommand("help", "Что я умею и как мне пользоваться"),
+            BotCommand("exercises", "Упражнения: дыхание, релаксация, заземление"),
+            BotCommand("affirmation", "Получить аффирмацию дня"),
+            BotCommand("meditation", "Медитации и практики осознанности"),
+            BotCommand("settings", "Настройки бота и персоны"),
+            BotCommand("subscription", "Информация о подписке и Premium"),
+            BotCommand("referral", "Пригласить подругу и получить бонусы"),
+            BotCommand("rituals", "Настроить ежедневные ритуалы"),
+        ]
+        await app.bot.set_my_commands(commands)
+        logger.info("Bot commands menu configured")
+    except Exception as e:
+        logger.warning(f"Failed to set bot commands: {e}")
+
     # Подключаемся к Redis
     await redis_client.connect()
 

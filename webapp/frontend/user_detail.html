@@ -1,0 +1,1167 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Детали пользователя - Админ-панель</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+
+    <!-- Material Design 3 -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+    <style>
+        :root {
+            /* Light theme colors */
+            --md-sys-color-primary: #6750A4;
+            --md-sys-color-on-primary: #FFFFFF;
+            --md-sys-color-primary-container: #EADDFF;
+            --md-sys-color-on-primary-container: #21005D;
+
+            --md-sys-color-secondary: #625B71;
+            --md-sys-color-on-secondary: #FFFFFF;
+            --md-sys-color-secondary-container: #E8DEF8;
+            --md-sys-color-on-secondary-container: #1D192B;
+
+            --md-sys-color-surface: #FEF7FF;
+            --md-sys-color-on-surface: #1D1B20;
+            --md-sys-color-surface-variant: #E7E0EC;
+            --md-sys-color-on-surface-variant: #49454F;
+
+            --md-sys-color-background: #FEF7FF;
+            --md-sys-color-on-background: #1D1B20;
+
+            --md-sys-color-error: #B3261E;
+            --md-sys-color-on-error: #FFFFFF;
+
+            --md-sys-color-outline: #79747E;
+            --md-sys-color-shadow: #000000;
+
+            /* Elevation */
+            --md-sys-elevation-1: 0 1px 2px rgba(0,0,0,0.3), 0 1px 3px 1px rgba(0,0,0,0.15);
+            --md-sys-elevation-2: 0 1px 2px rgba(0,0,0,0.3), 0 2px 6px 2px rgba(0,0,0,0.15);
+            --md-sys-elevation-3: 0 4px 8px 3px rgba(0,0,0,0.15), 0 1px 3px rgba(0,0,0,0.3);
+        }
+
+        [data-theme="dark"] {
+            /* Dark theme colors */
+            --md-sys-color-primary: #D0BCFF;
+            --md-sys-color-on-primary: #381E72;
+            --md-sys-color-primary-container: #4F378B;
+            --md-sys-color-on-primary-container: #EADDFF;
+
+            --md-sys-color-secondary: #CCC2DC;
+            --md-sys-color-on-secondary: #332D41;
+            --md-sys-color-secondary-container: #4A4458;
+            --md-sys-color-on-secondary-container: #E8DEF8;
+
+            --md-sys-color-surface: #1D1B20;
+            --md-sys-color-on-surface: #E6E0E9;
+            --md-sys-color-surface-variant: #49454F;
+            --md-sys-color-on-surface-variant: #CAC4D0;
+
+            --md-sys-color-background: #1D1B20;
+            --md-sys-color-on-background: #E6E0E9;
+
+            --md-sys-color-error: #F2B8B5;
+            --md-sys-color-on-error: #601410;
+
+            --md-sys-color-outline: #938F99;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Roboto', sans-serif;
+            background: var(--md-sys-color-background);
+            color: var(--md-sys-color-on-background);
+            transition: background 0.3s, color 0.3s;
+        }
+
+        .app-bar {
+            background: var(--md-sys-color-surface);
+            color: var(--md-sys-color-on-surface);
+            padding: 16px 24px;
+            box-shadow: var(--md-sys-elevation-2);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .app-bar h1 {
+            font-size: 20px;
+            font-weight: 400;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .back-button {
+            background: transparent;
+            border: none;
+            color: var(--md-sys-color-on-surface);
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            transition: background 0.2s;
+        }
+
+        .back-button:hover {
+            background: var(--md-sys-color-surface-variant);
+        }
+
+        .theme-toggle {
+            background: transparent;
+            border: none;
+            color: var(--md-sys-color-on-surface);
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 50%;
+            transition: background 0.2s;
+        }
+
+        .theme-toggle:hover {
+            background: var(--md-sys-color-surface-variant);
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 24px;
+        }
+
+        /* User Header Card */
+        .user-header-card {
+            background: var(--md-sys-color-primary-container);
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: var(--md-sys-elevation-2);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .user-avatar {
+            width: 64px;
+            height: 64px;
+            border-radius: 50%;
+            background: var(--md-sys-color-primary);
+            color: var(--md-sys-color-on-primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+            font-weight: 500;
+        }
+
+        .user-details h2 {
+            font-size: 24px;
+            font-weight: 500;
+            margin-bottom: 4px;
+            color: var(--md-sys-color-on-primary-container);
+        }
+
+        .user-meta {
+            display: flex;
+            gap: 16px;
+            font-size: 14px;
+            color: var(--md-sys-color-on-primary-container);
+            opacity: 0.8;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 16px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .badge-premium {
+            background: var(--md-sys-color-primary);
+            color: var(--md-sys-color-on-primary);
+        }
+
+        .badge-trial {
+            background: var(--md-sys-color-secondary);
+            color: var(--md-sys-color-on-secondary);
+        }
+
+        .badge-free {
+            background: var(--md-sys-color-surface-variant);
+            color: var(--md-sys-color-on-surface-variant);
+        }
+
+        .user-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .md-button {
+            padding: 10px 24px;
+            border: none;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s;
+        }
+
+        .md-button-filled {
+            background: var(--md-sys-color-primary);
+            color: var(--md-sys-color-on-primary);
+        }
+
+        .md-button-outlined {
+            background: transparent;
+            color: var(--md-sys-color-primary);
+            border: 1px solid var(--md-sys-color-outline);
+        }
+
+        /* Tabs */
+        .tabs-container {
+            background: var(--md-sys-color-surface);
+            border-radius: 12px;
+            margin-bottom: 24px;
+            box-shadow: var(--md-sys-elevation-1);
+            overflow: hidden;
+        }
+
+        .tabs-header {
+            display: flex;
+            border-bottom: 1px solid var(--md-sys-color-outline);
+            overflow-x: auto;
+        }
+
+        .tab-button {
+            flex: 1;
+            padding: 16px 24px;
+            background: transparent;
+            border: none;
+            color: var(--md-sys-color-on-surface-variant);
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            border-bottom: 2px solid transparent;
+            white-space: nowrap;
+        }
+
+        .tab-button:hover {
+            background: var(--md-sys-color-surface-variant);
+        }
+
+        .tab-button.active {
+            color: var(--md-sys-color-primary);
+            border-bottom-color: var(--md-sys-color-primary);
+        }
+
+        .tab-content {
+            padding: 24px;
+        }
+
+        .tab-pane {
+            display: none;
+        }
+
+        .tab-pane.active {
+            display: block;
+        }
+
+        /* Info Grid */
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .info-card {
+            background: var(--md-sys-color-surface-variant);
+            border-radius: 8px;
+            padding: 16px;
+        }
+
+        .info-label {
+            font-size: 12px;
+            color: var(--md-sys-color-on-surface-variant);
+            margin-bottom: 4px;
+            opacity: 0.7;
+        }
+
+        .info-value {
+            font-size: 16px;
+            font-weight: 500;
+            color: var(--md-sys-color-on-surface);
+        }
+
+        /* Chart Container */
+        .chart-section {
+            background: var(--md-sys-color-surface);
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: var(--md-sys-elevation-1);
+        }
+
+        .chart-section h3 {
+            font-size: 18px;
+            font-weight: 500;
+            margin-bottom: 16px;
+            color: var(--md-sys-color-on-surface);
+        }
+
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-height: 400px;
+        }
+
+        /* Messages List */
+        .messages-list {
+            max-height: 70vh;
+            overflow-y: auto;
+        }
+
+        .message {
+            margin-bottom: 16px;
+            padding: 12px 16px;
+            border-radius: 12px;
+            line-height: 1.5;
+        }
+
+        .message-user {
+            background: var(--md-sys-color-primary-container);
+            color: var(--md-sys-color-on-primary-container);
+            margin-left: 20%;
+        }
+
+        .message-assistant {
+            background: var(--md-sys-color-secondary-container);
+            color: var(--md-sys-color-on-secondary-container);
+            margin-right: 20%;
+        }
+
+        .message-header {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            opacity: 0.8;
+            margin-bottom: 4px;
+        }
+
+        .message-content {
+            word-wrap: break-word;
+        }
+
+        .message-tags {
+            margin-top: 8px;
+            font-size: 11px;
+            opacity: 0.7;
+        }
+
+        /* Timeline */
+        .timeline {
+            position: relative;
+            padding-left: 40px;
+        }
+
+        .timeline::before {
+            content: '';
+            position: absolute;
+            left: 12px;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: var(--md-sys-color-outline);
+        }
+
+        .timeline-item {
+            position: relative;
+            margin-bottom: 24px;
+        }
+
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: -34px;
+            top: 4px;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: var(--md-sys-color-primary);
+            border: 2px solid var(--md-sys-color-surface);
+        }
+
+        .timeline-date {
+            font-size: 12px;
+            color: var(--md-sys-color-on-surface-variant);
+            margin-bottom: 4px;
+        }
+
+        .timeline-content {
+            background: var(--md-sys-color-surface-variant);
+            border-radius: 8px;
+            padding: 12px;
+        }
+
+        .timeline-title {
+            font-weight: 500;
+            margin-bottom: 4px;
+        }
+
+        .timeline-description {
+            font-size: 14px;
+            color: var(--md-sys-color-on-surface-variant);
+        }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .stat-card {
+            background: var(--md-sys-color-surface-variant);
+            border-radius: 8px;
+            padding: 16px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 32px;
+            font-weight: 500;
+            color: var(--md-sys-color-primary);
+            margin-bottom: 4px;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: var(--md-sys-color-on-surface-variant);
+        }
+
+        /* Loading */
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: var(--md-sys-color-on-surface-variant);
+        }
+
+        .spinner {
+            border: 3px solid var(--md-sys-color-surface-variant);
+            border-top: 3px solid var(--md-sys-color-primary);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 16px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Top Tags */
+        .tags-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .tag-item {
+            background: var(--md-sys-color-surface-variant);
+            color: var(--md-sys-color-on-surface);
+            padding: 8px 16px;
+            border-radius: 16px;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .tag-count {
+            background: var(--md-sys-color-primary-container);
+            color: var(--md-sys-color-on-primary-container);
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body data-theme="light">
+    <!-- App Bar -->
+    <div class="app-bar">
+        <div style="display: flex; align-items: center; gap: 12px;">
+            <button class="back-button" onclick="goBack()">
+                <span class="material-icons">arrow_back</span>
+            </button>
+            <h1>
+                <span class="material-icons">person</span>
+                <span id="user-name">Пользователь</span>
+            </h1>
+        </div>
+        <button class="theme-toggle" onclick="toggleTheme()">
+            <span class="material-icons">dark_mode</span>
+        </button>
+    </div>
+
+    <div class="container">
+        <!-- User Header Card -->
+        <div class="user-header-card">
+            <div class="user-info">
+                <div class="user-avatar" id="user-avatar">-</div>
+                <div class="user-details">
+                    <h2 id="header-user-name">-</h2>
+                    <div class="user-meta">
+                        <span id="header-telegram-id">ID: -</span>
+                        <span id="header-username">@-</span>
+                        <span class="badge" id="header-subscription">-</span>
+                    </div>
+                </div>
+            </div>
+            <div class="user-actions">
+                <button class="md-button md-button-outlined" onclick="grantPremium()">
+                    <span class="material-icons">star</span>
+                    Premium
+                </button>
+                <button class="md-button md-button-outlined" onclick="exportHistory()">
+                    <span class="material-icons">download</span>
+                    Экспорт
+                </button>
+            </div>
+        </div>
+
+        <!-- Tabs -->
+        <div class="tabs-container">
+            <div class="tabs-header">
+                <button class="tab-button active" data-tab="general" onclick="switchTab('general')">
+                    Общее
+                </button>
+                <button class="tab-button" data-tab="conversation" onclick="switchTab('conversation')">
+                    Переписка
+                </button>
+                <button class="tab-button" data-tab="mood" onclick="switchTab('mood')">
+                    Настроение
+                </button>
+                <button class="tab-button" data-tab="history" onclick="switchTab('history')">
+                    История
+                </button>
+                <button class="tab-button" data-tab="analytics" onclick="switchTab('analytics')">
+                    Аналитика
+                </button>
+            </div>
+
+            <div class="tab-content">
+                <!-- General Tab -->
+                <div class="tab-pane active" id="tab-general">
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-value" id="total-messages">-</div>
+                            <div class="stat-label">Всего сообщений</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="messages-week">-</div>
+                            <div class="stat-label">За неделю</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="days-since-join">-</div>
+                            <div class="stat-label">Дней с нами</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="last-active">-</div>
+                            <div class="stat-label">Последняя активность</div>
+                        </div>
+                    </div>
+
+                    <div class="info-grid">
+                        <div class="info-card">
+                            <div class="info-label">Партнёр</div>
+                            <div class="info-value" id="partner-name">-</div>
+                        </div>
+                        <div class="info-card">
+                            <div class="info-label">Персона</div>
+                            <div class="info-value" id="persona">-</div>
+                        </div>
+                        <div class="info-card">
+                            <div class="info-label">Онбординг</div>
+                            <div class="info-value" id="onboarding">-</div>
+                        </div>
+                        <div class="info-card">
+                            <div class="info-label">Ритуалы</div>
+                            <div class="info-value" id="rituals">-</div>
+                        </div>
+                        <div class="info-card">
+                            <div class="info-label">Дата регистрации</div>
+                            <div class="info-value" id="created-at">-</div>
+                        </div>
+                        <div class="info-card">
+                            <div class="info-label">Подписка истекает</div>
+                            <div class="info-value" id="subscription-expires">-</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Conversation Tab -->
+                <div class="tab-pane" id="tab-conversation">
+                    <div class="messages-list" id="messages-list">
+                        <div class="loading">
+                            <div class="spinner"></div>
+                            <div>Загрузка сообщений...</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Mood Tab -->
+                <div class="tab-pane" id="tab-mood">
+                    <div class="chart-section">
+                        <h3>График настроения по дням</h3>
+                        <div class="chart-container">
+                            <canvas id="mood-chart"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="chart-section">
+                        <h3>Распределение эмоций</h3>
+                        <div class="chart-container" style="max-width: 500px; margin: 0 auto;">
+                            <canvas id="emotions-chart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- History Tab -->
+                <div class="tab-pane" id="tab-history">
+                    <div class="timeline" id="timeline">
+                        <div class="loading">
+                            <div class="spinner"></div>
+                            <div>Загрузка истории...</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Analytics Tab -->
+                <div class="tab-pane" id="tab-analytics">
+                    <div class="chart-section">
+                        <h3>Топ-5 тем обсуждений</h3>
+                        <div class="tags-list" id="top-tags">
+                            <div class="loading" style="width: 100%;">
+                                <div class="spinner"></div>
+                                <div>Загрузка...</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="chart-section">
+                        <h3>Активность по часам</h3>
+                        <div class="chart-container">
+                            <canvas id="activity-heatmap"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="chart-section">
+                        <h3>Активность по дням недели</h3>
+                        <div class="chart-container">
+                            <canvas id="weekday-chart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const tg = window.Telegram?.WebApp;
+        if (tg) tg.expand();
+
+        const API_BASE = '/api/admin';
+
+        // Get user ID from URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const telegramId = urlParams.get('telegram_id');
+        const tokenFromUrl = urlParams.get('token');
+
+        if (tokenFromUrl) {
+            localStorage.setItem('admin_token', tokenFromUrl);
+        }
+        const adminToken = localStorage.getItem('admin_token');
+
+        let moodChart = null;
+        let emotionsChart = null;
+        let activityHeatmap = null;
+        let weekdayChart = null;
+
+        // Theme management
+        function toggleTheme() {
+            const html = document.documentElement;
+            const currentTheme = html.getAttribute('data-theme');
+            const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+            html.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+
+            const icon = document.querySelector('.theme-toggle .material-icons');
+            icon.textContent = newTheme === 'light' ? 'dark_mode' : 'light_mode';
+        }
+
+        // Load saved theme
+        const savedTheme = localStorage.getItem('theme') || 'light';
+        document.documentElement.setAttribute('data-theme', savedTheme);
+        document.querySelector('.theme-toggle .material-icons').textContent =
+            savedTheme === 'light' ? 'dark_mode' : 'light_mode';
+
+        function goBack() {
+            window.history.back();
+        }
+
+        async function apiRequest(endpoint, options = {}) {
+            const headers = {
+                'Content-Type': 'application/json',
+            };
+
+            if (adminToken) {
+                headers['Authorization'] = `Bearer ${adminToken}`;
+            } else if (tg && tg.initData) {
+                headers['X-Telegram-Init-Data'] = tg.initData;
+            }
+
+            const response = await fetch(`${API_BASE}${endpoint}`, {
+                ...options,
+                headers: {
+                    ...headers,
+                    ...options.headers,
+                },
+            });
+
+            if (!response.ok) {
+                throw new Error(`API error: ${response.statusText}`);
+            }
+
+            return response.json();
+        }
+
+        function switchTab(tabName) {
+            // Update buttons
+            document.querySelectorAll('.tab-button').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
+
+            // Update panes
+            document.querySelectorAll('.tab-pane').forEach(pane => {
+                pane.classList.remove('active');
+            });
+            document.getElementById(`tab-${tabName}`).classList.add('active');
+
+            // Load data for specific tabs
+            if (tabName === 'conversation' && document.getElementById('messages-list').innerHTML.includes('Загрузка')) {
+                loadMessages();
+            } else if (tabName === 'mood' && !moodChart) {
+                loadMoodData();
+            } else if (tabName === 'history' && document.getElementById('timeline').innerHTML.includes('Загрузка')) {
+                loadTimeline();
+            } else if (tabName === 'analytics' && !activityHeatmap) {
+                loadAnalytics();
+            }
+        }
+
+        async function loadUserData() {
+            try {
+                const user = await apiRequest(`/users/${telegramId}`);
+
+                // Set header
+                const displayName = user.display_name || user.first_name || 'Пользователь';
+                document.getElementById('user-name').textContent = displayName;
+                document.getElementById('header-user-name').textContent = displayName;
+                document.getElementById('header-telegram-id').textContent = `ID: ${user.telegram_id}`;
+                document.getElementById('header-username').textContent = user.username ? `@${user.username}` : '-';
+
+                // Avatar
+                const initial = displayName.charAt(0).toUpperCase();
+                document.getElementById('user-avatar').textContent = initial;
+
+                // Subscription badge
+                const subscriptionBadge = document.getElementById('header-subscription');
+                subscriptionBadge.textContent = user.subscription_plan;
+                subscriptionBadge.className = 'badge ';
+                if (user.subscription_plan === 'premium') {
+                    subscriptionBadge.classList.add('badge-premium');
+                } else if (user.subscription_plan === 'trial') {
+                    subscriptionBadge.classList.add('badge-trial');
+                } else {
+                    subscriptionBadge.classList.add('badge-free');
+                }
+
+                // Stats
+                document.getElementById('total-messages').textContent = user.total_messages;
+                document.getElementById('messages-week').textContent = user.messages_this_week;
+
+                const createdDate = new Date(user.created_at);
+                const daysSinceJoin = Math.floor((new Date() - createdDate) / (1000 * 60 * 60 * 24));
+                document.getElementById('days-since-join').textContent = daysSinceJoin;
+
+                if (user.last_active_at) {
+                    const lastActiveDate = new Date(user.last_active_at);
+                    const hoursAgo = Math.floor((new Date() - lastActiveDate) / (1000 * 60 * 60));
+                    if (hoursAgo < 1) {
+                        document.getElementById('last-active').textContent = 'сейчас';
+                    } else if (hoursAgo < 24) {
+                        document.getElementById('last-active').textContent = `${hoursAgo}ч назад`;
+                    } else {
+                        document.getElementById('last-active').textContent = `${Math.floor(hoursAgo / 24)}д назад`;
+                    }
+                } else {
+                    document.getElementById('last-active').textContent = 'никогда';
+                }
+
+                // Info cards
+                document.getElementById('partner-name').textContent = user.partner_name || 'не указан';
+                document.getElementById('persona').textContent = user.persona || 'mira';
+                document.getElementById('onboarding').textContent = user.onboarding_completed ? 'Завершён' : 'Не завершён';
+                document.getElementById('rituals').textContent = user.rituals_enabled.length > 0
+                    ? user.rituals_enabled.join(', ')
+                    : 'нет';
+                document.getElementById('created-at').textContent = createdDate.toLocaleDateString('ru-RU');
+
+                if (user.subscription_expires_at) {
+                    const expiresDate = new Date(user.subscription_expires_at);
+                    document.getElementById('subscription-expires').textContent = expiresDate.toLocaleDateString('ru-RU');
+                } else {
+                    document.getElementById('subscription-expires').textContent = '-';
+                }
+
+            } catch (error) {
+                console.error('Failed to load user data:', error);
+            }
+        }
+
+        async function loadMessages() {
+            try {
+                const messages = await apiRequest(`/users/${telegramId}/messages?limit=200`);
+
+                const container = document.getElementById('messages-list');
+                container.innerHTML = '';
+
+                if (messages.length === 0) {
+                    container.innerHTML = '<div class="loading">Сообщений нет</div>';
+                    return;
+                }
+
+                messages.forEach(msg => {
+                    const messageDiv = document.createElement('div');
+                    const isUser = msg.role === 'user';
+                    messageDiv.className = `message ${isUser ? 'message-user' : 'message-assistant'}`;
+
+                    const date = new Date(msg.created_at).toLocaleString('ru-RU');
+                    const roleName = isUser ? 'Пользователь' : 'Мира';
+
+                    let tagsHtml = '';
+                    if (msg.tags && msg.tags.length > 0) {
+                        tagsHtml = `<div class="message-tags">🏷️ ${msg.tags.join(', ')}</div>`;
+                    }
+
+                    messageDiv.innerHTML = `
+                        <div class="message-header">
+                            <span class="message-role">${roleName}</span>
+                            <span class="message-date">${date}</span>
+                        </div>
+                        <div class="message-content">${msg.content}</div>
+                        ${tagsHtml}
+                    `;
+
+                    container.appendChild(messageDiv);
+                });
+
+                // Scroll to bottom
+                container.scrollTop = container.scrollHeight;
+
+            } catch (error) {
+                console.error('Failed to load messages:', error);
+                document.getElementById('messages-list').innerHTML = '<div class="loading">Ошибка загрузки</div>';
+            }
+        }
+
+        async function loadMoodData() {
+            try {
+                const data = await apiRequest(`/users/${telegramId}/mood?days=30`);
+
+                // Mood chart
+                const ctx = document.getElementById('mood-chart').getContext('2d');
+                moodChart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: data.labels,
+                        datasets: [{
+                            label: 'Настроение (балл)',
+                            data: data.mood_scores,
+                            borderColor: '#6750A4',
+                            backgroundColor: 'rgba(103, 80, 164, 0.1)',
+                            tension: 0.4,
+                            fill: true,
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'top',
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: false,
+                                min: 0,
+                                max: 10,
+                            }
+                        }
+                    }
+                });
+
+                // Emotions chart
+                const emotionsCtx = document.getElementById('emotions-chart').getContext('2d');
+                emotionsChart = new Chart(emotionsCtx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: data.emotion_labels,
+                        datasets: [{
+                            data: data.emotion_values,
+                            backgroundColor: [
+                                '#FFEB3B', '#2196F3', '#FF9800', '#F44336',
+                                '#9C27B0', '#4CAF50', '#FF5722', '#00BCD4',
+                            ],
+                            borderWidth: 0,
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: true,
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                            }
+                        }
+                    }
+                });
+
+            } catch (error) {
+                console.error('Failed to load mood data:', error);
+            }
+        }
+
+        async function loadTimeline() {
+            try {
+                const timeline = await apiRequest(`/users/${telegramId}/timeline`);
+
+                const container = document.getElementById('timeline');
+                container.innerHTML = '';
+
+                if (timeline.length === 0) {
+                    container.innerHTML = '<div class="loading">События отсутствуют</div>';
+                    return;
+                }
+
+                timeline.forEach(event => {
+                    const item = document.createElement('div');
+                    item.className = 'timeline-item';
+
+                    const date = new Date(event.date).toLocaleDateString('ru-RU', {
+                        day: 'numeric',
+                        month: 'long',
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    });
+
+                    item.innerHTML = `
+                        <div class="timeline-date">${date}</div>
+                        <div class="timeline-content">
+                            <div class="timeline-title">${event.title}</div>
+                            <div class="timeline-description">${event.description}</div>
+                        </div>
+                    `;
+
+                    container.appendChild(item);
+                });
+
+            } catch (error) {
+                console.error('Failed to load timeline:', error);
+                document.getElementById('timeline').innerHTML = '<div class="loading">Ошибка загрузки</div>';
+            }
+        }
+
+        async function loadAnalytics() {
+            try {
+                const analytics = await apiRequest(`/users/${telegramId}/analytics`);
+
+                // Top tags
+                const tagsContainer = document.getElementById('top-tags');
+                tagsContainer.innerHTML = '';
+
+                if (analytics.top_tags && analytics.top_tags.length > 0) {
+                    analytics.top_tags.forEach(tag => {
+                        const tagItem = document.createElement('div');
+                        tagItem.className = 'tag-item';
+                        tagItem.innerHTML = `
+                            <span>${tag.tag}</span>
+                            <span class="tag-count">${tag.count}</span>
+                        `;
+                        tagsContainer.appendChild(tagItem);
+                    });
+                } else {
+                    tagsContainer.innerHTML = '<div class="loading">Нет данных</div>';
+                }
+
+                // Activity heatmap (by hour)
+                const heatmapCtx = document.getElementById('activity-heatmap').getContext('2d');
+                activityHeatmap = new Chart(heatmapCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: Array.from({length: 24}, (_, i) => `${i}:00`),
+                        datasets: [{
+                            label: 'Сообщений',
+                            data: analytics.activity_by_hour,
+                            backgroundColor: '#6750A4',
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: false,
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: {
+                                    precision: 0
+                                }
+                            }
+                        }
+                    }
+                });
+
+                // Weekday chart
+                const weekdayCtx = document.getElementById('weekday-chart').getContext('2d');
+                weekdayChart = new Chart(weekdayCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'],
+                        datasets: [{
+                            label: 'Сообщений',
+                            data: analytics.activity_by_weekday,
+                            backgroundColor: '#625B71',
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: false,
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: {
+                                    precision: 0
+                                }
+                            }
+                        }
+                    }
+                });
+
+            } catch (error) {
+                console.error('Failed to load analytics:', error);
+            }
+        }
+
+        async function grantPremium() {
+            const days = prompt('Сколько дней Premium выдать?', '30');
+            if (!days) return;
+
+            try {
+                await apiRequest(`/users/${telegramId}/subscription`, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        plan: 'premium',
+                        days: parseInt(days)
+                    })
+                });
+
+                alert(`Premium на ${days} дней выдан`);
+                loadUserData();
+            } catch (error) {
+                console.error('Failed to grant premium:', error);
+                alert('Ошибка выдачи Premium');
+            }
+        }
+
+        async function exportHistory() {
+            try {
+                const headers = {};
+                if (adminToken) {
+                    headers['Authorization'] = `Bearer ${adminToken}`;
+                } else if (tg && tg.initData) {
+                    headers['X-Telegram-Init-Data'] = tg.initData;
+                }
+
+                const response = await fetch(`${API_BASE}/users/${telegramId}/export/history`, {
+                    headers: headers
+                });
+
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `user_${telegramId}_history.csv`;
+                a.click();
+
+                alert('История успешно экспортирована');
+            } catch (error) {
+                console.error('Export failed:', error);
+                alert('Ошибка экспорта');
+            }
+        }
+
+        // Init
+        document.addEventListener('DOMContentLoaded', () => {
+            if (!telegramId) {
+                alert('Не указан ID пользователя');
+                window.history.back();
+                return;
+            }
+
+            loadUserData();
+        });
+    </script>
+</body>
+</html>

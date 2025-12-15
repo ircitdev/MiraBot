@@ -131,7 +131,15 @@ class Settings(BaseSettings):
         default="change_me",
         description="Пароль админа по умолчанию"
     )
-    
+    ADMIN_TELEGRAM_ID: int = Field(
+        default=65876198,
+        description="Telegram ID администратора"
+    )
+    ADMIN_TOKEN: str = Field(
+        default="NJCZ8rYTNuFfLrNRwTIiSyutyql_EprB_K2jURF7HAw",
+        description="Токен для доступа к админ-панели"
+    )
+
     # =====================================
     # РИТУАЛЫ
     # =====================================
