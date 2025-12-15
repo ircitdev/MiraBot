@@ -13,6 +13,7 @@ from database.repositories.mood import MoodRepository
 from database.repositories.user import UserRepository
 from database.repositories.trigger import TriggerRepository
 from database.repositories.goal import GoalRepository
+from database.repositories.followup import FollowUpRepository
 from ai.style_analyzer import style_analyzer
 from ai.question_type_detector import question_type_detector
 from config.constants import (
@@ -38,6 +39,7 @@ class ContextBuilder:
         self.user_repo = UserRepository()
         self.trigger_repo = TriggerRepository()
         self.goal_repo = GoalRepository()
+        self.followup_repo = FollowUpRepository()
     
     async def build(
         self,
@@ -109,6 +111,11 @@ class ContextBuilder:
         active_goals = await self._get_active_goals(user_id)
         if active_goals:
             context["active_goals"] = active_goals
+
+        # Pending follow-ups (обещания и планы)
+        pending_followups = await self._get_pending_followups(user_id)
+        if pending_followups:
+            context["pending_followups"] = pending_followups
 
         # Долговременная память (только для премиум)
         if include_long_term_memory:
@@ -494,4 +501,52 @@ class ContextBuilder:
 
         except Exception as e:
             logger.warning(f"Error getting active goals: {e}")
+            return None
+
+    async def _get_pending_followups(self, user_id: int) -> Optional[List[Dict[str, Any]]]:
+        """
+        Получает pending follow-ups пользователя.
+
+        Args:
+            user_id: ID пользователя
+
+        Returns:
+            Список pending follow-ups или None
+        """
+        try:
+            followups = await self.followup_repo.get_pending_followups(user_id, limit=10)
+
+            if not followups:
+                return None
+
+            # Форматируем для промпта
+            pending_list = []
+            for followup in followups:
+                # Вычисляем когда было обещано
+                days_ago = None
+                if followup.scheduled_date:
+                    delta = datetime.utcnow() - followup.scheduled_date
+                    days_ago = delta.days
+
+                # Когда нужно спросить
+                days_until_followup = None
+                if followup.followup_date:
+                    delta = followup.followup_date - datetime.utcnow()
+                    days_until_followup = delta.days
+
+                pending_list.append({
+                    "id": followup.id,
+                    "action": followup.action,
+                    "context": followup.context,
+                    "category": followup.category,
+                    "priority": followup.priority,
+                    "scheduled_days_ago": days_ago,
+                    "followup_in_days": days_until_followup,
+                })
+
+            logger.debug(f"Loaded {len(pending_list)} pending follow-ups for user {user_id}")
+            return pending_list
+
+        except Exception as e:
+            logger.warning(f"Error getting pending follow-ups: {e}")
             return None

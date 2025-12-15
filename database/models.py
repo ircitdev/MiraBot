@@ -625,3 +625,61 @@ class UserGoal(Base):
 
     def __repr__(self) -> str:
         return f"<UserGoal(id={self.id}, user_id={self.user_id}, status={self.status}, progress={self.progress}%)>"
+
+
+class UserFollowUp(Base):
+    """Модель для отслеживания обещаний и планов пользователя (follow-ups)."""
+
+    __tablename__ = "user_followups"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    user_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("users.id"), nullable=False)
+
+    # Что пользователь планирует/обещал
+    action: Mapped[str] = mapped_column(Text, nullable=False)  # "Поговорить с мужем о переезде"
+
+    # Контекст (почему это важно)
+    context: Mapped[Optional[str]] = mapped_column(Text)  # "Хотела обсудить давно, накопилось много"
+
+    # Категория действия
+    category: Mapped[Optional[str]] = mapped_column(String(50))
+    # Категории: 'conversation', 'task', 'appointment', 'decision', 'habit', 'other'
+
+    # Временные рамки
+    scheduled_date: Mapped[Optional[datetime]] = mapped_column(DateTime)  # Когда планировалось
+    followup_date: Mapped[datetime] = mapped_column(DateTime, nullable=False)  # Когда спросить "Как прошло?"
+
+    # Статус
+    status: Mapped[str] = mapped_column(String(20), default="pending")
+    # Статусы: 'pending', 'completed', 'postponed', 'cancelled', 'asked'
+
+    # Результат (заполняется после follow-up)
+    outcome: Mapped[Optional[str]] = mapped_column(Text)  # Что произошло в итоге
+    outcome_sentiment: Mapped[Optional[str]] = mapped_column(String(20))  # 'positive', 'negative', 'neutral', 'mixed'
+
+    # Приоритет (насколько важно для пользователя)
+    priority: Mapped[str] = mapped_column(String(10), default="medium")
+    # 'low', 'medium', 'high', 'urgent'
+
+    # Метаданные
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=func.now(), onupdate=func.now())
+    completed_at: Mapped[Optional[datetime]] = mapped_column(DateTime)
+    asked_at: Mapped[Optional[datetime]] = mapped_column(DateTime)  # Когда задали follow-up вопрос
+
+    # Связь с сообщением где упоминалось
+    message_id: Mapped[Optional[int]] = mapped_column(BigInteger, ForeignKey("conversations.id"))
+
+    # Связи
+    user: Mapped["User"] = relationship("User")
+
+    # Индексы
+    __table_args__ = (
+        Index("idx_user_followups_user", "user_id"),
+        Index("idx_user_followups_status", "user_id", "status"),
+        Index("idx_user_followups_followup_date", "followup_date", "status"),
+        Index("idx_user_followups_priority", "user_id", "priority", "status"),
+    )
+
+    def __repr__(self) -> str:
+        return f"<UserFollowUp(id={self.id}, user_id={self.user_id}, action={self.action[:30]}..., status={self.status})>"

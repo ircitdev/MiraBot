@@ -360,3 +360,83 @@ async def goals_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     parts.append("\n\nПросто напиши мне про прогресс по любой цели, и я обновлю её статус!")
 
     await update.message.reply_text("\n".join(parts), parse_mode="Markdown")
+
+
+async def plans_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Обработчик команды /plans - показывает обещания и планы пользователя."""
+
+    user = await user_repo.get_by_telegram_id(update.effective_user.id)
+
+    if not user:
+        await update.message.reply_text("Сначала напиши /start 💛")
+        return
+
+    from database.repositories.followup import FollowUpRepository
+    followup_repo = FollowUpRepository()
+
+    # Получаем pending follow-ups
+    pending_followups = await followup_repo.get_pending_followups(user.id, limit=20)
+
+    if not pending_followups:
+        text = """📋 **Мои планы**
+
+У тебя пока нет отслеживаемых планов или обещаний.
+
+Когда ты скажешь мне что-то вроде:
+• "Завтра поговорю с мужем"
+• "Сегодня вечером схожу в зал"
+• "На этой неделе начну медитировать"
+
+Я запомню это и потом спрошу как прошло! 🙌
+"""
+        await update.message.reply_text(text, parse_mode="Markdown")
+        return
+
+    # Форматируем список планов
+    parts = ["📋 **Мои планы и обещания:**\n"]
+
+    for i, followup in enumerate(pending_followups, 1):
+        # Эмодзи зависит от категории
+        if followup.category == "conversation":
+            emoji = "💬"
+        elif followup.category == "task":
+            emoji = "📝"
+        elif followup.category == "appointment":
+            emoji = "🏥"
+        elif followup.category == "decision":
+            emoji = "🤔"
+        else:
+            emoji = "📌"
+
+        # Приоритет
+        priority_mark = ""
+        if followup.priority == "urgent":
+            priority_mark = " 🔥"
+        elif followup.priority == "high":
+            priority_mark = " ⭐"
+
+        parts.append(f"\n{emoji} **{i}. {followup.action}**{priority_mark}")
+
+        # Когда планировалось
+        if followup.scheduled_date:
+            days_ago = (datetime.utcnow() - followup.scheduled_date).days
+            if days_ago == 0:
+                parts.append("   Планировалось на сегодня")
+            elif days_ago == 1:
+                parts.append("   Было вчера")
+            elif days_ago > 0:
+                parts.append(f"   Прошло {days_ago} дней")
+
+        # Когда спрошу
+        if followup.followup_date:
+            days_until = (followup.followup_date - datetime.utcnow()).days
+            if days_until <= 0:
+                parts.append("   💡 Самое время рассказать как прошло!")
+            elif days_until == 1:
+                parts.append("   Завтра спрошу как прошло")
+            else:
+                parts.append(f"   Спрошу через {days_until} дней")
+
+    parts.append("\n\nПросто расскажи мне как прошло любое из обещаний — я отмечу результат!")
+
+    await update.message.reply_text("\n".join(parts), parse_mode="Markdown")

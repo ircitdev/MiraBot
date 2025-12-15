@@ -85,6 +85,14 @@ def start_scheduler(application: Application) -> None:
         replace_existing=True,
     )
 
+    # Follow-up вопросы — каждый час
+    scheduler.add_job(
+        send_followup_questions,
+        trigger=IntervalTrigger(hours=1),
+        id="followup_questions",
+        replace_existing=True,
+    )
+
     scheduler.start()
     logger.info("Scheduler started")
 
@@ -686,5 +694,91 @@ def _build_checkin_message(goal) -> str:
 
     parts.append("")
     parts.append("Расскажи, что получилось за это время? Что-то мешает двигаться дальше?")
+
+    return "\n".join(parts)
+
+
+async def send_followup_questions() -> None:
+    """
+    Отправляет follow-up вопросы по обещаниям и планам пользователей.
+    Запускается каждый час.
+    """
+    global app
+
+    if not app:
+        return
+
+    from database.repositories.followup import FollowUpRepository
+    from database.repositories.user import UserRepository
+
+    followup_repo = FollowUpRepository()
+    user_repo = UserRepository()
+
+    # Получаем follow-ups которым пришло время
+    followups_due = await followup_repo.get_followups_due(limit=30)
+
+    followups_sent = 0
+
+    for followup in followups_due:
+        try:
+            # Получаем пользователя
+            user = await user_repo.get(followup.user_id)
+
+            if not user:
+                continue
+
+            # Формируем сообщение follow-up
+            followup_message = _build_followup_message(followup)
+
+            # Отправляем пользователю
+            await app.bot.send_message(
+                chat_id=user.telegram_id,
+                text=followup_message,
+            )
+
+            # Отмечаем что вопрос задан
+            await followup_repo.mark_as_asked(followup.id)
+
+            followups_sent += 1
+            logger.info(f"Sent follow-up question to user {user.id} for action: {followup.action[:30]}...")
+
+        except Exception as e:
+            logger.error(f"Failed to send follow-up to user {followup.user_id}: {e}")
+
+    if followups_sent > 0:
+        logger.info(f"Follow-up questions job complete: {followups_sent} follow-ups sent")
+
+
+def _build_followup_message(followup) -> str:
+    """
+    Строит сообщение follow-up для обещания/плана.
+
+    Args:
+        followup: Объект UserFollowUp
+
+    Returns:
+        Текст сообщения
+    """
+    parts = []
+
+    # Приветствие зависит от категории
+    if followup.category == "conversation":
+        parts.append(f"Слушай, ты хотела **{followup.action}**.")
+    elif followup.category == "task":
+        parts.append(f"Помню, ты планировала **{followup.action}**.")
+    elif followup.category == "decision":
+        parts.append(f"Ты собиралась **{followup.action}**.")
+    else:
+        parts.append(f"Напоминаю, ты хотела **{followup.action}**.")
+
+    parts.append("")
+
+    # Контекст если есть
+    if followup.context:
+        parts.append(f"_{followup.context}_")
+        parts.append("")
+
+    # Вопрос
+    parts.append("Как прошло? Получилось?")
 
     return "\n".join(parts)

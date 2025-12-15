@@ -440,6 +440,42 @@ def _build_user_context_block(context: Dict[str, Any]) -> str:
         parts.append("- Если цель просрочена — НЕ критикуй, а помоги скорректировать дедлайн")
         parts.append("- Можешь ненавязчиво спросить про цель если давно не обсуждали")
 
+    # Pending follow-ups (обещания и планы пользователя)
+    if context.get("pending_followups"):
+        parts.append("\n**📋 ЧТО ПОЛЬЗОВАТЕЛЬ ПЛАНИРОВАЛ/ОБЕЩАЛ:**")
+        for followup in context["pending_followups"]:
+            action_emoji = "💬" if followup["category"] == "conversation" else "📝"
+            priority_mark = "🔥" if followup["priority"] in ["urgent", "high"] else ""
+
+            parts.append(f"\n{action_emoji} {priority_mark} {followup['action']}")
+
+            if followup.get("context"):
+                parts.append(f"   Контекст: {followup['context']}")
+
+            if followup.get("scheduled_days_ago") is not None:
+                days = followup["scheduled_days_ago"]
+                if days == 0:
+                    parts.append("   ⏰ Планировалось на сегодня")
+                elif days == 1:
+                    parts.append("   ⏰ Было вчера")
+                elif days > 0:
+                    parts.append(f"   ⏰ Прошло {days} дней с момента обещания")
+
+            # Когда нужно спросить
+            if followup.get("followup_in_days") is not None:
+                days_until = followup["followup_in_days"]
+                if days_until <= 0:
+                    parts.append("   💡 САМОЕ ВРЕМЯ СПРОСИТЬ: 'Как прошло? Получилось?'")
+                elif days_until == 1:
+                    parts.append("   📌 Завтра спрошу как прошло")
+
+        parts.append("\n**ВАЖНО для работы с follow-ups:**")
+        parts.append("- Если пришло время (followup_in_days <= 0) — ОБЯЗАТЕЛЬНО спроси 'Как прошло?'")
+        parts.append("- Задай конкретный вопрос про действие: 'Удалось поговорить с мужем?'")
+        parts.append("- Если получилось — ПРАЗДНУЙ результат!")
+        parts.append("- Если не получилось — НЕ критикуй, узнай что помешало")
+        parts.append("- Если пользователь говорит что отложил — поддержи и помоги понять причину")
+
     # Паттерны разговора — детекция зацикливания
     if context.get("conversation_patterns") and context["conversation_patterns"].get("needs_breakthrough"):
         pattern = context["conversation_patterns"]
