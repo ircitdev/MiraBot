@@ -1097,6 +1097,10 @@
                 <span class="material-icons">refresh</span>
                 Обновить
             </button>
+            <button class="md-button md-button-filled" onclick="openBroadcastDialog()" style="background: #FF6B35;">
+                <span class="material-icons">campaign</span>
+                Рассылка
+            </button>
         </div>
 
         <!-- Filters -->
@@ -1285,6 +1289,71 @@
 
     <!-- Toast Container -->
     <div class="toast-container" id="toast-container"></div>
+
+    <!-- Broadcast Dialog -->
+    <div class="dialog-overlay" id="broadcast-dialog">
+        <div class="dialog" style="max-width: 600px;">
+            <h2>
+                <span class="material-icons" style="vertical-align: middle; margin-right: 8px;">campaign</span>
+                Массовая рассылка
+            </h2>
+            <div class="dialog-content">
+                <div style="margin-bottom: 16px;">
+                    <label style="display: block; font-weight: 500; margin-bottom: 8px; color: var(--md-sys-color-on-surface);">
+                        Целевая группа
+                    </label>
+                    <select id="broadcast-target" style="width: 100%; padding: 12px; border: 1px solid var(--md-sys-color-outline); border-radius: 8px; background: var(--md-sys-color-surface); color: var(--md-sys-color-on-surface); font-size: 14px;">
+                        <option value="all">Все пользователи</option>
+                        <option value="premium">Premium пользователи</option>
+                        <option value="trial">Trial пользователи</option>
+                        <option value="free">Free пользователи</option>
+                        <option value="active_today">Активны сегодня</option>
+                        <option value="active_week">Активны за неделю</option>
+                        <option value="inactive">Неактивные (>30 дней)</option>
+                    </select>
+                    <div style="font-size: 12px; color: var(--md-sys-color-on-surface-variant); margin-top: 4px;" id="target-count-hint">
+                        Будет отправлено всем выбранным пользователям
+                    </div>
+                </div>
+
+                <div style="margin-bottom: 16px;">
+                    <label style="display: block; font-weight: 500; margin-bottom: 8px; color: var(--md-sys-color-on-surface);">
+                        Сообщение
+                    </label>
+                    <textarea id="broadcast-message" rows="8" placeholder="Введите текст сообщения... (Поддерживается Markdown)" style="width: 100%; padding: 12px; border: 1px solid var(--md-sys-color-outline); border-radius: 8px; background: var(--md-sys-color-surface); color: var(--md-sys-color-on-surface); font-size: 14px; font-family: 'Roboto', sans-serif; resize: vertical;"></textarea>
+                    <div style="font-size: 12px; color: var(--md-sys-color-on-surface-variant); margin-top: 4px;">
+                        💡 Можно использовать **жирный**, *курсив*, `код`
+                    </div>
+                </div>
+
+                <div style="margin-bottom: 16px;">
+                    <label style="display: block; font-weight: 500; margin-bottom: 8px; color: var(--md-sys-color-on-surface);">
+                        Задержка между сообщениями (сек)
+                    </label>
+                    <input type="number" id="broadcast-delay" value="1" min="0" max="10" style="width: 100%; padding: 12px; border: 1px solid var(--md-sys-color-outline); border-radius: 8px; background: var(--md-sys-color-surface); color: var(--md-sys-color-on-surface); font-size: 14px;" />
+                    <div style="font-size: 12px; color: var(--md-sys-color-on-surface-variant); margin-top: 4px;">
+                        Рекомендуется: 1-2 секунды для предотвращения флуд-ограничений
+                    </div>
+                </div>
+
+                <div style="padding: 12px; background: rgba(255, 107, 53, 0.1); border-radius: 8px; border-left: 4px solid #FF6B35; margin-top: 16px;">
+                    <div style="display: flex; gap: 8px; align-items: start;">
+                        <span class="material-icons" style="color: #FF6B35; font-size: 20px;">warning</span>
+                        <div style="font-size: 13px; color: var(--md-sys-color-on-surface);">
+                            <strong>Внимание:</strong> Рассылка будет отправлена немедленно всем выбранным пользователям. Это действие нельзя отменить.
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="dialog-actions" style="margin-top: 24px;">
+                <button class="md-button md-button-outlined" onclick="closeBroadcastDialog()">Отмена</button>
+                <button class="md-button md-button-filled" onclick="sendBroadcast()" style="background: #FF6B35;">
+                    <span class="material-icons">send</span>
+                    Отправить
+                </button>
+            </div>
+        </div>
+    </div>
 
     <script>
         const tg = window.Telegram?.WebApp;
@@ -2487,6 +2556,99 @@
                 showToast('Ошибка загрузки графика тегов', 'error');
             }
         }
+
+        // ========== Broadcast Functions ==========
+
+        function openBroadcastDialog() {
+            document.getElementById('broadcast-dialog').classList.add('show');
+            document.getElementById('broadcast-message').value = '';
+            document.getElementById('broadcast-target').value = 'all';
+            document.getElementById('broadcast-delay').value = '1';
+        }
+
+        function closeBroadcastDialog() {
+            document.getElementById('broadcast-dialog').classList.remove('show');
+        }
+
+        async function sendBroadcast() {
+            const target = document.getElementById('broadcast-target').value;
+            const message = document.getElementById('broadcast-message').value.trim();
+            const delay = parseInt(document.getElementById('broadcast-delay').value);
+
+            // Валидация
+            if (!message) {
+                showToast('Введите текст сообщения', 'warning');
+                return;
+            }
+
+            if (message.length < 5) {
+                showToast('Сообщение слишком короткое (минимум 5 символов)', 'warning');
+                return;
+            }
+
+            // Подтверждение
+            const targetNames = {
+                'all': 'всем пользователям',
+                'premium': 'Premium пользователям',
+                'trial': 'Trial пользователям',
+                'free': 'Free пользователям',
+                'active_today': 'пользователям активным сегодня',
+                'active_week': 'пользователям активным за неделю',
+                'inactive': 'неактивным пользователям (>30 дней)'
+            };
+
+            const confirmed = await confirm(
+                `Вы уверены что хотите отправить рассылку ${targetNames[target]}?\n\nСообщение:\n"${message.substring(0, 100)}${message.length > 100 ? '...' : ''}"`,
+                'Подтверждение рассылки',
+                'Отправить'
+            );
+
+            if (!confirmed) return;
+
+            try {
+                // Отправить запрос
+                const response = await apiRequest('/broadcast', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        message: message,
+                        target_group: target,
+                        delay_seconds: delay
+                    })
+                });
+
+                closeBroadcastDialog();
+
+                showToast(
+                    `✅ ${response.message}\n\nЗадача ID: ${response.task_id.substring(0, 8)}...\n\nРассылка выполняется в фоновом режиме.`,
+                    'success',
+                    8000
+                );
+
+                // Логируем для отладки
+                console.log('Broadcast started:', response);
+
+            } catch (error) {
+                console.error('Broadcast failed:', error);
+                showToast('Ошибка отправки рассылки', 'error');
+            }
+        }
+
+        // Закрытие broadcast dialog по клику на overlay
+        document.getElementById('broadcast-dialog').addEventListener('click', (e) => {
+            if (e.target.classList.contains('dialog-overlay')) {
+                closeBroadcastDialog();
+            }
+        });
+
+        // Escape для broadcast dialog
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                const broadcastDialog = document.getElementById('broadcast-dialog');
+                if (broadcastDialog.classList.contains('show')) {
+                    closeBroadcastDialog();
+                }
+            }
+        });
 
         // Init
         document.addEventListener('DOMContentLoaded', () => {

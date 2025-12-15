@@ -722,6 +722,21 @@ class RetentionMetricsResponse(BaseModel):
     wau_mau_ratio: float
 
 
+class BroadcastRequest(BaseModel):
+    """Запрос на массовую рассылку."""
+    message: str
+    target_group: str  # "all", "premium", "trial", "free", "active_today", "active_week", "inactive"
+    delay_seconds: Optional[int] = 1  # Задержка между сообщениями
+
+
+class BroadcastResponse(BaseModel):
+    """Ответ на запрос рассылки."""
+    status: str
+    task_id: str
+    target_users_count: int
+    message: str
+
+
 @router.get("/analytics/retention", response_model=RetentionMetricsResponse)
 async def get_retention_metrics(
     _admin: dict = Depends(require_admin),
@@ -771,4 +786,131 @@ async def get_retention_metrics(
         "mau": mau,
         "dau_wau_ratio": dau_wau_ratio,
         "wau_mau_ratio": wau_mau_ratio,
+    }
+
+
+# ========== Broadcast Endpoints ==========
+
+
+@router.post("/broadcast", response_model=BroadcastResponse)
+async def create_broadcast(
+    request: BroadcastRequest,
+    _admin: dict = Depends(require_admin),
+):
+    """Создать массовую рассылку."""
+    from database.session import get_session_context
+    from database.models import User, Subscription
+    from sqlalchemy import select, and_, or_
+    import uuid
+
+    async with get_session_context() as session:
+        # Определить целевую группу пользователей
+        query = select(User.telegram_id).where(User.is_blocked == False)
+
+        if request.target_group == "premium":
+            # Пользователи с активной Premium подпиской
+            premium_user_ids = await session.execute(
+                select(Subscription.user_id).where(
+                    and_(
+                        Subscription.plan == "premium",
+                        Subscription.expires_at > datetime.now()
+                    )
+                )
+            )
+            premium_user_ids = [uid for (uid,) in premium_user_ids.all()]
+            query = query.where(User.id.in_(premium_user_ids))
+
+        elif request.target_group == "trial":
+            # Пользователи с активной Trial подпиской
+            trial_user_ids = await session.execute(
+                select(Subscription.user_id).where(
+                    and_(
+                        Subscription.plan == "trial",
+                        Subscription.expires_at > datetime.now()
+                    )
+                )
+            )
+            trial_user_ids = [uid for (uid,) in trial_user_ids.all()]
+            query = query.where(User.id.in_(trial_user_ids))
+
+        elif request.target_group == "free":
+            # Пользователи без активной подписки
+            active_subscription_user_ids = await session.execute(
+                select(Subscription.user_id).where(
+                    Subscription.expires_at > datetime.now()
+                )
+            )
+            active_subscription_user_ids = [uid for (uid,) in active_subscription_user_ids.all()]
+            query = query.where(User.id.notin_(active_subscription_user_ids))
+
+        elif request.target_group == "active_today":
+            # Активны сегодня
+            today_start = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+            query = query.where(User.last_active_at >= today_start)
+
+        elif request.target_group == "active_week":
+            # Активны за неделю
+            week_ago = datetime.now() - timedelta(days=7)
+            query = query.where(User.last_active_at >= week_ago)
+
+        elif request.target_group == "inactive":
+            # Неактивны >30 дней
+            month_ago = datetime.now() - timedelta(days=30)
+            query = query.where(
+                or_(
+                    User.last_active_at < month_ago,
+                    User.last_active_at.is_(None)
+                )
+            )
+
+        # "all" - не добавляем дополнительных фильтров
+
+        result = await session.execute(query)
+        telegram_ids = [tid for (tid,) in result.all()]
+
+    # Генерируем уникальный ID для задачи
+    task_id = str(uuid.uuid4())
+
+    # Запускаем рассылку в фоне
+    from bot.main import app as bot_app
+    import asyncio
+
+    async def send_broadcast():
+        """Фоновая задача для рассылки."""
+        from loguru import logger
+
+        logger.info(f"Starting broadcast {task_id} to {len(telegram_ids)} users")
+
+        success_count = 0
+        fail_count = 0
+
+        for telegram_id in telegram_ids:
+            try:
+                await bot_app.bot.send_message(
+                    chat_id=telegram_id,
+                    text=request.message,
+                    parse_mode="Markdown"
+                )
+                success_count += 1
+                logger.debug(f"Broadcast message sent to {telegram_id}")
+            except Exception as e:
+                fail_count += 1
+                logger.warning(f"Failed to send broadcast to {telegram_id}: {e}")
+
+            # Задержка между сообщениями
+            if request.delay_seconds and request.delay_seconds > 0:
+                await asyncio.sleep(request.delay_seconds)
+
+        logger.info(
+            f"Broadcast {task_id} completed: {success_count} success, {fail_count} failed"
+        )
+
+    # Запускаем в фоне
+    asyncio.create_task(send_broadcast())
+
+    return {
+        "status": "started",
+        "task_id": task_id,
+        "target_users_count": len(telegram_ids),
+        "message": f"Рассылка запущена для {len(telegram_ids)} пользователей"
     }
