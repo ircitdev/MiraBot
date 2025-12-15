@@ -69,6 +69,14 @@ def start_scheduler(application: Application) -> None:
         replace_existing=True,
     )
 
+    # Bi-weekly прогресс-сводки — каждый понедельник в 19:00
+    scheduler.add_job(
+        send_biweekly_summaries,
+        trigger=CronTrigger(day_of_week='mon', hour=19, minute=0),
+        id="biweekly_summaries",
+        replace_existing=True,
+    )
+
     scheduler.start()
     logger.info("Scheduler started")
 
@@ -508,3 +516,66 @@ async def convert_expired_trials() -> None:
 
         if expired_trials:
             logger.info(f"Converted {len(expired_trials)} expired trial subscriptions to free")
+
+
+async def send_biweekly_summaries() -> None:
+    """
+    Отправляет bi-weekly сводки прогресса активным пользователям.
+    Запускается каждый понедельник.
+    """
+    global app
+
+    if not app:
+        return
+
+    from ai.summary_generator import summary_generator
+    from database.repositories.memory import MemoryRepository
+
+    user_repo = UserRepository()
+    memory_repo = MemoryRepository()
+
+    # Получаем всех активных пользователей
+    active_users = await user_repo.get_active_users(days=14)
+
+    summaries_sent = 0
+
+    for user in active_users:
+        try:
+            # Проверяем нужно ли отправлять сводку
+            should_send = await summary_generator.should_send_summary(user.id)
+
+            if not should_send:
+                logger.debug(f"Skipping summary for user {user.id}: not eligible")
+                continue
+
+            # Генерируем сводку
+            summary_text = await summary_generator.generate_biweekly_summary(
+                user_id=user.id,
+                period_days=14,
+            )
+
+            if not summary_text:
+                logger.debug(f"Could not generate summary for user {user.id}")
+                continue
+
+            # Отправляем пользователю
+            await app.bot.send_message(
+                chat_id=user.telegram_id,
+                text=summary_text,
+            )
+
+            # Сохраняем в память что отправили сводку
+            await memory_repo.create(
+                user_id=user.id,
+                category="progress_summary",
+                content=f"Bi-weekly summary sent: {summary_text[:100]}...",
+                importance=7,
+            )
+
+            summaries_sent += 1
+            logger.info(f"Sent bi-weekly summary to user {user.id}")
+
+        except Exception as e:
+            logger.error(f"Failed to send summary to user {user.id}: {e}")
+
+    logger.info(f"Bi-weekly summaries job complete: {summaries_sent} summaries sent")

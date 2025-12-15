@@ -245,3 +245,40 @@ class MemoryRepository:
                 .limit(limit)
             )
             return [row[0] for row in result.all()]
+
+    async def get_by_date_range(
+        self,
+        user_id: int,
+        start_date: datetime,
+        end_date: datetime,
+    ) -> List[MemoryEntry]:
+        """Получить записи памяти за период."""
+        async with get_session_context() as session:
+            result = await session.execute(
+                select(MemoryEntry)
+                .where(
+                    and_(
+                        MemoryEntry.user_id == user_id,
+                        MemoryEntry.created_at >= start_date,
+                        MemoryEntry.created_at <= end_date,
+                    )
+                )
+                .order_by(MemoryEntry.importance.desc(), MemoryEntry.created_at.desc())
+            )
+            return list(result.scalars().all())
+
+    async def get_last_summary(self, user_id: int) -> Optional[MemoryEntry]:
+        """Получить последнюю сводку прогресса."""
+        async with get_session_context() as session:
+            result = await session.execute(
+                select(MemoryEntry)
+                .where(
+                    and_(
+                        MemoryEntry.user_id == user_id,
+                        MemoryEntry.category == "progress_summary"
+                    )
+                )
+                .order_by(MemoryEntry.created_at.desc())
+                .limit(1)
+            )
+            return result.scalar_one_or_none()

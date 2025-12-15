@@ -475,3 +475,31 @@ class UserRepository:
                 user.updated_at = datetime.now()
                 await session.commit()
 
+    async def get_active_users(self, days: int = 14) -> List[User]:
+        """
+        Получить активных пользователей за последние N дней.
+
+        Args:
+            days: Количество дней для проверки активности
+
+        Returns:
+            Список активных пользователей
+        """
+        async with get_session_context() as session:
+            cutoff = datetime.now() - timedelta(days=days)
+
+            # Получаем пользователей с активностью (сообщениями) за период
+            result = await session.execute(
+                select(User)
+                .join(Message, Message.user_id == User.id)
+                .where(
+                    and_(
+                        Message.created_at >= cutoff,
+                        Message.role == "user"  # Только сообщения от пользователя
+                    )
+                )
+                .distinct()
+            )
+
+            return list(result.scalars().all())
+

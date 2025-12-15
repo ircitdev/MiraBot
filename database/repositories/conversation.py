@@ -58,6 +58,27 @@ class ConversationRepository:
             messages = list(result.scalars().all())
             # Возвращаем в хронологическом порядке
             return list(reversed(messages))
+
+    async def get_by_date_range(
+        self,
+        user_id: int,
+        start_date: datetime,
+        end_date: datetime,
+    ) -> List[Message]:
+        """Получить сообщения за период."""
+        async with get_session_context() as session:
+            result = await session.execute(
+                select(Message)
+                .where(
+                    and_(
+                        Message.user_id == user_id,
+                        Message.created_at >= start_date,
+                        Message.created_at <= end_date,
+                    )
+                )
+                .order_by(Message.created_at.desc())
+            )
+            return list(result.scalars().all())
     
     async def get_paginated(
         self,
