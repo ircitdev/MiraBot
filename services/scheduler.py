@@ -481,6 +481,7 @@ async def convert_expired_trials() -> None:
     """Конвертирует истёкшие trial подписки в free."""
     from database.session import get_session_context
     from database.models import Subscription
+    from sqlalchemy import select, and_
 
     async with get_session_context() as session:
         # Находим истёкшие trial подписки
