@@ -6,6 +6,7 @@ Context Builder.
 from datetime import datetime, timedelta
 from typing import Dict, Any, List, Optional
 from loguru import logger
+import pytz
 from database.repositories.memory import MemoryRepository
 from database.repositories.conversation import ConversationRepository
 from database.repositories.mood import MoodRepository
@@ -41,13 +42,13 @@ class ContextBuilder:
     ) -> Dict[str, Any]:
         """
         Собирает полный контекст пользователя.
-        
+
         Args:
             user_id: ID пользователя
             user_data: Базовые данные пользователя
             recent_messages_limit: Лимит недавних сообщений
             include_long_term_memory: Включать ли долговременную память
-        
+
         Returns:
             Словарь с контекстом для промпта
         """
@@ -58,6 +59,16 @@ class ContextBuilder:
             "marriage_years": user_data.get("marriage_years"),
             "children_info": user_data.get("children_info"),
         }
+
+        # Добавляем контекст времени суток
+        time_context = self._get_time_context(user_data.get("timezone", "Europe/Moscow"))
+        if time_context:
+            context["time_context"] = time_context
+
+        # Детектор зацикливания на темах
+        conversation_patterns = await self._detect_conversation_patterns(user_id)
+        if conversation_patterns:
+            context["conversation_patterns"] = conversation_patterns
 
         # Добавляем контекст последнего отправленного фото если есть
         # Это помогает Claude понимать вопросы вроде "Сколько ему?" после показа фото
@@ -260,3 +271,117 @@ class ContextBuilder:
             "partner_name": user_data.get("partner_name"),
             "children_info": user_data.get("children_info"),
         }
+
+    async def _detect_conversation_patterns(
+        self,
+        user_id: int,
+    ) -> Optional[Dict[str, Any]]:
+        """
+        Детектит паттерны разговора: зацикливание на темах, повторяющиеся жалобы.
+
+        Returns:
+            Dict с информацией о паттернах или None если паттернов нет
+        """
+        try:
+            # Получаем последние 30 сообщений для анализа
+            recent_messages = await self.conversation_repo.get_recent(
+                user_id=user_id,
+                limit=30,
+            )
+
+            if len(recent_messages) < 10:
+                return None  # Слишком мало данных для анализа
+
+            # Собираем статистику по тегам
+            topic_counts = {}
+            for msg in recent_messages:
+                if hasattr(msg, 'tags') and msg.tags:
+                    for tag in msg.tags:
+                        if tag.startswith("topic:"):
+                            topic_counts[tag] = topic_counts.get(tag, 0) + 1
+
+            if not topic_counts:
+                return None
+
+            total_messages = len(recent_messages)
+
+            # Ищем "застревание" на теме
+            # Тема считается "застрявшей" если упоминается в >40% последних сообщений
+            stuck_topic = None
+            stuck_percentage = 0
+
+            for topic, count in topic_counts.items():
+                percentage = (count / total_messages) * 100
+                if percentage > 40:  # Больше 40% сообщений об одной теме
+                    stuck_topic = topic
+                    stuck_percentage = percentage
+                    break
+
+            if stuck_topic:
+                # Переводим тег в читаемый формат
+                topic_names = {
+                    "topic:husband": "отношения с мужем",
+                    "topic:children": "дети",
+                    "topic:self": "самореализация",
+                    "topic:relatives": "родственники",
+                    "topic:intimacy": "близость",
+                    "topic:work": "работа",
+                }
+                readable_topic = topic_names.get(stuck_topic, stuck_topic.replace("topic:", ""))
+
+                logger.info(
+                    f"User {user_id} stuck on topic: {stuck_topic} "
+                    f"({stuck_percentage:.1f}% of last {total_messages} messages)"
+                )
+
+                return {
+                    "stuck_on_topic": stuck_topic,
+                    "stuck_topic_name": readable_topic,
+                    "stuck_percentage": int(stuck_percentage),
+                    "needs_breakthrough": True,
+                }
+
+            return None
+
+        except Exception as e:
+            logger.warning(f"Error detecting conversation patterns: {e}")
+            return None
+
+    def _get_time_context(self, timezone_str: str) -> Optional[Dict[str, Any]]:
+        """
+        Определяет время суток пользователя для адаптации тона.
+
+        Args:
+            timezone_str: Часовой пояс пользователя
+
+        Returns:
+            Dict с информацией о времени суток
+        """
+        try:
+            user_tz = pytz.timezone(timezone_str)
+            current_time = datetime.now(user_tz)
+            hour = current_time.hour
+
+            # Определяем период суток
+            if 6 <= hour < 12:
+                period = "утро"
+                tone_hint = "бодрая, мотивирующая (но не навязчиво)"
+            elif 12 <= hour < 18:
+                period = "день"
+                tone_hint = "деловая, энергичная"
+            elif 18 <= hour < 23:
+                period = "вечер"
+                tone_hint = "спокойная, рефлексивная, располагающая к откровенности"
+            else:  # 23-6
+                period = "ночь"
+                tone_hint = "очень мягкая, утешающая (если пишет ночью — значит что-то беспокоит)"
+
+            return {
+                "hour": hour,
+                "period": period,
+                "tone_hint": tone_hint,
+            }
+
+        except Exception as e:
+            logger.warning(f"Error getting time context: {e}")
+            return None
