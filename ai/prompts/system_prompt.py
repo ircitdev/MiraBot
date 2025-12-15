@@ -307,6 +307,14 @@ def _build_user_context_block(context: Dict[str, Any]) -> str:
 
     # Имя теперь в начале промпта, здесь не дублируем
 
+    # Детекция типа вопроса — ВАЖНО показать в начале!
+    if context.get("question_type"):
+        q_info = context["question_type"]
+        parts.append(f"\n**⚠️ ТИП ВОПРОСА: {q_info['type'].upper()}**")
+        parts.append(f"Вопрос: \"{q_info['question']}\"")
+        parts.append(f"**СТРАТЕГИЯ ОТВЕТА:** {q_info['instruction']}")
+        parts.append("")  # Пустая строка для разделения
+
     if context.get("partner_name"):
         parts.append(f"**Муж:** {context['partner_name']}")
 

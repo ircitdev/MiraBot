@@ -16,6 +16,7 @@ from ai.prompts.system_prompt import build_system_prompt
 from ai.memory.context_builder import ContextBuilder
 from ai.crisis_detector import CrisisDetector
 from ai.memory.attempt_detector import attempt_detector
+from ai.question_type_detector import question_type_detector
 from config.constants import MEMORY_CATEGORY_ATTEMPTS
 
 
@@ -62,15 +63,16 @@ class ClaudeClient:
             
             # 2. Собираем контекст
             memory_depth = (
-                settings.PREMIUM_MEMORY_DEPTH if is_premium 
+                settings.PREMIUM_MEMORY_DEPTH if is_premium
                 else settings.FREE_MEMORY_DEPTH
             )
-            
+
             context = await self.context_builder.build(
                 user_id=user_id,
                 user_data=user_data,
                 recent_messages_limit=memory_depth,
                 include_long_term_memory=is_premium,
+                current_message=user_message,
             )
             
             # 3. Формируем системный промпт
@@ -170,6 +172,7 @@ class ClaudeClient:
                 user_data=user_data,
                 recent_messages_limit=memory_depth,
                 include_long_term_memory=is_premium,
+                current_message=user_message,
             )
 
             # 3. Формируем системный промпт

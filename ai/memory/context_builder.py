@@ -12,6 +12,7 @@ from database.repositories.conversation import ConversationRepository
 from database.repositories.mood import MoodRepository
 from database.repositories.user import UserRepository
 from ai.style_analyzer import style_analyzer
+from ai.question_type_detector import question_type_detector
 from config.constants import (
     MEMORY_CATEGORY_FAMILY,
     MEMORY_CATEGORY_PROBLEMS,
@@ -40,6 +41,7 @@ class ContextBuilder:
         user_data: Dict[str, Any],
         recent_messages_limit: int = 10,
         include_long_term_memory: bool = True,
+        current_message: Optional[str] = None,
     ) -> Dict[str, Any]:
         """
         Собирает полный контекст пользователя.
@@ -49,6 +51,7 @@ class ContextBuilder:
             user_data: Базовые данные пользователя
             recent_messages_limit: Лимит недавних сообщений
             include_long_term_memory: Включать ли долговременную память
+            current_message: Текущее сообщение пользователя (для детекции вопроса)
 
         Returns:
             Словарь с контекстом для промпта
@@ -60,6 +63,12 @@ class ContextBuilder:
             "marriage_years": user_data.get("marriage_years"),
             "children_info": user_data.get("children_info"),
         }
+
+        # Детекция типа вопроса (если есть текущее сообщение)
+        if current_message:
+            question_info = question_type_detector.detect(current_message)
+            if question_info:
+                context["question_type"] = question_info
 
         # Добавляем контекст времени суток
         time_context = self._get_time_context(user_data.get("timezone", "Europe/Moscow"))
