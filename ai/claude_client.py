@@ -18,6 +18,7 @@ from ai.crisis_detector import CrisisDetector
 from ai.memory.attempt_detector import attempt_detector
 from ai.question_type_detector import question_type_detector
 from ai.trigger_detector import trigger_detector
+from ai.medical_filter import medical_filter
 from database.repositories.trigger import TriggerRepository
 from config.constants import MEMORY_CATEGORY_ATTEMPTS
 
@@ -101,6 +102,9 @@ class ClaudeClient:
             )
             
             response_text = response.content[0].text
+
+            # 5.5. Фильтруем медицинские советы
+            response_text = medical_filter.filter_response(user_message, response_text)
 
             # 6. Извлекаем теги для памяти
             tags = self._extract_tags(user_message, response_text, crisis_check)
@@ -219,6 +223,17 @@ class ClaudeClient:
                 final_message = stream.get_final_message()
                 input_tokens = final_message.usage.input_tokens
                 output_tokens = final_message.usage.output_tokens
+
+            # 5.5. Проверяем нужен ли медицинский дисклеймер
+            # В streaming режиме мы не можем изменить уже отправленный текст,
+            # но можем добавить дисклеймер в конец если нужно
+            filtered_response = medical_filter.filter_response(user_message, full_response)
+            if filtered_response != full_response:
+                # Дисклеймер был добавлен - нужно отправить его
+                disclaimer_part = filtered_response[len(full_response):]
+                if on_chunk and disclaimer_part:
+                    await on_chunk(disclaimer_part)
+                full_response = filtered_response
 
             # 6. Извлекаем теги для памяти
             tags = self._extract_tags(user_message, full_response, crisis_check)
