@@ -6,7 +6,7 @@ Context Builder.
 from datetime import datetime, timedelta
 from typing import Dict, Any, List, Optional
 from loguru import logger
-import pytz
+
 from database.repositories.memory import MemoryRepository
 from database.repositories.conversation import ConversationRepository
 from database.repositories.mood import MoodRepository
@@ -16,6 +16,7 @@ from database.repositories.goal import GoalRepository
 from database.repositories.followup import FollowUpRepository
 from ai.style_analyzer import style_analyzer
 from ai.question_type_detector import question_type_detector
+from ai.time_context import get_time_context_for_user
 from config.constants import (
     MEMORY_CATEGORY_FAMILY,
     MEMORY_CATEGORY_PROBLEMS,
@@ -76,8 +77,14 @@ class ContextBuilder:
             if question_info:
                 context["question_type"] = question_info
 
-        # Добавляем контекст времени суток
-        time_context = self._get_time_context(user_data.get("timezone", "Europe/Moscow"))
+        # Добавляем полный контекст времени (день недели, праздники, смена дней)
+        last_message = await self.conversation_repo.get_last_message(user_id, role="user")
+        last_message_time = last_message.created_at if last_message else None
+
+        time_context = get_time_context_for_user(
+            timezone=user_data.get("timezone", "Europe/Moscow"),
+            last_message_time=last_message_time,
+        )
         if time_context:
             context["time_context"] = time_context
 
@@ -377,45 +384,6 @@ class ContextBuilder:
 
         except Exception as e:
             logger.warning(f"Error detecting conversation patterns: {e}")
-            return None
-
-    def _get_time_context(self, timezone_str: str) -> Optional[Dict[str, Any]]:
-        """
-        Определяет время суток пользователя для адаптации тона.
-
-        Args:
-            timezone_str: Часовой пояс пользователя
-
-        Returns:
-            Dict с информацией о времени суток
-        """
-        try:
-            user_tz = pytz.timezone(timezone_str)
-            current_time = datetime.now(user_tz)
-            hour = current_time.hour
-
-            # Определяем период суток
-            if 6 <= hour < 12:
-                period = "утро"
-                tone_hint = "бодрая, мотивирующая (но не навязчиво)"
-            elif 12 <= hour < 18:
-                period = "день"
-                tone_hint = "деловая, энергичная"
-            elif 18 <= hour < 23:
-                period = "вечер"
-                tone_hint = "спокойная, рефлексивная, располагающая к откровенности"
-            else:  # 23-6
-                period = "ночь"
-                tone_hint = "очень мягкая, утешающая (если пишет ночью — значит что-то беспокоит)"
-
-            return {
-                "hour": hour,
-                "period": period,
-                "tone_hint": tone_hint,
-            }
-
-        except Exception as e:
-            logger.warning(f"Error getting time context: {e}")
             return None
 
     async def _get_sensitive_topics(self, user_id: int) -> Optional[List[Dict[str, Any]]]:
