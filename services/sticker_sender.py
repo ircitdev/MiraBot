@@ -73,6 +73,27 @@ EMOTION_CONTEXTS = {
     },
 }
 
+# Слова-маркеры серьёзного разговора - НЕ ставить стикеры
+SERIOUS_CONTEXT_MARKERS = [
+    # Кризисные темы
+    "умереть", "убить", "суицид", "спрыгн", "покончить", "не хочу жить",
+    # Тяжёлые эмоции
+    "рыдаю", "разрываю", "невыносим", "не могу больше", "сил нет",
+    "разрывает на части", "боль", "страдан", "мучает", "терзает",
+    # Серьёзные темы отношений
+    "развод", "измен", "предал", "расстались", "уходит", "бросил",
+    # Медицинские темы
+    "диагноз", "болезнь", "умирает", "рак", "операция", "больниц",
+    # Горе
+    "похорон", "умер", "погиб", "потерял",
+    # Детские проблемы
+    "ребёнок болеет", "с ребенком проблемы",
+    # Признания/откровения
+    "признание", "признаться", "сказала правду", "открылась",
+    # Эмоциональные маркеры из контекста
+    "сердце", "душа", "слёзы", "плач",
+]
+
 # Кэш стикеров (file_id)
 _sticker_cache: List[str] = []
 _cache_loaded = False
@@ -117,6 +138,23 @@ class StickerSender:
             logger.error(f"Error loading sticker pack: {e}")
             return False
 
+    def _is_serious_context(self, user_message: str, mira_response: str) -> bool:
+        """
+        Проверяет, является ли контекст разговора серьёзным.
+        В серьёзных контекстах стикеры НЕ уместны.
+
+        Returns:
+            True если контекст серьёзный
+        """
+        combined = (user_message + " " + mira_response).lower()
+
+        for marker in SERIOUS_CONTEXT_MARKERS:
+            if marker in combined:
+                logger.debug(f"Serious context detected: '{marker}'")
+                return True
+
+        return False
+
     def detect_emotion(
         self,
         text: str,
@@ -134,6 +172,11 @@ class StickerSender:
         Returns:
             Ключ эмоции или None
         """
+        # СНАЧАЛА проверяем серьёзность контекста
+        if self._is_serious_context(text, mira_response or ""):
+            logger.debug("Skipping sticker: serious context")
+            return None
+
         # Анализируем ответ Миры если есть
         check_text = mira_response.lower() if mira_response else text.lower()
 

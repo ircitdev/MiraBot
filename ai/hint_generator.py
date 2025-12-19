@@ -149,6 +149,39 @@ class HintGenerator:
         Hint("Расскажи о себе", "Расскажи немного о себе", 2),
     ]
 
+    # Маркеры серьёзного разговора - НЕ показывать подсказки
+    SERIOUS_CONTEXT_MARKERS = [
+        # Кризисные темы
+        "умереть", "убить", "суицид", "спрыгн", "покончить", "не хочу жить",
+        # Тяжёлые эмоции
+        "рыдаю", "разрываю", "невыносим", "не могу больше", "сил нет",
+        "разрывает на части", "боль", "страдан", "мучает", "терзает",
+        # Серьёзные темы отношений
+        "развод", "измен", "предал", "расстались", "уходит", "бросил",
+        # Медицинские темы
+        "диагноз", "болезнь", "умирает", "рак", "операция", "больниц",
+        # Горе
+        "похорон", "умер", "погиб", "потерял",
+        # Признания/откровения
+        "признание", "признаться", "сказала правду", "открылась",
+        # Эмоциональные маркеры
+        "сердце сжимается", "душа", "слёзы", "плачу",
+    ]
+
+    def _is_serious_context(self, user_message: str, response_text: str) -> bool:
+        """
+        Проверяет, является ли контекст разговора серьёзным.
+        В серьёзных контекстах подсказки НЕ уместны.
+        """
+        combined = (user_message + " " + response_text).lower()
+
+        for marker in self.SERIOUS_CONTEXT_MARKERS:
+            if marker in combined:
+                logger.debug(f"Serious context detected (hints): '{marker}'")
+                return True
+
+        return False
+
     def generate(
         self,
         response_text: str,
@@ -171,6 +204,11 @@ class HintGenerator:
         Returns:
             Список подсказок (максимум MAX_HINTS)
         """
+        # 0. Проверяем серьёзность контекста - НЕ показываем подсказки в серьёзных разговорах
+        if self._is_serious_context(user_message or "", response_text):
+            logger.debug("Skipping hints: serious context detected")
+            return []
+
         hints: List[Hint] = []
         contextual_hints: List[Hint] = []
 
