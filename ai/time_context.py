@@ -261,6 +261,7 @@ class TimeContext:
             "current_time": now.strftime("%H:%M"),
             "current_hour": now.hour,
             "current_date": self.get_date_readable(now),
+            "current_year": now.year,  # Год явно!
 
             # День недели
             "weekday": self.get_weekday_name(now),

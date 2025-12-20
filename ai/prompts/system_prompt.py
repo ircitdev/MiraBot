@@ -398,7 +398,8 @@ def _build_user_context_block(context: Dict[str, Any]) -> str:
     if context.get("time_context"):
         time_ctx = context["time_context"]
         parts.append("\n**🕐 ТЕКУЩЕЕ ВРЕМЯ:**")
-        parts.append(f"- Дата: {time_ctx.get('current_date', '')} ({time_ctx.get('weekday', '')})")
+        year = time_ctx.get('current_year', 2025)
+        parts.append(f"- Дата: {time_ctx.get('current_date', '')} {year} года ({time_ctx.get('weekday', '')})")
         parts.append(f"- Время: {time_ctx.get('current_time', '')} ({time_ctx.get('time_of_day', '')})")
         parts.append(f"- Адаптируй тон: {time_ctx.get('tone_hint', '')}")
 
