@@ -6,6 +6,7 @@ Message handler.
 import traceback
 import base64
 import random
+import re
 import anthropic
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
@@ -22,12 +23,19 @@ from database.repositories.mood import MoodRepository
 from services.referral import ReferralService
 from bot.keyboards.inline import get_premium_keyboard, get_crisis_keyboard, get_hints_keyboard
 from bot.handlers.photos import send_photos
-from bot.handlers.music import check_and_send_music, detect_music_request
+from bot.handlers.music import (
+    check_and_send_music,
+    check_and_send_music_by_emotion,
+    detect_music_request,
+)
 from ai.hint_generator import hint_generator
 from utils.text_parser import extract_name_from_text
 from utils.sanitizer import sanitize_text, sanitize_name, validate_message
 from services.sticker_sender import maybe_send_sticker
 from services.music_forwarder import music_forwarder
+from bot.handlers.payments import handle_promo_code_input
+from services.storage.file_storage import file_storage_service
+from services.tts_yandex import send_voice_message
 
 
 # Инициализируем сервисы
@@ -37,6 +45,105 @@ subscription_repo = SubscriptionRepository()
 conversation_repo = ConversationRepository()
 mood_repo = MoodRepository()
 referral_service = ReferralService()
+
+
+def parse_inline_buttons(text: str) -> tuple[str, list[list[InlineKeyboardButton]] | None]:
+    """
+    Парсит текст на наличие [buttons:opt1|opt2|opt3] и возвращает
+    очищенный текст и кнопки.
+
+    Returns:
+        (clean_text, buttons) - текст без маркера и список кнопок или None
+    """
+    # Ищем паттерн [buttons:опция1|опция2|опция3]
+    pattern = r'\[buttons?:([^\]]+)\]'
+    match = re.search(pattern, text)
+
+    if not match:
+        return text, None
+
+    # Извлекаем опции
+    options_str = match.group(1)
+    options = [opt.strip() for opt in options_str.split('|') if opt.strip()]
+
+    if not options:
+        return text, None
+
+    # Создаём кнопки (callback_data = текст кнопки)
+    buttons = []
+    row = []
+    for i, option in enumerate(options[:4]):  # Максимум 4 кнопки
+        # callback_data не может быть длиннее 64 байт
+        callback_data = option[:60]
+        row.append(InlineKeyboardButton(option, callback_data=f"choice:{callback_data}"))
+        # По 2 кнопки в ряд
+        if len(row) == 2:
+            buttons.append(row)
+            row = []
+    if row:
+        buttons.append(row)
+
+    # Убираем маркер из текста
+    clean_text = re.sub(pattern, '', text).strip()
+
+    return clean_text, buttons
+
+
+def parse_voice_marker(text: str) -> tuple[str, str | None]:
+    """
+    Парсит текст на наличие [voice:текст для озвучки] и возвращает
+    очищенный текст и текст для голосового сообщения.
+
+    Returns:
+        (clean_text, voice_text) - текст без маркера и текст для TTS или None
+    """
+    # Ищем паттерн [voice:текст для озвучки]
+    pattern = r'\[voice:([^\]]+)\]'
+    match = re.search(pattern, text)
+
+    if not match:
+        return text, None
+
+    # Извлекаем текст для озвучки
+    voice_text = match.group(1).strip()
+
+    if not voice_text:
+        return text, None
+
+    # Убираем маркер из текста
+    clean_text = re.sub(pattern, '', text).strip()
+
+    return clean_text, voice_text
+
+
+def detect_voice_request(text: str) -> bool:
+    """
+    Проверяет, является ли текст запросом услышать голос Миры.
+
+    Returns:
+        True если пользователь хочет услышать голос
+    """
+    text_lower = text.lower()
+
+    voice_keywords = [
+        "хочу услышать твой голос",
+        "хочу слышать твой голос",
+        "хочу твой голос",
+        "скажи голосом",
+        "запиши голосовое",
+        "отправь голосовое",
+        "пришли голосовое",
+        "можешь сказать голосом",
+        "скажи мне голосом",
+        "говори голосом",
+        "ответь голосом",
+        "хочу голосовое",
+        "дай голосовое",
+        "запиши войс",
+        "пришли войс",
+    ]
+
+    return any(kw in text_lower for kw in voice_keywords)
 
 
 async def _get_fresh_user_data(user) -> dict:
@@ -112,6 +219,10 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         )
         return
 
+    # Проверяем ожидание ввода промо-кода
+    if await handle_promo_code_input(update, context):
+        return
+
     try:
         # 1. Получаем пользователя
         user, _ = await user_repo.get_or_create(
@@ -144,11 +255,9 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
                 await user_repo.update(user.id, sent_photos=updated_sent)
             return
 
-        # 3.6. Проверяем запрос музыки
-        if detect_music_request(message_text):
-            music_sent = await check_and_send_music(update, context, message_text)
-            if music_sent:
-                return
+        # 3.6. Проверяем запрос музыки - НЕ перехватываем, пусть Claude отвечает с кнопками
+        # Если пользователь просит музыку, Claude ответит с [buttons:...] для выбора жанра
+        # Кнопки обрабатываются в callbacks.py -> _handle_choice_callback
 
         # 4. Проверяем лимиты
         subscription = await subscription_repo.get_active(user.id)
@@ -178,6 +287,11 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
             user_data["last_photo_sent"] = last_photo_context
             # Очищаем контекст после использования
             context.user_data.pop("last_photo_context", None)
+
+        # 6.6. Проверяем запрос услышать голос Миры
+        if detect_voice_request(message_text):
+            user_data["voice_requested"] = True
+            logger.debug(f"Voice request detected for user {user_tg.id}")
 
         # 7. Streaming ответ от Claude
         result = await _generate_and_stream_response(
@@ -430,15 +544,52 @@ async def _generate_and_stream_response(
 
         # Финальное обновление — убираем курсор, показываем полный текст
         final_text = result["response"]
-        if final_text != last_sent_text:
+
+        # Проверяем на наличие inline-кнопок [buttons:...]
+        clean_text, buttons = parse_inline_buttons(final_text)
+        reply_markup = InlineKeyboardMarkup(buttons) if buttons else None
+
+        # Проверяем на наличие голосового маркера [voice:...]
+        clean_text, voice_text = parse_voice_marker(clean_text)
+
+        if clean_text != last_sent_text:
             try:
-                await bot_message.edit_text(final_text)
+                await bot_message.edit_text(
+                    clean_text,
+                    reply_markup=reply_markup,
+                    parse_mode="Markdown",
+                )
             except Exception as e:
                 logger.debug(f"Final stream update error: {e}")
-                # Если не удалось отредактировать — отправляем новое сообщение
-                if not last_sent_text:
-                    await update.message.reply_text(final_text)
+                # Попробуем без Markdown если ошибка парсинга
+                try:
+                    await bot_message.edit_text(
+                        clean_text,
+                        reply_markup=reply_markup,
+                    )
+                except Exception:
+                    # Если не удалось отредактировать — отправляем новое сообщение
+                    if not last_sent_text:
+                        await update.message.reply_text(
+                            clean_text,
+                            reply_markup=reply_markup,
+                        )
 
+        # Отправляем голосовое сообщение если есть маркер
+        if voice_text:
+            try:
+                await send_voice_message(
+                    bot=update.get_bot(),
+                    chat_id=update.effective_chat.id,
+                    text=voice_text,
+                    user_id=user_id,
+                )
+                logger.info(f"Voice message sent to {update.effective_user.id}")
+            except Exception as e:
+                logger.warning(f"Failed to send voice message: {e}")
+
+        # Обновляем результат без маркеров кнопок (для сохранения в историю)
+        result["response"] = clean_text
         return result
 
     except Exception as e:
@@ -757,6 +908,19 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
 
         # Скачиваем в байты
         photo_bytes = await file.download_as_bytearray()
+
+        # 6.1 Сохраняем в GCS (в фоне, не блокируем ответ)
+        try:
+            await file_storage_service.save_photo(
+                photo_bytes=bytes(photo_bytes),
+                user_id=user.id,
+                telegram_id=user_tg.id,
+                telegram_file_id=photo.file_id,
+                file_size=photo.file_size or len(photo_bytes),
+                message_id=update.message.message_id,
+            )
+        except Exception as e:
+            logger.warning(f"Failed to save photo to GCS for user {user_tg.id}: {e}")
 
         # Конвертируем в base64
         image_base64 = base64.b64encode(photo_bytes).decode("utf-8")

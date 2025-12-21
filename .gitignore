@@ -43,3 +43,5 @@ docker-compose.override.yml
 tmp/
 temp/
 *.tmp
+nul
+tgbots-google-cloud.json

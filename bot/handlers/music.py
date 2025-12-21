@@ -14,6 +14,10 @@ from services.music_forwarder import (
     music_forwarder,
     MUSIC_TOPICS,
 )
+from services.music_recommendation import (
+    music_recommendation,
+    detect_music_request as detect_music_request_v2,
+)
 
 
 async def check_and_send_music(
@@ -125,3 +129,101 @@ def detect_music_preference(text: str) -> str | None:
         return "sexy"
 
     return None
+
+
+async def check_and_send_music_by_emotion(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE,
+    user_message: str,
+    emotion: str = None,
+) -> bool:
+    """
+    Отправляет рекомендацию музыки с YouTube ссылкой.
+
+    Args:
+        update: Telegram update
+        context: Bot context
+        user_message: Текст сообщения пользователя (не используется, оставлен для совместимости)
+        emotion: Эмоция пользователя (happy, sad, calm, etc.)
+
+    Returns:
+        True если музыка отправлена успешно
+    """
+    # Если эмоция не передана, используем neutral
+    if not emotion:
+        emotion = "neutral"
+
+    chat_id = update.effective_chat.id
+
+    # Получаем рекомендацию
+    result = await music_recommendation.recommend_music_by_emotion(
+        chat_id=chat_id,
+        emotion=emotion,
+        send_track=False,  # Не отправляем через API
+    )
+
+    if not result["success"]:
+        logger.warning(f"Failed to recommend music: {result['message']}")
+        return False
+
+    # Отправляем сообщение с ссылкой на YouTube
+    message_text = f"{result['message']}\n\n🎵 **{result['track']}**\n\n▶️ [Слушать на YouTube]({result['url']})"
+
+    await update.message.reply_text(
+        message_text,
+        parse_mode="Markdown",
+        disable_web_page_preview=False,  # Показываем превью YouTube
+    )
+
+    logger.info(
+        f"Sent music recommendation '{result['track']}' "
+        f"for emotion '{result['emotion']}' to user {update.effective_user.id}"
+    )
+
+    # Отправляем follow-up через некоторое время
+    asyncio.create_task(_send_music_followup(context.bot, chat_id))
+
+    return True
+
+
+async def send_music_by_genre(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE,
+    genre: str,
+) -> bool:
+    """
+    Отправляет музыку по жанру.
+
+    Args:
+        update: Telegram update
+        context: Bot context
+        genre: Жанр музыки (jazz, classical, ambient, nature)
+
+    Returns:
+        True если музыка отправлена успешно
+    """
+    # Получаем рекомендацию
+    result = await music_recommendation.recommend_music_by_genre(genre)
+
+    if not result["success"]:
+        logger.warning(f"Failed to recommend music by genre: {result['message']}")
+        return False
+
+    # Отправляем сообщение с ссылкой на YouTube
+    message_text = f"{result['message']}\n\n🎵 **{result['track']}**\n\n▶️ [Слушать на YouTube]({result['url']})"
+
+    await update.message.reply_text(
+        message_text,
+        parse_mode="Markdown",
+        disable_web_page_preview=False,
+    )
+
+    logger.info(
+        f"Sent music recommendation '{result['track']}' "
+        f"for genre '{result['genre']}' to user {update.effective_user.id}"
+    )
+
+    # Отправляем follow-up через некоторое время
+    asyncio.create_task(_send_music_followup(context.bot, update.effective_chat.id))
+
+    return True

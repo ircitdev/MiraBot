@@ -93,6 +93,22 @@ def start_scheduler(application: Application) -> None:
         replace_existing=True,
     )
 
+    # Задания программ — каждые 30 минут
+    scheduler.add_job(
+        send_program_tasks,
+        trigger=IntervalTrigger(minutes=30),
+        id="program_tasks",
+        replace_existing=True,
+    )
+
+    # Очистка старых файлов в GCS — раз в день в 4:00
+    scheduler.add_job(
+        cleanup_expired_files,
+        trigger=CronTrigger(hour=4, minute=0),
+        id="cleanup_gcs_files",
+        replace_existing=True,
+    )
+
     scheduler.start()
     logger.info("Scheduler started")
 
@@ -782,3 +798,125 @@ def _build_followup_message(followup) -> str:
     parts.append("Как прошло? Получилось?")
 
     return "\n".join(parts)
+
+
+async def send_program_tasks() -> None:
+    """
+    Отправляет ежедневные задания программ.
+    Запускается каждые 30 минут для проверки.
+    """
+    global app
+
+    if not app:
+        return
+
+    from database.repositories.program import ProgramRepository
+    from database.repositories.user import UserRepository
+    from ai.programs.catalog import get_program_morning_message, get_program_completion_message
+    from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+
+    program_repo = ProgramRepository()
+    user_repo = UserRepository()
+
+    # Получаем программы которым пора отправить задание
+    programs_due = await program_repo.get_programs_needing_task(limit=50)
+
+    tasks_sent = 0
+
+    for program in programs_due:
+        try:
+            # Получаем пользователя
+            user = await user_repo.get(program.user_id)
+
+            if not user:
+                continue
+
+            # Получаем задание на текущий день
+            morning_message = get_program_morning_message(
+                program.program_id,
+                program.current_day
+            )
+
+            if not morning_message:
+                logger.warning(f"No morning message for program {program.program_id} day {program.current_day}")
+                await program_repo.mark_task_sent(program.id)
+                continue
+
+            # Формируем сообщение
+            text = f"""🌸 **{program.program_name}**
+День {program.current_day} из {program.total_days}
+
+—
+
+{morning_message}"""
+
+            # Кнопки
+            keyboard = [
+                [InlineKeyboardButton("✅ Сделала!", callback_data=f"program:done:{program.id}")],
+                [InlineKeyboardButton("⏸ Пауза", callback_data=f"program:pause:{program.id}")],
+            ]
+
+            # Отправляем пользователю
+            await app.bot.send_message(
+                chat_id=user.telegram_id,
+                text=text,
+                reply_markup=InlineKeyboardMarkup(keyboard),
+                parse_mode="Markdown",
+            )
+
+            # Отмечаем что задание отправлено
+            await program_repo.mark_task_sent(program.id)
+
+            tasks_sent += 1
+            logger.info(f"Sent program task to user {user.id} for {program.program_id} day {program.current_day}")
+
+        except Exception as e:
+            logger.error(f"Failed to send program task for program {program.id}: {e}")
+
+    if tasks_sent > 0:
+        logger.info(f"Program tasks job complete: {tasks_sent} tasks sent")
+
+
+async def cleanup_expired_files() -> None:
+    """
+    Очищает файлы с истёкшим сроком хранения из GCS.
+    Запускается раз в день в 4:00.
+    """
+    from services.storage.file_storage import file_storage_service
+    from config.settings import settings
+
+    if not settings.USE_GCS:
+        return
+
+    try:
+        # Очищаем пачками по 100 файлов
+        total_stats = {
+            "checked": 0,
+            "deleted_gcs": 0,
+            "marked_deleted": 0,
+            "errors": 0,
+        }
+
+        # Делаем несколько итераций пока есть что удалять
+        for _ in range(10):  # Максимум 1000 файлов за раз
+            stats = await file_storage_service.cleanup_expired_files(batch_size=100)
+
+            total_stats["checked"] += stats["checked"]
+            total_stats["deleted_gcs"] += stats["deleted_gcs"]
+            total_stats["marked_deleted"] += stats["marked_deleted"]
+            total_stats["errors"] += stats["errors"]
+
+            # Если нечего удалять — выходим
+            if stats["checked"] == 0:
+                break
+
+        if total_stats["checked"] > 0:
+            logger.info(
+                f"GCS cleanup complete: checked={total_stats['checked']}, "
+                f"deleted_gcs={total_stats['deleted_gcs']}, "
+                f"marked_deleted={total_stats['marked_deleted']}, "
+                f"errors={total_stats['errors']}"
+            )
+
+    except Exception as e:
+        logger.error(f"GCS cleanup job failed: {e}")

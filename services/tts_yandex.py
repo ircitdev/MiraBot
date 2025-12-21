@@ -1,13 +1,15 @@
 """
 Yandex SpeechKit TTS Service.
-Генерация голосовых сообщений для медитаций.
+Генерация голосовых сообщений для медитаций и ответов бота.
 """
 
 import aiohttp
 import asyncio
+import tempfile
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Union
 from loguru import logger
+from telegram import Bot
 
 from config.settings import settings
 
@@ -23,6 +25,7 @@ class YandexTTS:
         "jane": "jane",  # Спокойный женский (рекомендуется для медитаций)
         "omazh": "omazh",  # Мягкий женский
         "zahar": "zahar",  # Мужской (если нужен)
+        "filipp": "filipp",  # Мужской
     }
 
     # Эмоции
@@ -33,8 +36,12 @@ class YandexTTS:
     }
 
     def __init__(self):
-        self.api_key = getattr(settings, "YANDEX_API_KEY", None)
+        # Поддержка обоих вариантов ключей
+        self.api_key = getattr(settings, "YANDEX_API_KEY", None) or getattr(settings, "YANDEX_API_KEY_SECRET", None)
         self.folder_id = getattr(settings, "YANDEX_FOLDER_ID", None)
+        self.default_voice = getattr(settings, "TTS_VOICE", "alena")
+        self.default_emotion = getattr(settings, "TTS_EMOTION", "good")
+        self.default_speed = getattr(settings, "TTS_SPEED", 1.0)
 
     async def synthesize(
         self,
@@ -231,6 +238,129 @@ class YandexTTS:
 
 # Глобальный экземпляр
 yandex_tts = YandexTTS()
+
+
+async def text_to_voice_bytes(
+    text: str,
+    voice: str = None,
+    emotion: str = None,
+    speed: float = None,
+) -> Optional[bytes]:
+    """
+    Конвертирует текст в голосовое сообщение (байты OGG).
+
+    Args:
+        text: Текст для озвучки
+        voice: Голос (alena, jane, omazh, zahar, filipp)
+        emotion: Эмоция (neutral, good)
+        speed: Скорость речи (0.1-3.0)
+
+    Returns:
+        Байты OGG файла или None при ошибке
+    """
+    voice = voice or yandex_tts.default_voice
+    emotion = emotion or yandex_tts.default_emotion
+    speed = speed or yandex_tts.default_speed
+
+    if not yandex_tts.api_key or not yandex_tts.folder_id:
+        logger.error("Yandex TTS not configured")
+        return None
+
+    # Синтезируем напрямую в память
+    audio_data = await yandex_tts._synthesize_chunk(
+        text=text,
+        voice=voice,
+        emotion=emotion,
+        speed=speed,
+        format="oggopus",
+    )
+
+    return audio_data
+
+
+async def send_voice_message(
+    bot: Bot,
+    chat_id: int,
+    text: str,
+    voice: str = None,
+    emotion: str = None,
+    speed: float = None,
+    reply_to_message_id: int = None,
+    user_id: int = None,
+    save_to_gcs: bool = True,
+) -> bool:
+    """
+    Отправляет голосовое сообщение пользователю.
+
+    Args:
+        bot: Telegram Bot instance
+        chat_id: ID чата (telegram_id)
+        text: Текст для озвучки
+        voice: Голос TTS
+        emotion: Эмоция TTS
+        speed: Скорость речи
+        reply_to_message_id: ID сообщения для ответа
+        user_id: ID пользователя в БД (для сохранения в GCS)
+        save_to_gcs: Сохранять ли голос в GCS
+
+    Returns:
+        True если успешно отправлено
+    """
+    try:
+        audio_bytes = await text_to_voice_bytes(
+            text=text,
+            voice=voice,
+            emotion=emotion,
+            speed=speed,
+        )
+
+        if not audio_bytes:
+            logger.error("Failed to generate voice audio")
+            return False
+
+        # Создаём временный файл
+        with tempfile.NamedTemporaryFile(suffix=".ogg", delete=False) as tmp_file:
+            tmp_file.write(audio_bytes)
+            tmp_path = tmp_file.name
+
+        try:
+            # Отправляем голосовое сообщение
+            with open(tmp_path, "rb") as audio_file:
+                sent_message = await bot.send_voice(
+                    chat_id=chat_id,
+                    voice=audio_file,
+                    reply_to_message_id=reply_to_message_id,
+                )
+
+            logger.info(f"Sent voice message to {chat_id}, {len(text)} chars")
+
+            # Сохраняем голос Миры в GCS
+            if save_to_gcs and user_id:
+                try:
+                    from services.storage import file_storage_service
+                    import time
+
+                    await file_storage_service.save_voice(
+                        voice_bytes=audio_bytes,
+                        user_id=user_id,
+                        telegram_id=chat_id,
+                        telegram_file_id=f"mira_tts_{int(time.time())}",
+                        file_size=len(audio_bytes),
+                        message_id=sent_message.message_id if sent_message else None,
+                    )
+                    logger.info(f"Saved Mira voice to GCS for user {user_id}")
+                except Exception as e:
+                    logger.warning(f"Failed to save Mira voice to GCS: {e}")
+
+            return True
+
+        finally:
+            # Удаляем временный файл
+            Path(tmp_path).unlink(missing_ok=True)
+
+    except Exception as e:
+        logger.error(f"Failed to send voice message: {e}")
+        return False
 
 
 async def generate_all_meditations():

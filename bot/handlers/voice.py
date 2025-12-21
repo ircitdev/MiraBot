@@ -14,6 +14,8 @@ from database.repositories.user import UserRepository
 from database.repositories.subscription import SubscriptionRepository
 from database.repositories.conversation import ConversationRepository
 from bot.keyboards.inline import get_premium_keyboard, get_crisis_keyboard
+from services.storage.file_storage import file_storage_service
+from services.tts_yandex import send_voice_message
 
 
 # Инициализируем сервисы
@@ -85,6 +87,20 @@ async def handle_voice(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         voice_file = await voice.get_file()
         voice_bytes = await voice_file.download_as_bytearray()
 
+        # 7.1 Сохраняем в GCS
+        try:
+            await file_storage_service.save_voice(
+                voice_bytes=bytes(voice_bytes),
+                user_id=user.id,
+                telegram_id=user_tg.id,
+                telegram_file_id=voice.file_id,
+                file_size=voice.file_size or len(voice_bytes),
+                duration=voice.duration,
+                message_id=update.message.message_id,
+            )
+        except Exception as e:
+            logger.warning(f"Failed to save voice to GCS for user {user_tg.id}: {e}")
+
         # 8. Транскрибируем
         await status_message.edit_text("✍️ Расшифровываю...")
 
@@ -141,6 +157,26 @@ async def handle_voice(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
 
         # 15. Отправляем ответ
         await _send_response(update, result)
+
+        # 16. Проверяем это первое голосовое — отвечаем голосом!
+        voice_count = await conversation_repo.count_by_user_and_type(user.id, "voice")
+        if voice_count <= 1:
+            # Это первое голосовое сообщение — отвечаем голосом
+            try:
+                voice_response = (
+                    f"Привет! Рада слышать твой голос. "
+                    f"Теперь ты знаешь, что я тоже умею говорить. "
+                    f"Можешь писать или отправлять голосовые — как тебе удобнее."
+                )
+                await send_voice_message(
+                    bot=context.bot,
+                    chat_id=update.effective_chat.id,
+                    text=voice_response,
+                    user_id=user.id,
+                )
+                logger.info(f"Sent first voice response to user {user_tg.id}")
+            except Exception as e:
+                logger.warning(f"Failed to send voice response: {e}")
 
         logger.info(
             f"Voice message processed for user {user_tg.id}, "

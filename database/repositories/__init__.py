@@ -10,6 +10,7 @@ from database.repositories.referral import ReferralRepository
 from database.repositories.payment import PaymentRepository
 from database.repositories.scheduled_message import ScheduledMessageRepository
 from database.repositories.admin_user import AdminUserRepository
+from database.repositories.user_file import UserFileRepository
 
 __all__ = [
     "UserRepository",
@@ -20,4 +21,5 @@ __all__ = [
     "PaymentRepository",
     "ScheduledMessageRepository",
     "AdminUserRepository",
+    "UserFileRepository",
 ]

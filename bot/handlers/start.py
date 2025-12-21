@@ -10,6 +10,7 @@ from loguru import logger
 from database.repositories.user import UserRepository
 from database.repositories.referral import ReferralRepository
 from config.constants import PERSONA_MIRA, PERSONA_MARK, ONBOARDING_STEP_START
+from services.avatar_service import avatar_service
 
 
 user_repo = UserRepository()
@@ -38,7 +39,20 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     # Обрабатываем реферальный код
     if referral_code and created:
         await _process_referral(user.id, referral_code)
-    
+
+    # Загружаем аватарку если её нет
+    if not user.avatar_url:
+        try:
+            avatar_url = await avatar_service.fetch_and_save_avatar(
+                bot=context.bot,
+                telegram_id=user_tg.id,
+                user_id=user.id,
+            )
+            if avatar_url:
+                await user_repo.update(user.id, avatar_url=avatar_url)
+        except Exception as e:
+            logger.warning(f"Failed to fetch avatar for user {user_tg.id}: {e}")
+
     if created or not user.onboarding_completed:
         # Новый пользователь — начинаем онбординг
         await _start_onboarding(update, user)

@@ -34,6 +34,7 @@ from bot.handlers.commands import (
     goals_command,
     plans_command,
 )
+from bot.handlers.programs import programs_command, program_callback
 from bot.handlers.callbacks import handle_callback
 from bot.handlers.payments import (
     handle_subscription_callback,
@@ -50,6 +51,7 @@ from services.redis_client import redis_client
 from services.health import health_server
 from bot.handlers.admin import (
     admin_command,
+    web_admin_command,
     handle_admin_callback,
     receive_user_id,
     receive_days,
@@ -149,6 +151,7 @@ async def post_init(app: Application) -> None:
         commands = [
             BotCommand("start", "Начать общение с Мирой"),
             BotCommand("help", "Что я умею и как мне пользоваться"),
+            BotCommand("programs", "Программы: 7 дней заботы о себе"),
             BotCommand("exercises", "Упражнения: дыхание, релаксация, заземление"),
             BotCommand("affirmation", "Получить аффирмацию дня"),
             BotCommand("meditation", "Медитации и практики осознанности"),
@@ -294,9 +297,13 @@ def create_application() -> Application:
     application.add_handler(CommandHandler("privacy", privacy_command))
     application.add_handler(CommandHandler("goals", goals_command))
     application.add_handler(CommandHandler("plans", plans_command))
+    application.add_handler(CommandHandler("programs", programs_command))
     application.add_handler(CommandHandler("exercises", exercises_command))
     application.add_handler(CommandHandler("affirmation", affirmation_command))
     application.add_handler(CommandHandler("meditation", meditation_command))
+
+    # Команда /web_admin - ссылка на веб-админку
+    application.add_handler(CommandHandler("web_admin", web_admin_command))
 
     # Админ-панель с ConversationHandler
     admin_conv_handler = ConversationHandler(
@@ -361,8 +368,12 @@ def create_application() -> Application:
         pattern=r"^(ex:|aff:|med:)"  # Упражнения, аффирмации, медитации
     ))
     application.add_handler(CallbackQueryHandler(
+        program_callback,
+        pattern=r"^program:"  # Программы
+    ))
+    application.add_handler(CallbackQueryHandler(
         handle_callback,
-        pattern=r"^(?!subscribe:|pay:|ex:|aff:|med:)"  # Все остальные
+        pattern=r"^(?!subscribe:|pay:|ex:|aff:|med:|program:)"  # Все остальные
     ))
     
     # Обработчик голосовых сообщений

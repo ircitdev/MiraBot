@@ -10,6 +10,7 @@ from sqlalchemy import (
     Column,
     BigInteger,
     Integer,
+    Float,
     String,
     Text,
     Boolean,
@@ -73,6 +74,9 @@ class User(Base):
 
     # Отправленные фото (для отслеживания)
     sent_photos: Mapped[Optional[list]] = mapped_column(JSONB, default=list)
+
+    # Аватар пользователя (URL в GCS)
+    avatar_url: Mapped[Optional[str]] = mapped_column(String(500))
 
     # Праздничные даты
     birthday: Mapped[Optional[datetime]] = mapped_column(Date)  # День рождения пользователя
@@ -683,3 +687,329 @@ class UserFollowUp(Base):
 
     def __repr__(self) -> str:
         return f"<UserFollowUp(id={self.id}, user_id={self.user_id}, action={self.action[:30]}..., status={self.status})>"
+
+
+class UserProgram(Base):
+    """Модель участия пользователя в структурированной программе."""
+
+    __tablename__ = "user_programs"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    user_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("users.id"), nullable=False)
+
+    # Какая программа
+    program_id: Mapped[str] = mapped_column(String(50), nullable=False)  # "7_days_self_care", "anxiety_course"
+    program_name: Mapped[str] = mapped_column(String(100), nullable=False)
+
+    # Прогресс
+    current_day: Mapped[int] = mapped_column(Integer, default=1)  # Какой день программы
+    total_days: Mapped[int] = mapped_column(Integer, nullable=False)  # Всего дней в программе
+
+    # Статус
+    status: Mapped[str] = mapped_column(String(20), default="active")
+    # 'active', 'paused', 'completed', 'abandoned'
+
+    # История выполнения дней
+    completed_days: Mapped[Optional[list]] = mapped_column(JSONB, default=list)
+    # Структура: [
+    #   {"day": 1, "completed_at": "2025-12-20T10:00:00", "feedback": "понравилось"},
+    #   {"day": 2, "completed_at": "2025-12-21T09:30:00", "feedback": null}
+    # ]
+
+    # Настройки напоминаний
+    reminder_time: Mapped[Optional[str]] = mapped_column(String(5))  # "09:00"
+    reminder_enabled: Mapped[bool] = mapped_column(Boolean, default=True)
+
+    # Когда последний раз отправили задание
+    last_task_sent_at: Mapped[Optional[datetime]] = mapped_column(DateTime)
+    # Когда следующее задание
+    next_task_at: Mapped[Optional[datetime]] = mapped_column(DateTime)
+
+    # Метаданные
+    started_at: Mapped[datetime] = mapped_column(DateTime, default=func.now())
+    completed_at: Mapped[Optional[datetime]] = mapped_column(DateTime)
+    paused_at: Mapped[Optional[datetime]] = mapped_column(DateTime)
+
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=func.now(), onupdate=func.now())
+
+    # Связи
+    user: Mapped["User"] = relationship("User")
+
+    # Индексы
+    __table_args__ = (
+        Index("idx_user_programs_user", "user_id"),
+        Index("idx_user_programs_status", "user_id", "status"),
+        Index("idx_user_programs_next_task", "next_task_at", "status"),
+    )
+
+    def __repr__(self) -> str:
+        return f"<UserProgram(id={self.id}, user_id={self.user_id}, program={self.program_id}, day={self.current_day}/{self.total_days})>"
+
+
+class SystemSettings(Base):
+    """Системные настройки (ключ-значение)."""
+
+    __tablename__ = "system_settings"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    key: Mapped[str] = mapped_column(String(100), unique=True, nullable=False)
+    value: Mapped[Optional[str]] = mapped_column(Text)
+    value_type: Mapped[str] = mapped_column(String(20), default="string")  # string, int, float, bool, json
+    description: Mapped[Optional[str]] = mapped_column(Text)
+    is_secret: Mapped[bool] = mapped_column(Boolean, default=False)  # Скрывать значение в UI
+
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=func.now(), onupdate=func.now())
+
+    def __repr__(self) -> str:
+        return f"<SystemSettings(key={self.key})>"
+
+
+class Promotion(Base):
+    """Модель акций и скидок."""
+
+    __tablename__ = "promotions"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+
+    # Название и описание
+    name: Mapped[str] = mapped_column(String(100), nullable=False)
+    description: Mapped[Optional[str]] = mapped_column(Text)
+
+    # Тип акции
+    promo_type: Mapped[str] = mapped_column(String(30), nullable=False)
+    # Типы: 'discount_percent', 'discount_amount', 'free_days', 'special_price'
+
+    # Значение (скидка в % или рублях, дни, спец. цена)
+    value: Mapped[float] = mapped_column(Float, nullable=False)
+
+    # К каким планам применяется (пусто = ко всем)
+    applicable_plans: Mapped[Optional[list]] = mapped_column(JSONB, default=list)
+
+    # Даты действия
+    start_date: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+    end_date: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+
+    # Статус
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+
+    # Ограничения
+    max_uses: Mapped[Optional[int]] = mapped_column(Integer)  # Макс. использований
+    current_uses: Mapped[int] = mapped_column(Integer, default=0)
+    min_purchase_amount: Mapped[Optional[int]] = mapped_column(Integer)  # Мин. сумма покупки
+
+    # Отображение
+    banner_text: Mapped[Optional[str]] = mapped_column(String(200))  # Текст для баннера
+    show_in_subscription: Mapped[bool] = mapped_column(Boolean, default=True)
+
+    # Метаданные
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=func.now(), onupdate=func.now())
+
+    # Индексы
+    __table_args__ = (
+        Index("idx_promotions_dates", "start_date", "end_date", "is_active"),
+    )
+
+    def __repr__(self) -> str:
+        return f"<Promotion(id={self.id}, name={self.name}, type={self.promo_type})>"
+
+
+class UserFile(Base):
+    """Модель для хранения информации о файлах пользователей в GCS."""
+
+    __tablename__ = "user_files"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    user_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("users.id"), nullable=False)
+
+    # Информация о файле
+    file_type: Mapped[str] = mapped_column(String(20), nullable=False)
+    # Типы: 'photo', 'voice', 'video', 'document', 'sticker'
+
+    # Telegram file_id (для повторного доступа)
+    telegram_file_id: Mapped[str] = mapped_column(String(255), nullable=False)
+
+    # GCS данные
+    gcs_path: Mapped[str] = mapped_column(String(500), nullable=False)  # Полный путь в бакете
+    gcs_url: Mapped[Optional[str]] = mapped_column(String(1000))  # Публичный URL (если есть)
+
+    # Метаданные файла
+    file_name: Mapped[Optional[str]] = mapped_column(String(255))
+    file_size: Mapped[Optional[int]] = mapped_column(Integer)  # В байтах
+    mime_type: Mapped[Optional[str]] = mapped_column(String(100))
+
+    # Контекст
+    message_id: Mapped[Optional[int]] = mapped_column(BigInteger)  # ID сообщения в Telegram
+
+    # Retention
+    expires_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)  # Когда удалить
+    is_premium_at_upload: Mapped[bool] = mapped_column(Boolean, default=False)  # Premium на момент загрузки
+
+    # Статус
+    is_deleted: Mapped[bool] = mapped_column(Boolean, default=False)  # Помечен как удалённый
+    deleted_at: Mapped[Optional[datetime]] = mapped_column(DateTime)
+
+    # Метаданные
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=func.now())
+
+    # Связи
+    user: Mapped["User"] = relationship("User")
+
+    # Индексы
+    __table_args__ = (
+        Index("idx_user_files_user", "user_id"),
+        Index("idx_user_files_expires", "expires_at", "is_deleted"),
+        Index("idx_user_files_type", "user_id", "file_type"),
+    )
+
+    def __repr__(self) -> str:
+        return f"<UserFile(id={self.id}, user_id={self.user_id}, type={self.file_type}, path={self.gcs_path})>"
+
+
+class UserProfile(Base):
+    """Расширенный профиль пользователя — собирается в процессе общения."""
+
+    __tablename__ = "user_profiles"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    user_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("users.id"), unique=True, nullable=False)
+
+    # === Основная информация о пользователе ===
+    country: Mapped[Optional[str]] = mapped_column(String(100))  # Россия
+    city: Mapped[Optional[str]] = mapped_column(String(100))  # Москва
+    occupation: Mapped[Optional[str]] = mapped_column(String(200))  # Кем работает
+    age: Mapped[Optional[int]] = mapped_column(Integer)  # Возраст
+    birth_year: Mapped[Optional[int]] = mapped_column(Integer)  # Год рождения (для расчёта возраста)
+
+    # === Информация о партнёре/муже ===
+    has_partner: Mapped[Optional[bool]] = mapped_column(Boolean)  # Есть партнёр/муж
+    partner_name: Mapped[Optional[str]] = mapped_column(String(100))  # Имя партнёра
+    partner_age: Mapped[Optional[int]] = mapped_column(Integer)  # Возраст партнёра
+    partner_occupation: Mapped[Optional[str]] = mapped_column(String(200))  # Кем работает партнёр
+    partner_hobbies: Mapped[Optional[str]] = mapped_column(Text)  # Увлечения партнёра
+
+    # Даты отношений
+    relationship_start_date: Mapped[Optional[datetime]] = mapped_column(Date)  # Дата знакомства
+    wedding_date: Mapped[Optional[datetime]] = mapped_column(Date)  # Дата свадьбы
+    how_met: Mapped[Optional[str]] = mapped_column(Text)  # Где/как познакомились
+
+    # === Информация о детях ===
+    has_children: Mapped[Optional[bool]] = mapped_column(Boolean)  # Есть дети
+    children_count: Mapped[Optional[int]] = mapped_column(Integer)  # Количество детей
+    children: Mapped[Optional[list]] = mapped_column(JSONB, default=list)
+    # Структура children:
+    # [
+    #   {
+    #     "name": "Маша",
+    #     "gender": "female",  # male/female
+    #     "age": 5,
+    #     "birth_year": 2019,
+    #     "hobbies": "рисование, танцы"
+    #   },
+    #   ...
+    # ]
+
+    # === Дополнительная информация ===
+    hobbies: Mapped[Optional[str]] = mapped_column(Text)  # Увлечения пользователя
+    pets: Mapped[Optional[str]] = mapped_column(Text)  # Домашние животные
+    living_situation: Mapped[Optional[str]] = mapped_column(String(200))  # С кем живёт (с мужем, с родителями, одна)
+
+    # Здоровье (деликатно)
+    health_notes: Mapped[Optional[str]] = mapped_column(Text)  # Заметки о здоровье (хронические, беременность)
+
+    # === Предпочтения в музыке ===
+    music_preferences: Mapped[Optional[dict]] = mapped_column(JSONB, default=dict)
+    # Структура music_preferences:
+    # {
+    #   "genres": ["джаз", "классика", "поп"],  # Любимые жанры
+    #   "artists": ["Queen", "Ludovico Einaudi"],  # Любимые исполнители/группы
+    #   "songs": ["Bohemian Rhapsody", "Nuvole Bianche"],  # Любимые песни
+    #   "dislikes": ["рэп", "тяжёлый рок"],  # Не нравится
+    #   "mood_music": {  # Музыка под настроение
+    #       "relax": "классика",
+    #       "energy": "рок",
+    #       "sad": "джаз"
+    #   }
+    # }
+
+    # === Предпочтения в фильмах/сериалах ===
+    movie_preferences: Mapped[Optional[dict]] = mapped_column(JSONB, default=dict)
+    # Структура movie_preferences:
+    # {
+    #   "genres": ["драма", "комедия", "триллер"],  # Любимые жанры
+    #   "movies": ["Интерстеллар", "Форест Гамп"],  # Любимые фильмы
+    #   "series": ["Друзья", "Во все тяжкие"],  # Любимые сериалы
+    #   "actors": ["Том Хэнкс", "Леонардо Ди Каприо"],  # Любимые актёры
+    #   "actresses": ["Эмма Стоун", "Натали Портман"],  # Любимые актрисы
+    #   "directors": ["Кристофер Нолан"],  # Любимые режиссёры
+    #   "dislikes": ["ужасы", "боевики"]  # Не нравится
+    # }
+
+    # Важные даты
+    important_dates: Mapped[Optional[list]] = mapped_column(JSONB, default=list)
+    # Структура important_dates:
+    # [
+    #   {"date": "2024-03-15", "description": "День рождения мамы", "type": "birthday"},
+    #   {"date": "2024-06-20", "description": "Годовщина свадьбы", "type": "anniversary"},
+    # ]
+
+    # === Уверенность в данных (1-10) ===
+    # Насколько мы уверены в этой информации
+    confidence_location: Mapped[int] = mapped_column(Integer, default=0)  # Страна/город
+    confidence_occupation: Mapped[int] = mapped_column(Integer, default=0)
+    confidence_partner: Mapped[int] = mapped_column(Integer, default=0)
+    confidence_children: Mapped[int] = mapped_column(Integer, default=0)
+
+    # === Метаданные ===
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=func.now(), onupdate=func.now())
+
+    # Связи
+    user: Mapped["User"] = relationship("User", backref="profile")
+
+    def __repr__(self) -> str:
+        return f"<UserProfile(id={self.id}, user_id={self.user_id}, city={self.city})>"
+
+
+class PaymentStats(Base):
+    """Статистика платежей по дням (для отчётов)."""
+
+    __tablename__ = "payment_stats"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+
+    # Дата
+    date: Mapped[datetime] = mapped_column(DateTime, nullable=False, unique=True)
+
+    # YooKassa
+    yookassa_count: Mapped[int] = mapped_column(Integer, default=0)
+    yookassa_amount: Mapped[int] = mapped_column(Integer, default=0)  # В копейках
+    yookassa_successful: Mapped[int] = mapped_column(Integer, default=0)
+    yookassa_failed: Mapped[int] = mapped_column(Integer, default=0)
+
+    # CryptoBot
+    crypto_count: Mapped[int] = mapped_column(Integer, default=0)
+    crypto_amount: Mapped[int] = mapped_column(Integer, default=0)  # В копейках (конвертировано)
+    crypto_successful: Mapped[int] = mapped_column(Integer, default=0)
+    crypto_failed: Mapped[int] = mapped_column(Integer, default=0)
+
+    # Telegram Stars
+    stars_count: Mapped[int] = mapped_column(Integer, default=0)
+    stars_amount: Mapped[int] = mapped_column(Integer, default=0)  # В звёздах
+
+    # Промо-коды
+    promo_uses: Mapped[int] = mapped_column(Integer, default=0)
+    promo_discount_total: Mapped[int] = mapped_column(Integer, default=0)
+
+    # Подписки
+    new_subscriptions: Mapped[int] = mapped_column(Integer, default=0)
+    renewals: Mapped[int] = mapped_column(Integer, default=0)
+    cancellations: Mapped[int] = mapped_column(Integer, default=0)
+
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=func.now(), onupdate=func.now())
+
+    def __repr__(self) -> str:
+        return f"<PaymentStats(date={self.date})>"

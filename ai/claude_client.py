@@ -19,7 +19,9 @@ from ai.memory.attempt_detector import attempt_detector
 from ai.question_type_detector import question_type_detector
 from ai.trigger_detector import trigger_detector
 from ai.medical_filter import medical_filter
+from ai.profile_extractor import profile_extractor
 from database.repositories.trigger import TriggerRepository
+from database.repositories.profile import profile_repo
 from config.constants import MEMORY_CATEGORY_ATTEMPTS
 
 
@@ -121,6 +123,12 @@ class ClaudeClient:
                 user_id=user_id,
                 user_message=user_message,
                 bot_response=response_text,
+            )
+
+            # 9. Извлекаем и сохраняем профильные данные
+            await self._extract_and_save_profile(
+                user_id=user_id,
+                user_message=user_message,
             )
 
             logger.info(
@@ -250,6 +258,12 @@ class ClaudeClient:
                 user_id=user_id,
                 user_message=user_message,
                 bot_response=full_response,
+            )
+
+            # 9. Извлекаем и сохраняем профильные данные
+            await self._extract_and_save_profile(
+                user_id=user_id,
+                user_message=user_message,
             )
 
             logger.info(
@@ -731,3 +745,37 @@ class ClaudeClient:
         except Exception as e:
             # Не падаем если не удалось сохранить триггер
             logger.warning(f"Failed to detect/save trigger: {e}")
+
+    async def _extract_and_save_profile(
+        self,
+        user_id: int,
+        user_message: str,
+    ) -> None:
+        """
+        Извлекает профильные данные из сообщения и сохраняет в БД.
+
+        Args:
+            user_id: ID пользователя
+            user_message: Сообщение пользователя
+        """
+        try:
+            # Извлекаем данные
+            extracted_data = profile_extractor.extract(user_message)
+
+            if not extracted_data:
+                return
+
+            # Сохраняем в профиль
+            await profile_repo.update_from_extracted_data(
+                user_id=user_id,
+                extracted_data=extracted_data,
+            )
+
+            logger.info(
+                f"Updated profile for user {user_id}: "
+                f"{list(extracted_data.keys())}"
+            )
+
+        except Exception as e:
+            # Не падаем если не удалось сохранить профиль
+            logger.warning(f"Failed to extract/save profile: {e}")

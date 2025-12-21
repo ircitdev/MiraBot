@@ -91,6 +91,10 @@ class PromoRepository:
             )
             return result.scalar_one_or_none()
 
+    async def get(self, promo_id: int):
+        """Алиас для get_by_id."""
+        return await self.get_by_id(promo_id)
+
     async def get_all(
         self,
         active_only: bool = False,
@@ -170,6 +174,62 @@ class PromoRepository:
                 "total_discount": total_discount,
                 "total_free_days": total_free_days,
             }
+
+    async def get_usage_history(
+        self,
+        promo_code_id: Optional[int] = None,
+        page: int = 1,
+        per_page: int = 50,
+    ) -> tuple[List[Dict[str, Any]], int]:
+        """
+        Получает историю использования промокодов.
+
+        Args:
+            promo_code_id: ID промокода (None = все)
+            page: Страница
+            per_page: Записей на страницу
+
+        Returns:
+            (список использований, общее количество)
+        """
+        async with get_session_context() as session:
+            query = (
+                select(PromoCodeUsage, User, PromoCode)
+                .join(User, PromoCodeUsage.user_id == User.id)
+                .join(PromoCode, PromoCodeUsage.promo_code_id == PromoCode.id)
+            )
+            count_query = select(func.count(PromoCodeUsage.id))
+
+            if promo_code_id:
+                query = query.where(PromoCodeUsage.promo_code_id == promo_code_id)
+                count_query = count_query.where(PromoCodeUsage.promo_code_id == promo_code_id)
+
+            # Подсчёт
+            total = (await session.execute(count_query)).scalar() or 0
+
+            # Пагинация
+            query = query.order_by(PromoCodeUsage.created_at.desc())
+            query = query.offset((page - 1) * per_page).limit(per_page)
+
+            result = await session.execute(query)
+            rows = result.all()
+
+            usages = []
+            for usage, user, promo in rows:
+                usages.append({
+                    "id": usage.id,
+                    "promo_code": promo.code,
+                    "promo_type": promo.promo_type,
+                    "user_id": user.id,
+                    "telegram_id": user.telegram_id,
+                    "username": user.username,
+                    "display_name": user.display_name or user.first_name,
+                    "discount_amount": usage.discount_amount,
+                    "free_days_granted": usage.free_days_granted,
+                    "created_at": usage.created_at.isoformat() if usage.created_at else None,
+                })
+
+            return usages, total
 
     # ==================== VALIDATE ====================
 

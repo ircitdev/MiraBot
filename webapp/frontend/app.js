@@ -6,6 +6,7 @@ const API_BASE = '/api';
 
 // State
 let currentSettings = null;
+let currentMoodPeriod = 7;  // Текущий период для графика настроения
 
 // Utils
 function showTab(tabName) {
@@ -104,8 +105,8 @@ async function loadStats() {
             emotionsList.appendChild(item);
         });
 
-        // Mood chart (simple visualization)
-        drawMoodChart(data.mood_chart);
+        // Mood chart (load for current period)
+        await loadMoodChart(currentMoodPeriod);
 
     } catch (error) {
         console.error('Failed to load stats:', error);
@@ -113,7 +114,101 @@ async function loadStats() {
     }
 }
 
-function drawMoodChart(moodData) {
+// Load mood chart for specific period
+async function loadMoodChart(days) {
+    try {
+        const data = await apiRequest(`/stats/mood/history?days=${days}`);
+
+        // Group by day and calculate averages
+        const moodByDay = {};
+        data.entries.forEach(entry => {
+            const date = entry.date.split('T')[0];
+            if (!moodByDay[date]) {
+                moodByDay[date] = [];
+            }
+            moodByDay[date].push(entry);
+        });
+
+        const moodChart = Object.keys(moodByDay).sort().map(date => {
+            const entries = moodByDay[date];
+            const avgScore = entries.reduce((sum, e) => sum + e.mood_score, 0) / entries.length;
+            const emotions = entries.map(e => e.primary_emotion).filter(e => e);
+            const topEmotion = emotions.length > 0
+                ? emotions.sort((a, b) =>
+                    emotions.filter(v => v === b).length - emotions.filter(v => v === a).length
+                )[0]
+                : 'neutral';
+
+            return {
+                date: date,
+                score: avgScore,
+                emotion: topEmotion
+            };
+        });
+
+        // Calculate summary stats
+        updateMoodSummary(moodChart, days);
+
+        // Draw chart with trend line
+        drawMoodChart(moodChart, true);
+
+    } catch (error) {
+        console.error('Failed to load mood history:', error);
+        // Fallback to basic chart from stats
+        const statsData = await apiRequest('/stats/');
+        drawMoodChart(statsData.mood_chart, false);
+    }
+}
+
+// Update mood summary stats
+function updateMoodSummary(moodData, days) {
+    const summaryEl = document.getElementById('mood-summary');
+
+    if (moodData.length === 0) {
+        summaryEl.innerHTML = '';
+        return;
+    }
+
+    // Calculate average
+    const avgScore = moodData.reduce((sum, p) => sum + p.score, 0) / moodData.length;
+
+    // Calculate trend (compare first half to second half)
+    const midPoint = Math.floor(moodData.length / 2);
+    const firstHalf = moodData.slice(0, midPoint);
+    const secondHalf = moodData.slice(midPoint);
+
+    let trendHtml = '';
+    if (firstHalf.length > 0 && secondHalf.length > 0) {
+        const firstAvg = firstHalf.reduce((sum, p) => sum + p.score, 0) / firstHalf.length;
+        const secondAvg = secondHalf.reduce((sum, p) => sum + p.score, 0) / secondHalf.length;
+        const diff = secondAvg - firstAvg;
+
+        if (Math.abs(diff) > 0.05) {
+            const trendClass = diff > 0 ? 'mood-trend-up' : 'mood-trend-down';
+            const trendIcon = diff > 0 ? '↗' : '↘';
+            const trendPercent = Math.abs(Math.round(diff * 100));
+            trendHtml = `
+                <div class="mood-stat">
+                    Тренд: <span class="value ${trendClass}">${trendIcon} ${trendPercent}%</span>
+                </div>
+            `;
+        }
+    }
+
+    // Format average score
+    const avgFormatted = avgScore >= 0
+        ? `+${(avgScore * 100).toFixed(0)}%`
+        : `${(avgScore * 100).toFixed(0)}%`;
+
+    summaryEl.innerHTML = `
+        <div class="mood-stat">
+            Среднее за ${days}д: <span class="value">${avgFormatted}</span>
+        </div>
+        ${trendHtml}
+    `;
+}
+
+function drawMoodChart(moodData, showTrendLine = false) {
     const canvas = document.getElementById('mood-chart');
     const ctx = canvas.getContext('2d');
 
@@ -147,17 +242,52 @@ function drawMoodChart(moodData) {
         ctx.stroke();
     }
 
-    // Draw line
-    ctx.strokeStyle = '#2481cc';
-    ctx.lineWidth = 3;
-    ctx.beginPath();
+    // Calculate X and Y positions
+    const pointsX = moodData.length === 1
+        ? [padding + width / 2]
+        : moodData.map((_, i) => padding + (width / (moodData.length - 1)) * i);
 
-    const pointsX = moodData.map((_, i) => padding + (width / (moodData.length - 1)) * i);
     const pointsY = moodData.map(point => {
         // Mood score from -1 to 1, map to canvas height
         const normalized = (point.score + 1) / 2; // 0 to 1
         return padding + height * (1 - normalized);
     });
+
+    // Draw trend line (moving average) if enabled
+    if (showTrendLine && moodData.length >= 3) {
+        const windowSize = Math.min(3, Math.floor(moodData.length / 3));
+        const trendY = [];
+
+        for (let i = 0; i < moodData.length; i++) {
+            const start = Math.max(0, i - windowSize);
+            const end = Math.min(moodData.length, i + windowSize + 1);
+            const slice = pointsY.slice(start, end);
+            const avg = slice.reduce((a, b) => a + b, 0) / slice.length;
+            trendY.push(avg);
+        }
+
+        // Draw trend line
+        ctx.strokeStyle = 'rgba(102, 126, 234, 0.4)';
+        ctx.lineWidth = 8;
+        ctx.lineCap = 'round';
+        ctx.beginPath();
+
+        pointsX.forEach((x, i) => {
+            if (i === 0) {
+                ctx.moveTo(x, trendY[i]);
+            } else {
+                ctx.lineTo(x, trendY[i]);
+            }
+        });
+        ctx.stroke();
+    }
+
+    // Draw main line
+    ctx.strokeStyle = '#2481cc';
+    ctx.lineWidth = 3;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.beginPath();
 
     pointsX.forEach((x, i) => {
         if (i === 0) {
@@ -177,16 +307,108 @@ function drawMoodChart(moodData) {
         ctx.fill();
     });
 
-    // Draw labels
+    // Draw labels (show fewer labels if many points)
     ctx.fillStyle = '#666';
-    ctx.font = '20px sans-serif';
+    ctx.font = '18px sans-serif';
     ctx.textAlign = 'center';
 
+    const labelStep = moodData.length > 14 ? 3 : (moodData.length > 7 ? 2 : 1);
+
     moodData.forEach((point, i) => {
-        const date = new Date(point.date);
-        const label = `${date.getDate()}/${date.getMonth() + 1}`;
-        ctx.fillText(label, pointsX[i], canvas.height - 10);
+        if (i % labelStep === 0 || i === moodData.length - 1) {
+            const date = new Date(point.date);
+            const label = `${date.getDate()}/${date.getMonth() + 1}`;
+            ctx.fillText(label, pointsX[i], canvas.height - 10);
+        }
     });
+}
+
+// Programs
+async function loadPrograms() {
+    const programsList = document.getElementById('programs-list');
+    const programsSummary = document.getElementById('programs-summary');
+
+    try {
+        const data = await apiRequest('/programs/');
+
+        if (data.programs.length === 0) {
+            programsList.innerHTML = `
+                <div class="no-programs">
+                    <p>У тебя пока нет активных программ.</p>
+                    <p>Напиши /programs в боте, чтобы начать!</p>
+                </div>
+            `;
+            programsSummary.innerHTML = '';
+            return;
+        }
+
+        // Render program cards
+        programsList.innerHTML = data.programs.map(program => {
+            const statusLabels = {
+                'active': 'Активна',
+                'completed': 'Завершена',
+                'paused': 'На паузе',
+                'abandoned': 'Отменена'
+            };
+
+            // Build day indicators
+            const daysHtml = [];
+            const completedDayNumbers = (program.completed_days || []).map(d => d.day);
+
+            for (let day = 1; day <= program.total_days; day++) {
+                let dayClass = 'pending';
+                if (completedDayNumbers.includes(day)) {
+                    dayClass = 'completed';
+                } else if (day === program.current_day && program.status === 'active') {
+                    dayClass = 'current';
+                }
+                daysHtml.push(`<div class="day-indicator ${dayClass}">${day}</div>`);
+            }
+
+            return `
+                <div class="program-card">
+                    <div class="program-card-header">
+                        <span class="program-name">${program.program_name}</span>
+                        <span class="program-status ${program.status}">${statusLabels[program.status] || program.status}</span>
+                    </div>
+                    <div class="program-progress">
+                        <div class="program-progress-bar">
+                            <div class="program-progress-fill" style="width: ${program.progress_percentage}%"></div>
+                        </div>
+                        <div class="program-progress-text">
+                            <span>День ${program.current_day} из ${program.total_days}</span>
+                            <span>${program.progress_percentage}%</span>
+                        </div>
+                    </div>
+                    <div class="program-days">
+                        ${daysHtml.join('')}
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+        // Render summary
+        if (data.total_active > 0 || data.total_completed > 0) {
+            programsSummary.innerHTML = `
+                <div class="programs-summary-item">
+                    <div class="programs-summary-value">${data.total_active}</div>
+                    <div class="programs-summary-label">Активных</div>
+                </div>
+                <div class="programs-summary-item">
+                    <div class="programs-summary-value">${data.total_completed}</div>
+                    <div class="programs-summary-label">Завершено</div>
+                </div>
+            `;
+        }
+
+    } catch (error) {
+        console.error('Failed to load programs:', error);
+        programsList.innerHTML = `
+            <div class="no-programs">
+                <p>Не удалось загрузить программы</p>
+            </div>
+        `;
+    }
 }
 
 // Settings
@@ -337,17 +559,149 @@ async function loadReferralData() {
     }
 }
 
+// Payment Tab
+async function loadPaymentTab() {
+    try {
+        // Загружаем статистику (там есть подписка)
+        const stats = await apiRequest('/stats/');
+        const referralStats = await apiRequest('/referral/stats');
+
+        // Статус подписки
+        const statusCard = document.getElementById('payment-status-card');
+        const planIcon = document.getElementById('payment-plan-icon');
+        const planName = document.getElementById('payment-plan-name');
+        const planStatus = document.getElementById('payment-plan-status');
+        const daysLeft = document.getElementById('payment-days-left');
+        const daysNumber = document.getElementById('days-number');
+        const tariffsSection = document.getElementById('tariffs-section');
+        const renewSection = document.getElementById('renew-section');
+
+        const plan = stats.subscription_plan || 'free';
+
+        if (plan === 'free') {
+            statusCard.classList.add('free');
+            planIcon.textContent = '🆓';
+            planName.textContent = 'Free';
+            planStatus.textContent = 'До 10 сообщений в день';
+            daysLeft.style.display = 'none';
+            tariffsSection.style.display = 'block';
+            renewSection.style.display = 'none';
+        } else if (plan === 'trial') {
+            statusCard.classList.remove('free');
+            planIcon.textContent = '🎁';
+            planName.textContent = 'Trial Premium';
+            if (stats.subscription_days_left !== null) {
+                planStatus.textContent = 'Пробный период';
+                daysLeft.style.display = 'block';
+                daysNumber.textContent = stats.subscription_days_left;
+            }
+            tariffsSection.style.display = 'block';
+            renewSection.style.display = 'none';
+        } else {
+            // Premium
+            statusCard.classList.remove('free');
+            planIcon.textContent = '✨';
+            planName.textContent = 'Premium';
+            if (stats.subscription_days_left !== null) {
+                planStatus.textContent = 'Активна';
+                daysLeft.style.display = 'block';
+                daysNumber.textContent = stats.subscription_days_left;
+                // Показать секцию продления
+                renewSection.style.display = 'block';
+            } else {
+                planStatus.textContent = 'Безлимитно';
+                daysLeft.style.display = 'none';
+                renewSection.style.display = 'block';
+            }
+            tariffsSection.style.display = 'block';
+        }
+
+        // Реферальные бонусы
+        document.getElementById('payment-referral-count').textContent = referralStats.invited_count || 0;
+        document.getElementById('payment-referral-days').textContent = referralStats.bonus_earned_days || 0;
+
+    } catch (error) {
+        console.error('Failed to load payment tab:', error);
+    }
+}
+
+// Применение промо-кода
+async function applyPromoCode() {
+    const input = document.getElementById('promo-code-input');
+    const resultEl = document.getElementById('promo-result');
+    const code = input.value.trim().toUpperCase();
+
+    if (!code) {
+        resultEl.textContent = 'Введи промо-код';
+        resultEl.className = 'promo-result error';
+        return;
+    }
+
+    try {
+        const response = await apiRequest('/promo/apply', {
+            method: 'POST',
+            body: JSON.stringify({ code })
+        });
+
+        if (response.success) {
+            resultEl.textContent = response.message || 'Промо-код применён!';
+            resultEl.className = 'promo-result success';
+            input.value = '';
+            // Перезагрузить данные
+            await loadPaymentTab();
+            await loadStats();
+        } else {
+            resultEl.textContent = response.message || 'Не удалось применить промо-код';
+            resultEl.className = 'promo-result error';
+        }
+    } catch (error) {
+        console.error('Promo code error:', error);
+        resultEl.textContent = 'Ошибка. Попробуй ввести код в боте: /subscription';
+        resultEl.className = 'promo-result error';
+    }
+}
+
 // Init
 document.addEventListener('DOMContentLoaded', () => {
     // Tabs
     document.querySelectorAll('.tab').forEach(tab => {
         tab.addEventListener('click', () => {
+            if (!tab.dataset.tab) return;
             showTab(tab.dataset.tab);
 
             // Загрузить реферальные данные при переключении на настройки
             if (tab.dataset.tab === 'settings') {
                 loadReferralData();
             }
+            // Загрузить данные оплаты
+            if (tab.dataset.tab === 'payment') {
+                loadPaymentTab();
+            }
+        });
+    });
+
+    // Кнопка применения промо-кода
+    document.getElementById('apply-promo-btn').addEventListener('click', applyPromoCode);
+
+    // Enter в поле промо-кода
+    document.getElementById('promo-code-input').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            applyPromoCode();
+        }
+    });
+
+    // Кнопка продления подписки
+    document.getElementById('renew-btn').addEventListener('click', () => {
+        // Открыть бота с командой подписки
+        tg.openTelegramLink('https://t.me/mira_support_bot?start=subscribe');
+    });
+
+    // Клик по тарифу
+    document.querySelectorAll('.tariff-card').forEach(card => {
+        card.addEventListener('click', () => {
+            const plan = card.dataset.plan;
+            // Открыть бота с командой подписки
+            tg.openTelegramLink(`https://t.me/mira_support_bot?start=subscribe_${plan}`);
         });
     });
 
@@ -424,9 +778,23 @@ document.addEventListener('DOMContentLoaded', () => {
         window.open(shareUrl, '_blank');
     });
 
+    // Period toggle buttons
+    document.querySelectorAll('.period-btn').forEach(btn => {
+        btn.addEventListener('click', async () => {
+            // Update active state
+            document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+
+            // Load data for selected period
+            currentMoodPeriod = parseInt(btn.dataset.days);
+            await loadMoodChart(currentMoodPeriod);
+        });
+    });
+
     // Load data
     loadStats();
     loadSettings();
+    loadPrograms();
 
     // Setup Telegram button
     tg.MainButton.setText('Закрыть');

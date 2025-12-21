@@ -38,6 +38,11 @@ class Settings(BaseSettings):
     # =====================================
     YANDEX_API_KEY: str = Field(default="", description="API ключ Yandex Cloud")
     YANDEX_FOLDER_ID: str = Field(default="", description="ID каталога Yandex Cloud")
+    YANDEX_API_KEY_ID: str = Field(default="", description="ID API ключа Yandex Cloud")
+    YANDEX_API_KEY_SECRET: str = Field(default="", description="Секрет API ключа Yandex Cloud")
+    TTS_VOICE: str = Field(default="alena", description="Голос TTS (alena, jane, omazh)")
+    TTS_EMOTION: str = Field(default="good", description="Эмоция TTS (neutral, good)")
+    TTS_SPEED: float = Field(default=1.0, description="Скорость речи TTS (0.1-3.0)")
     
     # =====================================
     # DATABASE
@@ -85,8 +90,8 @@ class Settings(BaseSettings):
     # ЦЕНЫ (в рублях)
     # =====================================
     PRICE_MONTHLY: int = Field(default=999, description="Цена месячной подписки")
-    PRICE_QUARTERLY: int = Field(default=2499, description="Цена квартальной подписки")
-    PRICE_YEARLY: int = Field(default=7999, description="Цена годовой подписки")
+    PRICE_QUARTERLY: int = Field(default=2549, description="Цена квартальной подписки (экономия 15%)")
+    PRICE_YEARLY: int = Field(default=8399, description="Цена годовой подписки (экономия 30%)")
     
     # =====================================
     # ЛИМИТЫ
@@ -194,6 +199,30 @@ class Settings(BaseSettings):
     WEBAPP_PORT: int = Field(
         default=8081,
         description="Порт для WebApp сервера"
+    )
+
+    # =====================================
+    # GOOGLE CLOUD STORAGE
+    # =====================================
+    USE_GCS: bool = Field(
+        default=False,
+        description="Использовать GCS для хранения файлов"
+    )
+    GCS_BUCKET_NAME: str = Field(
+        default="",
+        description="Имя бакета GCS"
+    )
+    GCS_CREDENTIALS_PATH: str = Field(
+        default="",
+        description="Путь к файлу credentials GCS"
+    )
+    GCS_RETENTION_FREE_DAYS: int = Field(
+        default=90,
+        description="Срок хранения файлов для бесплатных пользователей (дни)"
+    )
+    GCS_RETENTION_PREMIUM_DAYS: int = Field(
+        default=365,
+        description="Срок хранения файлов для premium пользователей (дни)"
     )
 
     # =====================================

@@ -52,6 +52,18 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     elif data == "help":
         await _show_help_info(query)
 
+    elif data.startswith("choice:"):
+        await _handle_choice_callback(query, data, context)
+
+    elif data.startswith("music_like:"):
+        await _handle_music_feedback(query, data, "like", context)
+
+    elif data.startswith("music_dislike:"):
+        await _handle_music_feedback(query, data, "dislike", context)
+
+    elif data.startswith("music_another:"):
+        await _handle_music_another(query, data, context)
+
     else:
         logger.warning(f"Unknown callback: {data}")
 
@@ -467,3 +479,316 @@ async def _show_help_info(query) -> None:
 
     await query.answer()
     await query.message.reply_text(text, parse_mode="Markdown")
+
+
+async def _handle_choice_callback(query, data: str, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """
+    Обработка выбора из inline-кнопок (choice:...).
+    Когда пользователь нажимает кнопку, это как если бы он написал текст кнопки.
+    """
+    # Извлекаем текст выбора
+    choice_text = data.replace("choice:", "", 1)
+
+    # Убираем кнопки из сообщения
+    try:
+        await query.edit_message_reply_markup(reply_markup=None)
+    except Exception:
+        pass
+
+    # Проверяем, не является ли это выбором музыкального жанра
+    music_genres = {
+        "🎹 классика": "classical",
+        "классика": "classical",
+        "🌊 ambient": "ambient",
+        "ambient": "ambient",
+        "🌧 звуки природы": "nature",
+        "звуки природы": "nature",
+        "🎷 джаз": "jazz",
+        "джаз": "jazz",
+    }
+
+    choice_lower = choice_text.lower().strip()
+    if choice_lower in music_genres:
+        genre = music_genres[choice_lower]
+
+        # Импортируем функцию отправки музыки по жанру
+        from bot.handlers.music import send_music_by_genre
+        from services.music_recommendation import music_recommendation
+
+        # Отправляем выбор
+        await query.message.chat.send_message(
+            f"💬 _{choice_text}_",
+            parse_mode="Markdown",
+        )
+
+        # Отправляем музыку по жанру
+        result = await music_recommendation.recommend_music_by_genre(genre)
+
+        if result["success"]:
+            import urllib.parse
+
+            track_name = result['track']
+            message_text = f"{result['message']}\n\n🎵 **{track_name}**"
+
+            # Создаём deep link для скачивания через UspMusicFinder
+            # Формат: https://t.me/UspMusicFinder_bot?start=ENCODED_TRACK_NAME
+            track_for_search = track_name.replace(" - ", " ")  # "Artist - Track" -> "Artist Track"
+            encoded_track = urllib.parse.quote(track_for_search)
+            download_link = f"https://t.me/UspMusicFinder_bot?start={encoded_track}"
+
+            # Кнопки: YouTube + Скачать в Telegram + Feedback
+            keyboard = [
+                [InlineKeyboardButton("▶️ Слушать на YouTube", url=result['url'])],
+                [InlineKeyboardButton("📥 Скачать в Telegram", url=download_link)],
+                [
+                    InlineKeyboardButton("👍", callback_data=f"music_like:{track_name[:40]}"),
+                    InlineKeyboardButton("👎", callback_data=f"music_dislike:{track_name[:40]}"),
+                    InlineKeyboardButton("🔄", callback_data=f"music_another:{genre}"),
+                ],
+            ]
+
+            await query.message.chat.send_message(
+                message_text,
+                parse_mode="Markdown",
+                reply_markup=InlineKeyboardMarkup(keyboard),
+                disable_web_page_preview=True,
+            )
+            logger.info(f"Sent music by genre '{genre}' to user {query.from_user.id}")
+        else:
+            await query.message.chat.send_message(
+                "Хм, что-то не нашла музыку этого жанра. Давай попробуем что-то другое?"
+            )
+        return
+
+    # Отправляем выбор как "сообщение пользователя" и обрабатываем
+    await query.message.chat.send_message(
+        f"💬 _{choice_text}_",
+        parse_mode="Markdown",
+    )
+
+    # Симулируем обработку как обычное сообщение
+    user = await user_repo.get_by_telegram_id(query.from_user.id)
+    if not user:
+        return
+
+    # Импортируем и вызываем обработку сообщения
+    from ai.claude_client import ClaudeClient
+    from database.repositories.subscription import SubscriptionRepository
+    from database.repositories.conversation import ConversationRepository
+
+    claude = ClaudeClient()
+    conversation_repo = ConversationRepository()
+
+    # Получаем данные пользователя
+    user_data = {
+        "persona": user.persona,
+        "display_name": user.display_name,
+        "partner_name": user.partner_name,
+        "children_info": user.children_info,
+        "marriage_years": user.marriage_years,
+    }
+
+    # Проверяем подписку
+    subscription = await subscription_repo.get_active(user.id)
+    is_premium = subscription and subscription.plan in ("premium", "trial")
+
+    # Отправляем typing
+    await query.message.chat.send_action("typing")
+
+    try:
+        # Генерируем ответ Claude
+        result = await claude.generate_response(
+            user_id=user.id,
+            user_message=choice_text,
+            user_data=user_data,
+            is_premium=is_premium,
+        )
+
+        response_text = result.get("response", "Хм, что-то пошло не так...")
+
+        # Парсим кнопки из ответа
+        from bot.handlers.message import parse_inline_buttons
+        clean_text, buttons = parse_inline_buttons(response_text)
+        reply_markup = InlineKeyboardMarkup(buttons) if buttons else None
+
+        # Отправляем ответ
+        try:
+            await query.message.chat.send_message(
+                clean_text,
+                reply_markup=reply_markup,
+                parse_mode="Markdown",
+            )
+        except Exception:
+            # Без Markdown если ошибка
+            await query.message.chat.send_message(
+                clean_text,
+                reply_markup=reply_markup,
+            )
+
+        # Сохраняем в историю
+        await conversation_repo.save_message(
+            user_id=user.id,
+            role="user",
+            content=choice_text,
+            tags=["button_choice"],
+        )
+        await conversation_repo.save_message(
+            user_id=user.id,
+            role="assistant",
+            content=clean_text,
+        )
+
+    except Exception as e:
+        logger.error(f"Error handling choice callback: {e}")
+        await query.message.chat.send_message(
+            "Прости, что-то пошло не так. Попробуй ещё раз 💛"
+        )
+
+
+async def _handle_music_feedback(query, data: str, feedback_type: str, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """
+    Обработка обратной связи по музыке (👍 или 👎).
+    Отправляет сообщение как от пользователя и обрабатывает через Claude.
+    """
+    # Извлекаем название трека из callback data
+    if feedback_type == "like":
+        track_name = data.replace("music_like:", "", 1)
+        user_message = f"Мне понравилось 🎵 {track_name}"
+    else:  # dislike
+        track_name = data.replace("music_dislike:", "", 1)
+        user_message = f"🎵 {track_name} не зашло"
+
+    # Убираем кнопки из сообщения
+    try:
+        await query.edit_message_reply_markup(reply_markup=None)
+    except Exception:
+        pass
+
+    # Отправляем "сообщение пользователя"
+    await query.message.chat.send_message(
+        f"💬 _{user_message}_",
+        parse_mode="Markdown",
+    )
+
+    # Обрабатываем через Claude
+    user = await user_repo.get_by_telegram_id(query.from_user.id)
+    if not user:
+        return
+
+    from ai.claude_client import ClaudeClient
+    from database.repositories.conversation import ConversationRepository
+
+    claude = ClaudeClient()
+    conversation_repo = ConversationRepository()
+
+    user_data = {
+        "persona": user.persona,
+        "display_name": user.display_name,
+        "partner_name": user.partner_name,
+        "children_info": user.children_info,
+        "marriage_years": user.marriage_years,
+    }
+
+    subscription = await subscription_repo.get_active(user.id)
+    is_premium = subscription and subscription.plan in ("premium", "trial")
+
+    await query.message.chat.send_action("typing")
+
+    try:
+        result = await claude.generate_response(
+            user_id=user.id,
+            user_message=user_message,
+            user_data=user_data,
+            is_premium=is_premium,
+        )
+
+        response_text = result.get("response", "Спасибо за отзыв! 💛")
+
+        # Парсим кнопки из ответа
+        from bot.handlers.message import parse_inline_buttons
+        clean_text, buttons = parse_inline_buttons(response_text)
+        reply_markup = InlineKeyboardMarkup(buttons) if buttons else None
+
+        try:
+            await query.message.chat.send_message(
+                clean_text,
+                reply_markup=reply_markup,
+                parse_mode="Markdown",
+            )
+        except Exception:
+            await query.message.chat.send_message(clean_text, reply_markup=reply_markup)
+
+        # Сохраняем в историю
+        await conversation_repo.save_message(
+            user_id=user.id,
+            role="user",
+            content=user_message,
+            tags=["music_feedback", feedback_type],
+        )
+        await conversation_repo.save_message(
+            user_id=user.id,
+            role="assistant",
+            content=clean_text,
+        )
+
+    except Exception as e:
+        logger.error(f"Error handling music feedback: {e}")
+        if feedback_type == "like":
+            await query.message.chat.send_message("Рада, что понравилось! 🎵💛")
+        else:
+            await query.message.chat.send_message("Поняла! Попробуем что-то другое в следующий раз 💛")
+
+
+async def _handle_music_another(query, data: str, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """
+    Обработка кнопки 🔄 — отправляет другой трек того же жанра.
+    """
+    genre = data.replace("music_another:", "", 1)
+
+    # Убираем кнопки из старого сообщения
+    try:
+        await query.edit_message_reply_markup(reply_markup=None)
+    except Exception:
+        pass
+
+    # Отправляем "сообщение пользователя"
+    await query.message.chat.send_message(
+        f"💬 _Пришли другое_",
+        parse_mode="Markdown",
+    )
+
+    # Получаем новый трек того же жанра
+    from services.music_recommendation import music_recommendation
+    import urllib.parse
+
+    result = await music_recommendation.recommend_music_by_genre(genre)
+
+    if result["success"]:
+        track_name = result['track']
+        message_text = f"{result['message']}\n\n🎵 **{track_name}**"
+
+        track_for_search = track_name.replace(" - ", " ")
+        encoded_track = urllib.parse.quote(track_for_search)
+        download_link = f"https://t.me/UspMusicFinder_bot?start={encoded_track}"
+
+        keyboard = [
+            [InlineKeyboardButton("▶️ Слушать на YouTube", url=result['url'])],
+            [InlineKeyboardButton("📥 Скачать в Telegram", url=download_link)],
+            [
+                InlineKeyboardButton("👍", callback_data=f"music_like:{track_name[:40]}"),
+                InlineKeyboardButton("👎", callback_data=f"music_dislike:{track_name[:40]}"),
+                InlineKeyboardButton("🔄", callback_data=f"music_another:{genre}"),
+            ],
+        ]
+
+        await query.message.chat.send_message(
+            message_text,
+            parse_mode="Markdown",
+            reply_markup=InlineKeyboardMarkup(keyboard),
+            disable_web_page_preview=True,
+        )
+        logger.info(f"Sent another music by genre '{genre}' to user {query.from_user.id}")
+    else:
+        await query.message.chat.send_message(
+            "Хм, больше треков этого жанра не нашла... Попробуй выбрать другой жанр 💛"
+        )

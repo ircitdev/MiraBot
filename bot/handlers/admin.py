@@ -60,6 +60,7 @@ async def admin_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         return
 
     keyboard = [
+        [InlineKeyboardButton("🌐 Web-админка", callback_data="admin:web_admin")],
         [InlineKeyboardButton("👥 Пользователи", callback_data="admin:users")],
         [InlineKeyboardButton("📊 Статистика", callback_data="admin:stats")],
         [InlineKeyboardButton("👯 Рефералы", callback_data="admin:referrals")],
@@ -80,6 +81,23 @@ async def admin_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     )
 
 
+async def web_admin_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Команда /web_admin - отправляет ссылку на веб-админку с токеном."""
+
+    if not is_admin(update.effective_user.id):
+        await update.message.reply_text("⛔ У тебя нет доступа к этой команде.")
+        return
+
+    admin_url = f"https://mira.uspeshnyy.ru/admin?token={settings.ADMIN_TOKEN}"
+
+    await update.message.reply_text(
+        f"🌐 <b>Web-админка</b>\n\n"
+        f"<a href=\"{admin_url}\">Открыть админ-панель</a>",
+        parse_mode="HTML",
+        disable_web_page_preview=True
+    )
+
+
 async def handle_admin_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Обработчик callback-кнопок админки."""
 
@@ -91,6 +109,16 @@ async def handle_admin_callback(update: Update, context: ContextTypes.DEFAULT_TY
         return ConversationHandler.END
 
     data = query.data
+
+    if data == "admin:web_admin":
+        admin_url = f"https://mira.uspeshnyy.ru/admin?token={settings.ADMIN_TOKEN}"
+        await query.message.reply_text(
+            f"🌐 <b>Web-админка</b>\n\n"
+            f"<a href=\"{admin_url}\">Открыть админ-панель</a>",
+            parse_mode="HTML",
+            disable_web_page_preview=True
+        )
+        return ConversationHandler.END
 
     if data == "admin:users":
         return await _show_users(query, context)

@@ -14,6 +14,7 @@ from database.repositories.user import UserRepository
 from database.repositories.trigger import TriggerRepository
 from database.repositories.goal import GoalRepository
 from database.repositories.followup import FollowUpRepository
+from database.repositories.profile import profile_repo
 from ai.style_analyzer import style_analyzer
 from ai.question_type_detector import question_type_detector
 from ai.time_context import get_time_context_for_user
@@ -71,6 +72,10 @@ class ContextBuilder:
             "children_info": user_data.get("children_info"),
         }
 
+        # Флаг запроса голосового ответа
+        if user_data.get("voice_requested"):
+            context["voice_requested"] = True
+
         # Детекция типа вопроса (если есть текущее сообщение)
         if current_message:
             question_info = question_type_detector.detect(current_message)
@@ -123,6 +128,11 @@ class ContextBuilder:
         pending_followups = await self._get_pending_followups(user_id)
         if pending_followups:
             context["pending_followups"] = pending_followups
+
+        # Расширенный профиль пользователя (собранный из разговоров)
+        user_profile_summary = await self._get_user_profile_summary(user_id)
+        if user_profile_summary:
+            context["user_profile"] = user_profile_summary
 
         # Долговременная память (только для премиум)
         if include_long_term_memory:
@@ -517,4 +527,27 @@ class ContextBuilder:
 
         except Exception as e:
             logger.warning(f"Error getting pending follow-ups: {e}")
+            return None
+
+    async def _get_user_profile_summary(self, user_id: int) -> Optional[Dict[str, Any]]:
+        """
+        Получает резюме профиля пользователя из собранных данных.
+
+        Args:
+            user_id: ID пользователя
+
+        Returns:
+            Словарь с данными профиля или None
+        """
+        try:
+            summary = await profile_repo.get_profile_summary(user_id)
+
+            if not summary:
+                return None
+
+            logger.debug(f"Loaded profile summary for user {user_id}: {list(summary.keys())}")
+            return summary
+
+        except Exception as e:
+            logger.warning(f"Error getting user profile summary: {e}")
             return None

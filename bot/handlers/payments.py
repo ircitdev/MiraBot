@@ -8,12 +8,14 @@ from telegram.ext import ContextTypes
 from loguru import logger
 
 from database.repositories.user import UserRepository
+from database.repositories.promo import PromoRepository
 from services.payment.yookassa_service import YooKassaService
 from config.settings import settings
 
 
 user_repo = UserRepository()
 yookassa = YooKassaService()
+promo_repo = PromoRepository()
 
 
 async def handle_subscription_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -34,6 +36,9 @@ async def handle_subscription_callback(update: Update, context: ContextTypes.DEF
     elif action == "back":
         await _show_subscription_options(query)
     
+    elif action == "promo":
+        await _ask_promo_code(query, context)
+
     elif action == "cancel":
         await query.edit_message_text(
             "Оплата отменена. Если передумаешь — напиши /subscription 💛"
@@ -107,6 +112,10 @@ async def _show_subscription_options(query) -> None:
             f"💎 1 год — {settings.PRICE_YEARLY} ₽ (экономия 30%)",
             callback_data="subscribe:yearly"
         )],
+        [InlineKeyboardButton(
+            "🎁 У меня есть промо-код",
+            callback_data="subscribe:promo"
+        )],
     ]
     
     text = """✨ **Premium подписка**
@@ -171,3 +180,134 @@ def get_plan_name(plan: str) -> str:
         "yearly": f"1 год — {settings.PRICE_YEARLY} ₽",
     }
     return names.get(plan, plan)
+
+
+async def _ask_promo_code(query, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Запрашивает ввод промо-кода."""
+
+    # Устанавливаем состояние ожидания промо-кода
+    context.user_data["awaiting_promo"] = True
+
+    keyboard = [
+        [InlineKeyboardButton("« Назад", callback_data="subscribe:back")],
+    ]
+
+    text = """🎁 **Введи промо-код**
+
+Отправь мне промо-код в следующем сообщении.
+
+_Промо-код можно получить у партнёров или на специальных акциях_"""
+
+    await query.edit_message_text(
+        text,
+        reply_markup=InlineKeyboardMarkup(keyboard),
+        parse_mode="Markdown",
+    )
+
+
+async def handle_promo_code_input(update: Update, context: ContextTypes.DEFAULT_TYPE) -> bool:
+    """Обработка введённого промо-кода. Возвращает True если сообщение обработано."""
+
+    if not context.user_data.get("awaiting_promo"):
+        return False
+
+    # Сбрасываем состояние
+    context.user_data["awaiting_promo"] = False
+
+    code = update.message.text.strip().upper()
+    user = await user_repo.get_by_telegram_id(update.effective_user.id)
+
+    if not user:
+        await update.message.reply_text("Ошибка. Попробуй /start")
+        return True
+
+    # Проверяем промо-код
+    promo = await promo_repo.get_by_code(code)
+
+    if not promo:
+        keyboard = [
+            [InlineKeyboardButton("🔄 Попробовать снова", callback_data="subscribe:promo")],
+            [InlineKeyboardButton("« К подпискам", callback_data="subscribe:show")],
+        ]
+        await update.message.reply_text(
+            "❌ Промо-код не найден. Проверь правильность ввода.",
+            reply_markup=InlineKeyboardMarkup(keyboard),
+        )
+        return True
+
+    # Валидируем промо-код
+    validation = await promo_repo.validate(code, user.id)
+
+    if not validation["valid"]:
+        keyboard = [
+            [InlineKeyboardButton("🔄 Попробовать другой", callback_data="subscribe:promo")],
+            [InlineKeyboardButton("« К подпискам", callback_data="subscribe:show")],
+        ]
+        await update.message.reply_text(
+            f"❌ {validation['error']}",
+            reply_markup=InlineKeyboardMarkup(keyboard),
+        )
+        return True
+
+    # Применяем промо-код
+    result = await promo_repo.apply(code, user.id)
+
+    if not result["success"]:
+        await update.message.reply_text(
+            f"❌ Не удалось применить промо-код: {result.get('error', 'Неизвестная ошибка')}",
+        )
+        return True
+
+    # Формируем сообщение об успехе
+    promo_type = promo.promo_type
+
+    if promo_type == "free_days":
+        text = f"""✅ **Промо-код активирован!**
+
+🎁 Тебе начислено **{int(promo.value)} дней** Premium подписки!
+
+Наслаждайся всеми возможностями 💛"""
+
+    elif promo_type == "free_trial":
+        text = f"""✅ **Промо-код активирован!**
+
+🎁 Тебе начислен **бесплатный пробный период {int(promo.value)} дней**!
+
+Попробуй все возможности Premium 💛"""
+
+    elif promo_type == "discount_percent":
+        text = f"""✅ **Промо-код активирован!**
+
+🎁 Тебе доступна скидка **{int(promo.value)}%** на подписку!
+
+Выбери тариф и получи скидку при оплате 💛"""
+
+        keyboard = [[InlineKeyboardButton("💎 Выбрать подписку", callback_data="subscribe:show")]]
+        await update.message.reply_text(
+            text,
+            reply_markup=InlineKeyboardMarkup(keyboard),
+            parse_mode="Markdown",
+        )
+        return True
+
+    elif promo_type == "discount_amount":
+        text = f"""✅ **Промо-код активирован!**
+
+🎁 Тебе доступна скидка **{int(promo.value)} ₽** на подписку!
+
+Выбери тариф и получи скидку при оплате 💛"""
+
+        keyboard = [[InlineKeyboardButton("💎 Выбрать подписку", callback_data="subscribe:show")]]
+        await update.message.reply_text(
+            text,
+            reply_markup=InlineKeyboardMarkup(keyboard),
+            parse_mode="Markdown",
+        )
+        return True
+
+    else:
+        text = "✅ Промо-код активирован!"
+
+    await update.message.reply_text(text, parse_mode="Markdown")
+    logger.info(f"Promo code {code} applied for user {user.id}, type={promo_type}, value={promo.value}")
+    return True
