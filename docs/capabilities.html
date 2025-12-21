@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="ru">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -11,7 +12,7 @@
             padding: 0;
             box-sizing: border-box;
         }
-
+        
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
             background: linear-gradient(135deg, #FFF8F0 0%, #F5E6D3 50%, #EDD5C0 100%);
@@ -20,25 +21,25 @@
             color: #4A3728;
             line-height: 1.6;
         }
-
+        
         .container {
             max-width: 800px;
             margin: 0 auto;
         }
-
         /* Header with Heart */
+        
         .header {
             text-align: center;
             margin-bottom: 30px;
             padding: 20px 0;
         }
-
+        
         .heart-container {
             position: relative;
             display: inline-block;
             margin-bottom: 20px;
         }
-
+        
         .heart {
             width: 80px;
             height: 80px;
@@ -46,12 +47,10 @@
             border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
             transform: rotate(-45deg);
             position: relative;
-            box-shadow:
-                0 10px 30px rgba(255, 139, 106, 0.4),
-                inset 0 -5px 15px rgba(255, 255, 255, 0.3);
+            box-shadow: 0 10px 30px rgba(255, 139, 106, 0.4), inset 0 -5px 15px rgba(255, 255, 255, 0.3);
             animation: heartGlow 2s ease-in-out infinite;
         }
-
+        
         .heart::before,
         .heart::after {
             content: '';
@@ -59,21 +58,21 @@
             background: inherit;
             border-radius: 50%;
         }
-
+        
         .heart::before {
             width: 80px;
             height: 80px;
             top: -40px;
             left: 0;
         }
-
+        
         .heart::after {
             width: 80px;
             height: 80px;
             top: 0;
             left: 40px;
         }
-
+        
         .sparkle {
             position: absolute;
             width: 12px;
@@ -87,38 +86,42 @@
             animation: sparkle 1.5s ease-in-out infinite;
             z-index: 10;
         }
-
+        
         @keyframes heartGlow {
-            0%, 100% {
-                box-shadow:
-                    0 10px 30px rgba(255, 139, 106, 0.4),
-                    inset 0 -5px 15px rgba(255, 255, 255, 0.3);
+            0%,
+            100% {
+                box-shadow: 0 10px 30px rgba(255, 139, 106, 0.4), inset 0 -5px 15px rgba(255, 255, 255, 0.3);
             }
             50% {
-                box-shadow:
-                    0 15px 40px rgba(255, 139, 106, 0.6),
-                    inset 0 -5px 15px rgba(255, 255, 255, 0.4);
+                box-shadow: 0 15px 40px rgba(255, 139, 106, 0.6), inset 0 -5px 15px rgba(255, 255, 255, 0.4);
             }
         }
-
+        
         @keyframes sparkle {
-            0%, 100% { opacity: 0.6; transform: translate(-50%, -50%) rotate(45deg) scale(1); }
-            50% { opacity: 1; transform: translate(-50%, -50%) rotate(45deg) scale(1.2); }
+            0%,
+            100% {
+                opacity: 0.6;
+                transform: translate(-50%, -50%) rotate(45deg) scale(1);
+            }
+            50% {
+                opacity: 1;
+                transform: translate(-50%, -50%) rotate(45deg) scale(1.2);
+            }
         }
-
+        
         .header h1 {
             font-size: 28px;
             color: #5D4037;
             font-weight: 600;
             margin-bottom: 8px;
         }
-
+        
         .header p {
             font-size: 15px;
             color: #8D6E63;
         }
-
         /* Stats Banner */
+        
         .stats-banner {
             background: linear-gradient(135deg, #FFFFFF 0%, #FFF5EE 100%);
             border-radius: 20px;
@@ -127,33 +130,33 @@
             box-shadow: 0 8px 25px rgba(139, 90, 43, 0.1);
             border: 1px solid rgba(255, 183, 133, 0.3);
         }
-
+        
         .stats-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
             gap: 15px;
             margin-top: 15px;
         }
-
+        
         .stat-card {
             text-align: center;
             background: linear-gradient(135deg, #FFE0B2 0%, #FFCC80 100%);
             padding: 15px;
             border-radius: 12px;
         }
-
+        
         .stat-card h3 {
             font-size: 24px;
             color: #5D4037;
             margin-bottom: 5px;
         }
-
+        
         .stat-card p {
             font-size: 13px;
             color: #6D4C41;
         }
-
         /* Section Headers */
+        
         .section-header {
             font-size: 20px;
             color: #5D4037;
@@ -163,16 +166,16 @@
             align-items: center;
             gap: 10px;
         }
-
+        
         .section-icon {
             font-size: 24px;
         }
-
         /* Accordion */
+        
         .accordion {
             margin-bottom: 15px;
         }
-
+        
         .accordion-item {
             background: #FFFFFF;
             border-radius: 16px;
@@ -182,11 +185,11 @@
             border: 1px solid rgba(255, 183, 133, 0.2);
             transition: box-shadow 0.3s ease;
         }
-
+        
         .accordion-item:hover {
             box-shadow: 0 6px 20px rgba(139, 90, 43, 0.12);
         }
-
+        
         .accordion-header {
             padding: 18px 20px;
             cursor: pointer;
@@ -196,11 +199,11 @@
             user-select: none;
             transition: background 0.2s ease;
         }
-
+        
         .accordion-header:hover {
             background: rgba(255, 183, 133, 0.1);
         }
-
+        
         .accordion-header h3 {
             font-size: 15px;
             color: #5D4037;
@@ -209,7 +212,7 @@
             align-items: center;
             gap: 12px;
         }
-
+        
         .accordion-icon {
             width: 32px;
             height: 32px;
@@ -221,7 +224,7 @@
             font-size: 16px;
             flex-shrink: 0;
         }
-
+        
         .accordion-arrow {
             width: 24px;
             height: 24px;
@@ -231,55 +234,55 @@
             transition: transform 0.3s ease;
             color: #BCAAA4;
         }
-
+        
         .accordion-item.active .accordion-arrow {
             transform: rotate(180deg);
         }
-
+        
         .accordion-content {
             max-height: 0;
             overflow: hidden;
             transition: max-height 0.3s ease;
         }
-
+        
         .accordion-item.active .accordion-content {
             max-height: 5000px;
         }
-
+        
         .accordion-body {
             padding: 0 20px 20px 20px;
             color: #6D4C41;
             font-size: 14px;
         }
-
+        
         .accordion-body h4 {
             font-size: 14px;
             color: #5D4037;
             margin: 15px 0 8px 0;
             font-weight: 600;
         }
-
+        
         .accordion-body p {
             margin-bottom: 10px;
         }
-
+        
         .accordion-body ul {
             margin: 10px 0;
             padding-left: 20px;
         }
-
+        
         .accordion-body li {
             margin-bottom: 6px;
         }
-
         /* Flowchart */
+        
         .flowchart {
             background: linear-gradient(135deg, #FFF8F0 0%, #FFEBEE 100%);
             padding: 15px;
             border-radius: 12px;
             margin: 15px 0;
         }
-
+        
         .flowchart-step {
             background: linear-gradient(135deg, #FFB085 0%, #FF8B6A 100%);
             color: white;
@@ -289,14 +292,14 @@
             font-size: 13px;
             box-shadow: 0 2px 8px rgba(255, 139, 106, 0.3);
         }
-
+        
         .flowchart-arrow {
             text-align: center;
             font-size: 18px;
             color: #FF8B6A;
             margin: 3px 0;
         }
-
+        
         .flowchart-decision {
             background: linear-gradient(135deg, #FFE082 0%, #FFD54F 100%);
             color: #5D4037;
@@ -308,32 +311,33 @@
             text-align: center;
             box-shadow: 0 2px 8px rgba(255, 213, 79, 0.3);
         }
-
         /* Table */
+        
         table {
             width: 100%;
             border-collapse: collapse;
             margin: 15px 0;
             font-size: 13px;
         }
-
-        th, td {
+        
+        th,
+        td {
             padding: 10px;
             text-align: left;
             border-bottom: 1px solid rgba(255, 183, 133, 0.2);
         }
-
+        
         th {
             background: linear-gradient(135deg, #FFE0B2 0%, #FFCC80 100%);
             color: #5D4037;
             font-weight: 600;
         }
-
+        
         tr:hover {
             background: rgba(255, 183, 133, 0.05);
         }
-
         /* Code */
+        
         code {
             background: rgba(93, 64, 55, 0.1);
             color: #5D4037;
@@ -342,7 +346,7 @@
             font-family: 'Courier New', monospace;
             font-size: 12px;
         }
-
+        
         pre {
             background: rgba(93, 64, 55, 0.1);
             padding: 15px;
@@ -351,13 +355,13 @@
             margin: 12px 0;
             font-size: 12px;
         }
-
+        
         pre code {
             background: none;
             padding: 0;
         }
-
         /* Badge */
+        
         .badge {
             display: inline-block;
             padding: 4px 10px;
@@ -366,35 +370,35 @@
             font-weight: 600;
             margin: 2px;
         }
-
+        
         .badge-primary {
             background: linear-gradient(135deg, #90CAF9 0%, #64B5F6 100%);
             color: white;
         }
-
+        
         .badge-success {
             background: linear-gradient(135deg, #A5D6A7 0%, #81C784 100%);
             color: white;
         }
-
+        
         .badge-warning {
             background: linear-gradient(135deg, #FFE082 0%, #FFD54F 100%);
             color: #5D4037;
         }
-
+        
         .badge-danger {
             background: linear-gradient(135deg, #EF9A9A 0%, #E57373 100%);
             color: white;
         }
-
         /* Feature Grid */
+        
         .feature-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
             gap: 15px;
             margin: 20px 0;
         }
-
+        
         .feature-card {
             background: white;
             border-radius: 16px;
@@ -403,12 +407,12 @@
             box-shadow: 0 4px 15px rgba(139, 90, 43, 0.08);
             transition: transform 0.3s ease, box-shadow 0.3s ease;
         }
-
+        
         .feature-card:hover {
             transform: translateY(-5px);
             box-shadow: 0 8px 25px rgba(139, 90, 43, 0.15);
         }
-
+        
         .feature-card h4 {
             font-size: 16px;
             color: #5D4037;
@@ -417,33 +421,33 @@
             align-items: center;
             gap: 10px;
         }
-
+        
         .feature-card .feature-icon {
             font-size: 24px;
         }
-
+        
         .feature-card p {
             font-size: 14px;
             color: #6D4C41;
             line-height: 1.5;
             margin-bottom: 10px;
         }
-
         /* Tech Stack Grid */
+        
         .tech-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
             gap: 12px;
             margin: 15px 0;
         }
-
+        
         .tech-category {
             background: white;
             border-radius: 12px;
             padding: 15px;
             border: 1px solid rgba(255, 183, 133, 0.2);
         }
-
+        
         .tech-category h4 {
             font-size: 14px;
             color: #5D4037;
@@ -452,71 +456,74 @@
             align-items: center;
             gap: 8px;
         }
-
+        
         .tech-category ul {
             list-style: none;
             padding: 0;
         }
-
+        
         .tech-category li {
             padding: 5px 0;
             font-size: 13px;
             color: #6D4C41;
             border-bottom: 1px solid rgba(255, 183, 133, 0.1);
         }
-
+        
         .tech-category li:last-child {
             border-bottom: none;
         }
-
         /* Footer */
+        
         .footer {
             text-align: center;
             padding: 25px 0 10px 0;
             color: #A1887F;
             font-size: 12px;
         }
-
+        
         .footer p {
             margin-bottom: 5px;
         }
-
+        
         .version {
             font-size: 11px;
             color: #BCAAA4;
         }
-
         /* Dark mode */
+        
         @media (prefers-color-scheme: dark) {
             body {
                 background: linear-gradient(135deg, #2D2118 0%, #3E2D20 50%, #4A3628 100%);
                 color: #E8D5C4;
             }
-
-            .header h1, .section-header, .accordion-header h3, .accordion-body h4 {
+            .header h1,
+            .section-header,
+            .accordion-header h3,
+            .accordion-body h4 {
                 color: #FFE0B2;
             }
-
-            .header p, .accordion-body {
+            .header p,
+            .accordion-body {
                 color: #D7CCC8;
             }
-
-            .stats-banner, .accordion-item, .tech-category {
+            .stats-banner,
+            .accordion-item,
+            .tech-category {
                 background: rgba(62, 45, 32, 0.8);
                 border-color: rgba(255, 183, 133, 0.15);
             }
-
             .accordion-header:hover {
                 background: rgba(255, 183, 133, 0.05);
             }
-
-            code, pre {
+            code,
+            pre {
                 background: rgba(255, 183, 133, 0.1);
                 color: #FFE0B2;
             }
         }
     </style>
 </head>
+
 <body>
     <div class="container">
         <!-- Header -->
@@ -539,12 +546,12 @@
                     <p>Токенов контекста</p>
                 </div>
                 <div class="stat-card">
-                    <h3>46</h3>
+                    <h3>50+</h3>
                     <p>Unit тестов</p>
                 </div>
                 <div class="stat-card">
-                    <h3>80%+</h3>
-                    <p>Покрытие кода</p>
+                    <h3>9</h3>
+                    <p>Фаз улучшений</p>
                 </div>
                 <div class="stat-card">
                     <h3>24/7</h3>
@@ -555,16 +562,14 @@
 
         <!-- Overview -->
         <div class="section-header">
-            <span class="section-icon">📋</span>
-            Обзор проекта
+            <span class="section-icon">📋</span> Обзор проекта
         </div>
 
         <div class="accordion">
             <div class="accordion-item">
                 <div class="accordion-header" onclick="toggleAccordion(this)">
                     <h3>
-                        <span class="accordion-icon">ℹ️</span>
-                        О проекте
+                        <span class="accordion-icon">ℹ️</span> О проекте
                     </h3>
                     <span class="accordion-arrow">▼</span>
                 </div>
@@ -589,8 +594,7 @@
 
         <!-- Features -->
         <div class="section-header">
-            <span class="section-icon">✨</span>
-            Возможности
+            <span class="section-icon">✨</span> Возможности
         </div>
 
         <div class="feature-grid">
@@ -647,20 +651,36 @@
                 <p>FastAPI dashboard для управления пользователями, статистикой, подписками и экспортом данных в Excel.</p>
                 <p><span class="badge badge-warning">Admin only</span> <span class="badge badge-primary">FastAPI</span></p>
             </div>
+
+            <div class="feature-card">
+                <h4><span class="feature-icon">🎤</span> Голосовые ответы</h4>
+                <p>Интеграция с Yandex SpeechKit для синтеза речи. Бот может отвечать голосовыми сообщениями на голосовые.</p>
+                <p><span class="badge badge-primary">TTS</span> <span class="badge badge-success">Premium</span></p>
+            </div>
+
+            <div class="feature-card">
+                <h4><span class="feature-icon">📚</span> Программы самозаботы</h4>
+                <p>Структурированные 7-дневные курсы с ежедневными заданиями, напоминаниями и отслеживанием прогресса.</p>
+                <p><span class="badge badge-primary">/programs</span> <span class="badge badge-success">7 дней</span></p>
+            </div>
+
+            <div class="feature-card">
+                <h4><span class="feature-icon">🧠</span> Библиотека техник</h4>
+                <p>12 научно обоснованных психологических техник первой помощи: заземление, дыхание, работа с паникой.</p>
+                <p><span class="badge badge-primary">12 техник</span> <span class="badge badge-success">Доказательные</span></p>
+            </div>
         </div>
 
         <!-- Algorithms -->
         <div class="section-header">
-            <span class="section-icon">🔬</span>
-            Алгоритмы
+            <span class="section-icon">🔬</span> Алгоритмы
         </div>
 
         <div class="accordion">
             <div class="accordion-item active">
                 <div class="accordion-header" onclick="toggleAccordion(this)">
                     <h3>
-                        <span class="accordion-icon">😊</span>
-                        MoodAnalyzer — Анализ настроения
+                        <span class="accordion-icon">😊</span> MoodAnalyzer — Анализ настроения
                     </h3>
                     <span class="accordion-arrow">▼</span>
                 </div>
@@ -700,14 +720,46 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                <tr><td>happy</td><td>счастлив, радост, весел</td><td>+1.0</td></tr>
-                                <tr><td>sad</td><td>грустн, печаль, тоска</td><td>-0.8</td></tr>
-                                <tr><td>anxious</td><td>тревож, волну, беспоко</td><td>-0.6</td></tr>
-                                <tr><td>angry</td><td>злой, бесит, раздража</td><td>-0.7</td></tr>
-                                <tr><td>calm</td><td>спокой, умиротвор</td><td>+0.7</td></tr>
-                                <tr><td>excited</td><td>вдохновлён, энергия</td><td>+0.9</td></tr>
-                                <tr><td>lonely</td><td>одинок, скуча, пуст</td><td>-0.5</td></tr>
-                                <tr><td>stressed</td><td>стресс, напряж, устал</td><td>-0.6</td></tr>
+                                <tr>
+                                    <td>happy</td>
+                                    <td>счастлив, радост, весел</td>
+                                    <td>+1.0</td>
+                                </tr>
+                                <tr>
+                                    <td>sad</td>
+                                    <td>грустн, печаль, тоска</td>
+                                    <td>-0.8</td>
+                                </tr>
+                                <tr>
+                                    <td>anxious</td>
+                                    <td>тревож, волну, беспоко</td>
+                                    <td>-0.6</td>
+                                </tr>
+                                <tr>
+                                    <td>angry</td>
+                                    <td>злой, бесит, раздража</td>
+                                    <td>-0.7</td>
+                                </tr>
+                                <tr>
+                                    <td>calm</td>
+                                    <td>спокой, умиротвор</td>
+                                    <td>+0.7</td>
+                                </tr>
+                                <tr>
+                                    <td>excited</td>
+                                    <td>вдохновлён, энергия</td>
+                                    <td>+0.9</td>
+                                </tr>
+                                <tr>
+                                    <td>lonely</td>
+                                    <td>одинок, скуча, пуст</td>
+                                    <td>-0.5</td>
+                                </tr>
+                                <tr>
+                                    <td>stressed</td>
+                                    <td>стресс, напряж, устал</td>
+                                    <td>-0.6</td>
+                                </tr>
                             </tbody>
                         </table>
 
@@ -722,8 +774,7 @@ primary_emotion = emotion с max(match_count)</code></pre>
             <div class="accordion-item">
                 <div class="accordion-header" onclick="toggleAccordion(this)">
                     <h3>
-                        <span class="accordion-icon">💡</span>
-                        HintGenerator — Генерация подсказок
+                        <span class="accordion-icon">💡</span> HintGenerator — Генерация подсказок
                     </h3>
                     <span class="accordion-arrow">▼</span>
                 </div>
@@ -761,10 +812,26 @@ primary_emotion = emotion с max(match_count)</code></pre>
                                 </tr>
                             </thead>
                             <tbody>
-                                <tr><td>Вопросы</td><td>15</td><td>"Да", "Нет", "Может быть"</td></tr>
-                                <tr><td>Эмоциональные</td><td>12-14</td><td>"😊 Лучше!", "😔 Не очень"</td></tr>
-                                <tr><td>Действия</td><td>10-11</td><td>"🧘 Медитация", "🌙 Спать"</td></tr>
-                                <tr><td>Универсальные</td><td>1-5</td><td>"💬 Продолжим?", "🔄 Сменить тему"</td></tr>
+                                <tr>
+                                    <td>Вопросы</td>
+                                    <td>15</td>
+                                    <td>"Да", "Нет", "Может быть"</td>
+                                </tr>
+                                <tr>
+                                    <td>Эмоциональные</td>
+                                    <td>12-14</td>
+                                    <td>"😊 Лучше!", "😔 Не очень"</td>
+                                </tr>
+                                <tr>
+                                    <td>Действия</td>
+                                    <td>10-11</td>
+                                    <td>"🧘 Медитация", "🌙 Спать"</td>
+                                </tr>
+                                <tr>
+                                    <td>Универсальные</td>
+                                    <td>1-5</td>
+                                    <td>"💬 Продолжим?", "🔄 Сменить тему"</td>
+                                </tr>
                             </tbody>
                         </table>
                     </div>
@@ -774,8 +841,7 @@ primary_emotion = emotion с max(match_count)</code></pre>
             <div class="accordion-item">
                 <div class="accordion-header" onclick="toggleAccordion(this)">
                     <h3>
-                        <span class="accordion-icon">🚨</span>
-                        Crisis Detection — Детекция кризиса
+                        <span class="accordion-icon">🚨</span> Crisis Detection — Детекция кризиса
                     </h3>
                     <span class="accordion-arrow">▼</span>
                 </div>
@@ -816,8 +882,7 @@ primary_emotion = emotion с max(match_count)</code></pre>
             <div class="accordion-item">
                 <div class="accordion-header" onclick="toggleAccordion(this)">
                     <h3>
-                        <span class="accordion-icon">🔐</span>
-                        Input Sanitization — Безопасность
+                        <span class="accordion-icon">🔐</span> Input Sanitization — Безопасность
                     </h3>
                     <span class="accordion-arrow">▼</span>
                 </div>
@@ -857,16 +922,97 @@ primary_emotion = emotion с max(match_count)</code></pre>
 
         <!-- Architecture -->
         <div class="section-header">
-            <span class="section-icon">🏗️</span>
-            Архитектура
+            <span class="section-icon">🏗️</span> Архитектура
         </div>
 
         <div class="accordion">
             <div class="accordion-item">
                 <div class="accordion-header" onclick="toggleAccordion(this)">
                     <h3>
-                        <span class="accordion-icon">📐</span>
-                        Слоистая архитектура
+                        <span class="accordion-icon">🔗</span> Компоненты системы
+                    </h3>
+                    <span class="accordion-arrow">▼</span>
+                </div>
+                <div class="accordion-content">
+                    <div class="accordion-body">
+                        <pre style="font-size: 11px; line-height: 1.4;">┌─────────────────────────────────────────────────────────────────┐
+│                        Telegram User                            │
+└───────────────────────────┬─────────────────────────────────────┘
+                            │
+                ┌───────────▼──────────────┐
+                │   python-telegram-bot    │
+                │   (Webhooks/Polling)     │
+                └───────────┬──────────────┘
+                            │
+        ┌───────────────────┼───────────────────┐
+        │                   │                   │
+   ┌────▼─────┐      ┌──────▼──────┐    ┌──────▼──────┐
+   │ Message  │      │   Voice     │    │   Photo     │
+   │ Handler  │      │   Handler   │    │   Handler   │
+   └────┬─────┘      └──────┬──────┘    └──────┬──────┘
+        │                   │                   │
+        └───────────────────┼───────────────────┘
+                            │
+                ┌───────────▼──────────────┐
+                │   ClaudeClient           │
+                │   (Anthropic API)        │
+                └───────────┬──────────────┘
+                            │
+        ┌───────────────────┼───────────────────┐
+        │                   │                   │
+   ┌────▼─────┐      ┌──────▼──────┐    ┌──────▼──────┐
+   │  Mood    │      │    Hint     │    │  Sticker    │
+   │ Analyzer │      │  Generator  │    │   Sender    │
+   └────┬─────┘      └──────┬──────┘    └──────┬──────┘
+        │                   │                   │
+        └───────────────────┼───────────────────┘
+                            │
+                ┌───────────▼──────────────┐
+                │   Database (PostgreSQL)  │
+                │   Redis (Cache/Limits)   │
+                └──────────────────────────┘</pre>
+                    </div>
+                </div>
+            </div>
+
+            <div class="accordion-item">
+                <div class="accordion-header" onclick="toggleAccordion(this)">
+                    <h3>
+                        <span class="accordion-icon">🔄</span> Message Flow
+                    </h3>
+                    <span class="accordion-arrow">▼</span>
+                </div>
+                <div class="accordion-content">
+                    <div class="accordion-body">
+                        <div class="flowchart">
+                            <div class="flowchart-step">1. Получение сообщения → Telegram Bot API</div>
+                            <div class="flowchart-arrow">↓</div>
+                            <div class="flowchart-step">2. Валидация → sanitizer.validate_message()</div>
+                            <div class="flowchart-arrow">↓</div>
+                            <div class="flowchart-step">3. Проверка лимитов → Redis rate limiting</div>
+                            <div class="flowchart-arrow">↓</div>
+                            <div class="flowchart-step">4. Получение контекста → conversation_repo.get_history()</div>
+                            <div class="flowchart-arrow">↓</div>
+                            <div class="flowchart-step">5. AI генерация → Claude API (streaming)</div>
+                            <div class="flowchart-arrow">↓</div>
+                            <div class="flowchart-step">6. Анализ настроения → mood_analyzer.analyze()</div>
+                            <div class="flowchart-arrow">↓</div>
+                            <div class="flowchart-step">7. Генерация подсказок → hint_generator.generate()</div>
+                            <div class="flowchart-arrow">↓</div>
+                            <div class="flowchart-step">8. Отправка стикера → maybe_send_sticker()</div>
+                            <div class="flowchart-arrow">↓</div>
+                            <div class="flowchart-step">9. Сохранение → Database (messages + mood_entries)</div>
+                            <div class="flowchart-arrow">↓</div>
+                            <div class="flowchart-step">10. Отправка подсказок → Inline кнопки</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="accordion-item">
+                <div class="accordion-header" onclick="toggleAccordion(this)">
+                    <h3>
+                        <span class="accordion-icon">📐</span> Слоистая архитектура
                     </h3>
                     <span class="accordion-arrow">▼</span>
                 </div>
@@ -888,8 +1034,7 @@ primary_emotion = emotion с max(match_count)</code></pre>
             <div class="accordion-item">
                 <div class="accordion-header" onclick="toggleAccordion(this)">
                     <h3>
-                        <span class="accordion-icon">🗄️</span>
-                        Database Schema
+                        <span class="accordion-icon">🗄️</span> Database Schema
                     </h3>
                     <span class="accordion-arrow">▼</span>
                 </div>
@@ -903,11 +1048,38 @@ primary_emotion = emotion с max(match_count)</code></pre>
                                 </tr>
                             </thead>
                             <tbody>
-                                <tr><td>users</td><td>Профили пользователей</td></tr>
-                                <tr><td>messages</td><td>История диалогов</td></tr>
-                                <tr><td>subscriptions</td><td>Подписки Premium</td></tr>
-                                <tr><td>referrals</td><td>Реферальная программа</td></tr>
-                                <tr><td>mood_history</td><td>Динамика настроения</td></tr>
+                                <tr>
+                                    <td>users</td>
+                                    <td>Профили пользователей</td>
+                                </tr>
+                                <tr>
+                                    <td>messages</td>
+                                    <td>История диалогов</td>
+                                </tr>
+                                <tr>
+                                    <td>subscriptions</td>
+                                    <td>Подписки Premium</td>
+                                </tr>
+                                <tr>
+                                    <td>referrals</td>
+                                    <td>Реферальная программа</td>
+                                </tr>
+                                <tr>
+                                    <td>mood_entries</td>
+                                    <td>Записи настроения</td>
+                                </tr>
+                                <tr>
+                                    <td>memory_entries</td>
+                                    <td>Долгосрочная память (Premium)</td>
+                                </tr>
+                                <tr>
+                                    <td>admin_users</td>
+                                    <td>Администраторы</td>
+                                </tr>
+                                <tr>
+                                    <td>promo_codes</td>
+                                    <td>Промокоды</td>
+                                </tr>
                             </tbody>
                         </table>
                     </div>
@@ -915,18 +1087,201 @@ primary_emotion = emotion с max(match_count)</code></pre>
             </div>
         </div>
 
-        <!-- Tech Stack -->
+        <!-- Key Modules -->
         <div class="section-header">
-            <span class="section-icon">🛠️</span>
-            Технологический стек
+            <span class="section-icon">⚙️</span> Ключевые модули
         </div>
 
         <div class="accordion">
             <div class="accordion-item">
                 <div class="accordion-header" onclick="toggleAccordion(this)">
                     <h3>
-                        <span class="accordion-icon">🔧</span>
-                        Основные технологии
+                        <span class="accordion-icon">📚</span> Context Builder — Построение контекста
+                    </h3>
+                    <span class="accordion-arrow">▼</span>
+                </div>
+                <div class="accordion-content">
+                    <div class="accordion-body">
+                        <p>Загрузка последних N сообщений из истории и форматирование для Claude API.</p>
+                        <pre><code># Загрузка последних N сообщений из истории
+history = await conversation_repo.get_history(
+    user_id=user.id,
+    limit=20  # Free: 10, Premium: 20
+)
+
+# Форматирование для Claude API
+messages = [
+    {"role": "user", "content": "..."},
+    {"role": "assistant", "content": "..."}
+]</code></pre>
+                    </div>
+                </div>
+            </div>
+
+            <div class="accordion-item">
+                <div class="accordion-header" onclick="toggleAccordion(this)">
+                    <h3>
+                        <span class="accordion-icon">🚦</span> Rate Limiting — Ограничение частоты
+                    </h3>
+                    <span class="accordion-arrow">▼</span>
+                </div>
+                <div class="accordion-content">
+                    <div class="accordion-body">
+                        <p>Redis-based ограничения для предотвращения злоупотреблений.</p>
+                        <pre><code># Redis-based ограничения
+async def check_rate_limit(user_id: int, is_premium: bool):
+    if is_premium:
+        return True  # Безлимит
+
+    # Free: 10 сообщений/день
+    count = await redis.incr(f"msg_count:{user_id}:{today}")
+    await redis.expire(f"msg_count:{user_id}:{today}", 86400)
+
+    return count <= FREE_MESSAGES_PER_DAY</code></pre>
+                    </div>
+                </div>
+            </div>
+
+            <div class="accordion-item">
+                <div class="accordion-header" onclick="toggleAccordion(this)">
+                    <h3>
+                        <span class="accordion-icon">✏️</span> Text Parsing — Парсинг имени
+                    </h3>
+                    <span class="accordion-arrow">▼</span>
+                </div>
+                <div class="accordion-content">
+                    <div class="accordion-body">
+                        <p>Извлечение имени из текста пользователя с помощью regex паттернов.</p>
+                        <pre><code># Извлечение имени из текста пользователя
+def extract_name_from_text(text: str) -> str:
+    # "Меня зовут Аня" → "Аня"
+    # "Я Маша" → "Маша"
+    patterns = [
+        r"(?:зовут|имя)\s+([А-ЯЁа-яё]+)",
+        r"^я\s+([А-ЯЁа-яё]+)",
+        r"меня\s+([А-ЯЁа-яё]+)",
+    ]
+    # Санитизация через sanitize_name()</code></pre>
+                    </div>
+                </div>
+            </div>
+
+            <div class="accordion-item">
+                <div class="accordion-header" onclick="toggleAccordion(this)">
+                    <h3>
+                        <span class="accordion-icon">⚠️</span> Error Handling — Обработка ошибок
+                    </h3>
+                    <span class="accordion-arrow">▼</span>
+                </div>
+                <div class="accordion-content">
+                    <div class="accordion-body">
+                        <p>Graceful degradation при ошибках API или сети.</p>
+                        <pre><code># Graceful degradation
+try:
+    response = await claude.generate_response(...)
+except anthropic.APIConnectionError:
+    await notify_user("Не могу связаться с сервером...")
+    await save_message(tags=["error:api_connection"])
+except anthropic.RateLimitError:
+    await notify_user("Слишком много запросов...")
+    await save_message(tags=["error:rate_limit"])</code></pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Security -->
+        <div class="section-header">
+            <span class="section-icon">🔐</span> Безопасность
+        </div>
+
+        <div class="accordion">
+            <div class="accordion-item">
+                <div class="accordion-header" onclick="toggleAccordion(this)">
+                    <h3>
+                        <span class="accordion-icon">🧹</span> Санитизация входных данных
+                    </h3>
+                    <span class="accordion-arrow">▼</span>
+                </div>
+                <div class="accordion-content">
+                    <div class="accordion-body">
+                        <ul>
+                            <li>Максимальная длина сообщения: 4096 символов</li>
+                            <li>Блокировка SQL injection паттернов</li>
+                            <li>Фильтрация XSS попыток</li>
+                            <li>Валидация имён и текста через regex</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="accordion-item">
+                <div class="accordion-header" onclick="toggleAccordion(this)">
+                    <h3>
+                        <span class="accordion-icon">🚦</span> Rate Limiting
+                    </h3>
+                    <span class="accordion-arrow">▼</span>
+                </div>
+                <div class="accordion-content">
+                    <div class="accordion-body">
+                        <ul>
+                            <li>Redis-based ограничения</li>
+                            <li>Free: 10 сообщений/день</li>
+                            <li>Premium: безлимит</li>
+                            <li>Anti-flood защита</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="accordion-item">
+                <div class="accordion-header" onclick="toggleAccordion(this)">
+                    <h3>
+                        <span class="accordion-icon">🛡️</span> Защита данных
+                    </h3>
+                    <span class="accordion-arrow">▼</span>
+                </div>
+                <div class="accordion-content">
+                    <div class="accordion-body">
+                        <ul>
+                            <li>Санитизация перед сохранением в БД</li>
+                            <li>Параметризованные SQL запросы (SQLAlchemy ORM)</li>
+                            <li>Безопасное хранение токенов в <code>.env</code></li>
+                            <li>PID file locking (предотвращение multiple instances)</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="accordion-item">
+                <div class="accordion-header" onclick="toggleAccordion(this)">
+                    <h3>
+                        <span class="accordion-icon">🆘</span> Обработка кризисных ситуаций
+                    </h3>
+                    <span class="accordion-arrow">▼</span>
+                </div>
+                <div class="accordion-content">
+                    <div class="accordion-body">
+                        <ul>
+                            <li>Детекция суицидальных мыслей</li>
+                            <li>Автоматическое предложение телефона доверия</li>
+                            <li>Логирование кризисных сообщений для модерации</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tech Stack -->
+        <div class="section-header">
+            <span class="section-icon">🛠️</span> Технологический стек
+        </div>
+
+        <div class="accordion">
+            <div class="accordion-item">
+                <div class="accordion-header" onclick="toggleAccordion(this)">
+                    <h3>
+                        <span class="accordion-icon">🔧</span> Основные технологии
                     </h3>
                     <span class="accordion-arrow">▼</span>
                 </div>
@@ -997,7 +1352,8 @@ primary_emotion = emotion с max(match_count)</code></pre>
         <!-- Footer -->
         <footer class="footer">
             <p>С заботой о тебе 💛</p>
-            <p class="version">Версия 1.0 • Обновлено: Декабрь 2024</p>
+            <p><a href="https://t.me/uspeshnyy" target="_blank">Aleksandr Uspeshnyy</a></p>
+            <p class="version">Версия 1.9 • Обновлено: 21 декабря 2025</p>
         </footer>
     </div>
 
@@ -1027,4 +1383,5 @@ primary_emotion = emotion с max(match_count)</code></pre>
         }
     </script>
 </body>
+
 </html>
