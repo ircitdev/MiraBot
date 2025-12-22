@@ -32,18 +32,35 @@ class ReferralStatsResponse(BaseModel):
 @router.get("/code", response_model=ReferralCodeResponse)
 async def get_referral_code(current_user: dict = Depends(get_current_user)):
     """Получить реферальный код текущего пользователя."""
+    from loguru import logger
+    logger.info(f"Getting referral code for user: {current_user}")
+
     user = await user_repo.get_by_telegram_id(current_user["user_id"])
 
     if not user:
+        logger.error(f"User not found: {current_user['user_id']}")
         raise HTTPException(status_code=404, detail="User not found")
 
     # Получить или создать код
     code = await referral_service.get_or_create_code(user.id)
+    logger.info(f"Generated code: {code}")
 
     # Сформировать ссылку
-    from config.settings import settings
-    bot_username = getattr(settings, 'TELEGRAM_BOT_USERNAME', 'mira_support_bot')
+    # Получаем username бота через API
+    try:
+        from telegram import Bot
+        from config.settings import settings
+        bot = Bot(token=settings.TELEGRAM_BOT_TOKEN)
+        bot_info = await bot.get_me()
+        bot_username = bot_info.username
+        logger.info(f"Got bot username: {bot_username}")
+    except Exception as e:
+        # Fallback на дефолтное значение
+        logger.error(f"Failed to get bot username: {e}")
+        bot_username = getattr(settings, 'TELEGRAM_BOT_USERNAME', 'mira_support_bot')
+
     link = f"https://t.me/{bot_username}?start={code}"
+    logger.info(f"Generated link: {link}")
 
     return {
         "code": code,

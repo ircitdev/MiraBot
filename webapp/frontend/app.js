@@ -8,6 +8,24 @@ const API_BASE = '/api';
 let currentSettings = null;
 let currentMoodPeriod = 7;  // Текущий период для графика настроения
 
+// Accordion toggle - делаем глобальной для onclick в HTML
+window.toggleAccordion = function(header) {
+    console.log('toggleAccordion called', header);
+    const content = header.nextElementSibling;
+    const isActive = content.classList.contains('active');
+
+    // Toggle active class on header
+    header.classList.toggle('active');
+
+    // Toggle content
+    if (isActive) {
+        content.classList.remove('active');
+    } else {
+        content.classList.add('active');
+    }
+    console.log('Accordion toggled, active:', !isActive);
+}
+
 // Utils
 function showTab(tabName) {
     document.querySelectorAll('.tab').forEach(tab => {
@@ -420,8 +438,15 @@ async function loadSettings() {
         // Fill form
         document.getElementById('display-name').value = data.display_name || '';
         document.getElementById('persona').value = data.persona || 'mira';
-        document.getElementById('partner-name').value = data.partner_name || '';
-        document.getElementById('partner-gender').value = data.partner_gender || '';
+
+        // Partner name - проверяем, что это строка, а не boolean
+        if (data.partner_name && typeof data.partner_name === 'string') {
+            document.getElementById('partner-name').value = data.partner_name;
+        } else {
+            document.getElementById('partner-name').value = '';
+        }
+
+        // Partner gender всегда "Мужской" (поле readonly)
 
         if (data.birthday) {
             document.getElementById('birthday').value = data.birthday;
@@ -432,11 +457,18 @@ async function loadSettings() {
         }
 
         // Rituals
-        document.getElementById('ritual-morning').checked = data.rituals_enabled.includes('morning');
-        document.getElementById('ritual-evening').checked = data.rituals_enabled.includes('evening');
+        const morningEnabled = data.rituals_enabled.includes('morning');
+        const eveningEnabled = data.rituals_enabled.includes('evening');
+
+        document.getElementById('ritual-morning').checked = morningEnabled;
+        document.getElementById('ritual-evening').checked = eveningEnabled;
 
         document.getElementById('morning-time').value = data.preferred_time_morning || '09:00';
         document.getElementById('evening-time').value = data.preferred_time_evening || '21:00';
+
+        // Show/hide time inputs based on ritual checkboxes
+        document.getElementById('morning-time-group').style.display = morningEnabled ? 'block' : 'none';
+        document.getElementById('evening-time-group').style.display = eveningEnabled ? 'block' : 'none';
 
         document.getElementById('proactive-messages').checked = data.proactive_messages;
 
@@ -507,7 +539,7 @@ async function saveSettings() {
             display_name: document.getElementById('display-name').value || null,
             persona: document.getElementById('persona').value,
             partner_name: document.getElementById('partner-name').value || null,
-            partner_gender: document.getElementById('partner-gender').value || null,
+            partner_gender: 'male',  // Всегда мужской пол партнёра
             birthday: document.getElementById('birthday').value || null,
             anniversary: document.getElementById('anniversary').value || null,
             rituals_enabled: [
@@ -543,28 +575,41 @@ async function saveSettings() {
 
 // Referral
 async function loadReferralData() {
+    console.log('Loading referral data...');
     try {
         const codeData = await apiRequest('/referral/code');
         const statsData = await apiRequest('/referral/stats');
+        console.log('Referral data loaded:', { codeData, statsData });
 
-        document.getElementById('referral-link').value = codeData.link;
-        document.getElementById('referral-count').textContent = statsData.invited_count;
-        document.getElementById('referral-bonus').textContent = statsData.bonus_earned_days;
+        const referralLink = codeData.link || '';
+        console.log('Setting referral link:', referralLink);
+        document.getElementById('referral-link').value = referralLink;
+        document.getElementById('referral-count').textContent = statsData.invited_count || 0;
+        document.getElementById('referral-bonus').textContent = statsData.bonus_earned_days || 0;
 
         const progressBar = document.getElementById('milestone-progress');
-        progressBar.style.width = statsData.milestone_progress + '%';
+        progressBar.style.width = (statsData.milestone_progress || 0) + '%';
 
     } catch (error) {
         console.error('Failed to load referral data:', error);
+        // Устанавливаем дефолтные значения при ошибке
+        document.getElementById('referral-link').value = '';
+        document.getElementById('referral-count').textContent = '0';
+        document.getElementById('referral-bonus').textContent = '0';
     }
 }
 
 // Payment Tab
 async function loadPaymentTab() {
     try {
+        console.log('Loading payment tab...');
         // Загружаем статистику (там есть подписка)
         const stats = await apiRequest('/stats/');
+        console.log('Stats loaded:', stats);
         const referralStats = await apiRequest('/referral/stats');
+        console.log('Referral stats loaded:', referralStats);
+        const referralCode = await apiRequest('/referral/code');
+        console.log('Referral code loaded:', referralCode);
 
         // Статус подписки
         const statusCard = document.getElementById('payment-status-card');
@@ -619,6 +664,11 @@ async function loadPaymentTab() {
         // Реферальные бонусы
         document.getElementById('payment-referral-count').textContent = referralStats.invited_count || 0;
         document.getElementById('payment-referral-days').textContent = referralStats.bonus_earned_days || 0;
+
+        // Реферальная ссылка
+        const linkValue = referralCode.link || '';
+        console.log('Setting referral link to:', linkValue);
+        document.getElementById('referral-link').value = linkValue;
 
     } catch (error) {
         console.error('Failed to load payment tab:', error);
@@ -692,16 +742,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Кнопка продления подписки
     document.getElementById('renew-btn').addEventListener('click', () => {
-        // Открыть бота с командой подписки
-        tg.openTelegramLink('https://t.me/mira_support_bot?start=subscribe');
+        // Просто закрываем приложение, пользователь вернётся в бота
+        tg.close();
     });
 
     // Клик по тарифу
     document.querySelectorAll('.tariff-card').forEach(card => {
         card.addEventListener('click', () => {
-            const plan = card.dataset.plan;
-            // Открыть бота с командой подписки
-            tg.openTelegramLink(`https://t.me/mira_support_bot?start=subscribe_${plan}`);
+            // Просто закрываем приложение, пользователь вернётся в бота
+            tg.close();
         });
     });
 
@@ -761,21 +810,59 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // Копировать реферальную ссылку
-    document.getElementById('copy-referral').addEventListener('click', () => {
-        const link = document.getElementById('referral-link');
-        link.select();
-        document.execCommand('copy');
-        tg.showAlert('Ссылка скопирована');
+    document.getElementById('copy-referral').addEventListener('click', async () => {
+        const link = document.getElementById('referral-link').value;
+
+        try {
+            // Попытка использовать современный Clipboard API
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                await navigator.clipboard.writeText(link);
+                tg.showAlert('Ссылка скопирована');
+            } else {
+                // Fallback для старых браузеров
+                const textArea = document.createElement('textarea');
+                textArea.value = link;
+                textArea.style.position = 'fixed';
+                textArea.style.left = '-999999px';
+                textArea.style.top = '-999999px';
+                document.body.appendChild(textArea);
+                textArea.focus();
+                textArea.select();
+
+                try {
+                    document.execCommand('copy');
+                    tg.showAlert('Ссылка скопирована');
+                } catch (err) {
+                    tg.showAlert('Не удалось скопировать ссылку');
+                }
+
+                document.body.removeChild(textArea);
+            }
+        } catch (err) {
+            console.error('Copy error:', err);
+            tg.showAlert('Ошибка копирования');
+        }
     });
 
     // Поделиться в Telegram
     document.getElementById('share-referral').addEventListener('click', () => {
         const link = document.getElementById('referral-link').value;
-        const text = encodeURIComponent(
-            `Привет! Попробуй Миру — бота для психологической поддержки 💛\n\n${link}`
-        );
-        const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(link)}&text=${text}`;
-        window.open(shareUrl, '_blank');
+
+        if (!link) {
+            tg.showAlert('Реферальная ссылка не загружена');
+            return;
+        }
+
+        const text = `Привет! Попробуй Миру — бота для психологической поддержки 💛`;
+
+        // Используем стандартный метод share
+        const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent(text)}`;
+
+        if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.openTelegramLink) {
+            window.Telegram.WebApp.openTelegramLink(shareUrl);
+        } else {
+            window.open(shareUrl, '_blank');
+        }
     });
 
     // Period toggle buttons
@@ -795,6 +882,43 @@ document.addEventListener('DOMContentLoaded', () => {
     loadStats();
     loadSettings();
     loadPrograms();
+
+    // Setup ritual checkboxes to show/hide time inputs
+    document.getElementById('ritual-morning').addEventListener('change', (e) => {
+        document.getElementById('morning-time-group').style.display = e.target.checked ? 'block' : 'none';
+    });
+
+    document.getElementById('ritual-evening').addEventListener('change', (e) => {
+        document.getElementById('evening-time-group').style.display = e.target.checked ? 'block' : 'none';
+    });
+
+    // Setup accordions with event delegation (более надёжный способ)
+    console.log('Setting up accordion event delegation');
+
+    // Используем делегирование событий на уровне документа
+    document.addEventListener('click', function(e) {
+        const header = e.target.closest('.accordion-header');
+        if (header) {
+            console.log('Accordion header clicked via delegation', header);
+            e.preventDefault();
+            e.stopPropagation();
+            window.toggleAccordion(header);
+        }
+    }, true); // capture phase для надёжности
+
+    // Также добавляем touchstart для мобильных устройств
+    document.addEventListener('touchstart', function(e) {
+        const header = e.target.closest('.accordion-header');
+        if (header) {
+            console.log('Accordion header touched', header);
+            e.preventDefault();
+            window.toggleAccordion(header);
+        }
+    }, { passive: false });
+
+    // Проверяем наличие аккордеонов
+    const accordionHeaders = document.querySelectorAll('.accordion-header');
+    console.log('Found accordion headers:', accordionHeaders.length);
 
     // Setup Telegram button
     tg.MainButton.setText('Закрыть');

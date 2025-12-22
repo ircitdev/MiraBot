@@ -21,12 +21,16 @@ body {
     color: var(--tg-theme-text-color);
     padding: 0;
     margin: 0;
+    overflow-x: hidden;
+    width: 100%;
 }
 
 #app {
     max-width: 600px;
     margin: 0 auto;
     padding-bottom: 20px;
+    width: 100%;
+    overflow-x: hidden;
 }
 
 /* Tabs */
@@ -89,6 +93,11 @@ body {
 
 .tab-content {
     display: none;
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
+    padding: 0 8px;
+    box-sizing: border-box;
 }
 
 .tab-content.active {
@@ -97,7 +106,7 @@ body {
 
 /* Sections */
 .section {
-    padding: 20px;
+    padding: 12px;
     margin-bottom: 12px;
 }
 
@@ -144,7 +153,27 @@ h3 {
     color: white;
     padding: 20px;
     border-radius: 12px;
+    margin-bottom: 12px;
+}
+
+.invite-friends-btn {
+    width: 100%;
+    padding: 14px 20px;
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.15), rgba(118, 75, 162, 0.15));
+    color: var(--tg-theme-text-color);
+    border: 1px solid rgba(102, 126, 234, 0.4);
+    border-radius: 12px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
     margin-bottom: 20px;
+    text-align: center;
+}
+
+.invite-friends-btn:active {
+    transform: scale(0.98);
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.25), rgba(118, 75, 162, 0.25));
 }
 
 .subscription-card h3 {
@@ -192,6 +221,8 @@ h3 {
 /* Settings */
 .setting-group {
     margin-bottom: 20px;
+    max-width: 100%;
+    overflow-x: hidden;
 }
 
 .setting-group label {
@@ -214,13 +245,14 @@ h3 {
 .setting-group input[type="time"],
 .setting-group select {
     width: 100%;
-    padding: 12px;
+    padding: 10px 8px;
     border: 1px solid #e0e0e0;
     border-radius: 8px;
-    font-size: 16px;
+    font-size: 14px;
     background: var(--tg-theme-bg-color);
     color: var(--tg-theme-text-color);
     margin-bottom: 8px;
+    box-sizing: border-box;
 }
 
 .checkbox-group {
@@ -246,6 +278,132 @@ h3 {
     font-size: 13px;
     color: var(--tg-theme-hint-color);
     margin-top: 4px;
+}
+
+/* Accordion */
+.accordion-item {
+    background: var(--tg-theme-secondary-bg-color);
+    border-radius: 12px;
+    margin-bottom: 12px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    transition: all 0.3s ease;
+}
+
+.accordion-item:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.accordion-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px;
+    cursor: pointer;
+    user-select: none;
+    background: var(--tg-theme-secondary-bg-color);
+    border-bottom: 1px solid transparent;
+    transition: all 0.3s ease;
+}
+
+.accordion-header:hover {
+    background: var(--tg-theme-bg-color);
+}
+
+.accordion-header:active {
+    transform: scale(0.98);
+}
+
+.accordion-header span:first-child {
+    font-weight: 500;
+    font-size: 16px;
+    color: var(--tg-theme-text-color);
+}
+
+.accordion-icon {
+    font-size: 12px;
+    transition: transform 0.3s ease;
+    color: var(--tg-theme-hint-color);
+}
+
+.accordion-header.active .accordion-icon {
+    transform: rotate(-180deg);
+}
+
+.accordion-content {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease, padding 0.3s ease;
+    padding: 0 12px;
+}
+
+.accordion-content.active {
+    max-height: 2000px;
+    padding: 12px;
+}
+
+/* Improved inputs */
+.date-input-group {
+    display: flex;
+    gap: 10px;
+}
+
+.date-input-group > div {
+    flex: 1;
+}
+
+.time-range-group {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    margin: 10px 0;
+}
+
+.time-input {
+    flex: 1;
+}
+
+.time-separator {
+    color: var(--tg-theme-hint-color);
+    font-size: 18px;
+}
+
+.checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 8px;
+    transition: background 0.2s ease;
+}
+
+.checkbox-label:hover {
+    background: var(--tg-theme-bg-color);
+}
+
+.checkbox-label input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+}
+
+.checkbox-label span {
+    flex: 1;
+    font-weight: 400;
+}
+
+.setting-group textarea {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    font-size: 15px;
+    font-family: inherit;
+    background: var(--tg-theme-bg-color);
+    color: var(--tg-theme-text-color);
+    resize: vertical;
+    min-height: 60px;
 }
 
 .btn-primary {
@@ -333,8 +491,80 @@ textarea {
 }
 
 /* Referral section */
+.referral-section {
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.1));
+    border: 1px solid rgba(102, 126, 234, 0.3);
+    border-radius: 12px;
+    padding: 12px;
+    margin: 12px 0;
+    max-width: 100%;
+    overflow-x: hidden;
+    box-sizing: border-box;
+}
+
+.referral-section h3 {
+    margin: 0 0 8px 0;
+    color: var(--tg-theme-text-color);
+    font-size: 16px;
+}
+
 .referral-code-box {
-    margin: 10px 0;
+    margin: 15px 0;
+    max-width: 100%;
+    overflow: hidden;
+}
+
+.referral-code-box input {
+    width: 100%;
+    max-width: 100%;
+    padding: 10px 8px;
+    border: 1px solid var(--tg-theme-hint-color);
+    border-radius: 8px;
+    background: var(--tg-theme-bg-color);
+    color: var(--tg-theme-text-color);
+    font-size: 11px;
+    margin: 8px 0;
+    box-sizing: border-box;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.referral-buttons {
+    display: flex;
+    gap: 6px;
+    margin-top: 10px;
+    align-items: stretch;
+}
+
+.referral-buttons button {
+    flex: 1;
+    padding: 10px 8px;
+    font-size: 13px;
+    font-weight: 500;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+    min-height: 40px;
+}
+
+.referral-buttons .btn-secondary {
+    background: var(--tg-theme-secondary-bg-color);
+    color: var(--tg-theme-text-color);
+    border: 1px solid rgba(102, 126, 234, 0.3);
+}
+
+.referral-buttons .btn-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    margin-top: 0;
+    width: auto;
+}
+
+.referral-buttons button:active {
+    transform: scale(0.97);
 }
 
 .referral-stats {

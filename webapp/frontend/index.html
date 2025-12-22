@@ -5,7 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Мира — Настройки и Статистика</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <link rel="stylesheet" href="/static/styles.css">
+    <link rel="stylesheet" href="/static/styles.css?v=2.0.7">
+    <script src="/static/app.js?v=2.0.7" defer></script>
 </head>
 <body>
     <div id="app">
@@ -57,37 +58,77 @@
                     <h3 id="subscription-title">Premium</h3>
                     <p id="subscription-info"></p>
                 </div>
+
+                <!-- Кнопка приглашения подруг -->
+                <button id="invite-friends-btn" class="invite-friends-btn" onclick="document.querySelector('.tab[data-tab=&quot;payment&quot;]').click()">
+                    👭 Пригласи подруг, продли Premium
+                </button>
             </div>
 
-            <div class="section">
-                <div class="section-header">
-                    <h3>📈 Настроение</h3>
-                    <div class="period-toggle">
-                        <button class="period-btn active" data-days="7">7д</button>
-                        <button class="period-btn" data-days="14">14д</button>
-                        <button class="period-btn" data-days="30">30д</button>
+            <!-- Настроение (изначально открыт) -->
+            <div class="accordion-item">
+                <div class="accordion-header active" >
+                    <span>📈 Настроение</span>
+                    <span class="accordion-icon">▼</span>
+                </div>
+                <div class="accordion-content active">
+                    <div class="section-header">
+                        <div class="period-toggle">
+                            <button class="period-btn active" data-days="7">7д</button>
+                            <button class="period-btn" data-days="14">14д</button>
+                            <button class="period-btn" data-days="30">30д</button>
+                        </div>
                     </div>
+                    <div class="mood-summary" id="mood-summary">Статистика появится по мере общения</div>
+                    <canvas id="mood-chart"></canvas>
                 </div>
-                <div class="mood-summary" id="mood-summary"></div>
-                <canvas id="mood-chart"></canvas>
             </div>
 
-            <div class="section">
-                <h3>💭 Топ темы</h3>
-                <div id="topics-list"></div>
-            </div>
-
-            <div class="section">
-                <h3>😊 Эмоции</h3>
-                <div id="emotions-list"></div>
-            </div>
-
-            <div class="section" id="programs-section">
-                <h3>📚 Мои программы</h3>
-                <div id="programs-list">
-                    <div class="loading">Загрузка...</div>
+            <!-- Топ темы -->
+            <div class="accordion-item">
+                <div class="accordion-header" >
+                    <span>💭 Топ темы</span>
+                    <span class="accordion-icon">▼</span>
                 </div>
-                <div id="programs-summary" class="programs-summary"></div>
+                <div class="accordion-content">
+                    <div id="topics-list">Статистика появится по мере общения</div>
+                </div>
+            </div>
+
+            <!-- Эмоции -->
+            <div class="accordion-item">
+                <div class="accordion-header" >
+                    <span>😊 Эмоции</span>
+                    <span class="accordion-icon">▼</span>
+                </div>
+                <div class="accordion-content">
+                    <div id="emotions-list">Статистика появится по мере общения</div>
+                </div>
+            </div>
+
+            <!-- Мои цели -->
+            <div class="accordion-item">
+                <div class="accordion-header" >
+                    <span>🎯 Мои цели</span>
+                    <span class="accordion-icon">▼</span>
+                </div>
+                <div class="accordion-content">
+                    <div id="goals-list">Статистика появится по мере общения</div>
+                </div>
+            </div>
+
+            <!-- Мои программы -->
+            <div class="accordion-item">
+                <div class="accordion-header" >
+                    <span>📚 Мои программы</span>
+                    <span class="accordion-icon">▼</span>
+                </div>
+                <div class="accordion-content">
+                    <div id="programs-list">
+                        <div class="loading">Загрузка...</div>
+                    </div>
+                    <div id="programs-summary" class="programs-summary"></div>
+                </div>
             </div>
         </div>
 
@@ -189,155 +230,18 @@
                         🔄 Продлить подписку
                     </button>
                 </div>
-            </div>
-        </div>
-
-        <!-- Settings Tab -->
-        <div id="settings-tab" class="tab-content">
-            <div class="section">
-                <h2>⚙️ Настройки</h2>
-
-                <div class="setting-group">
-                    <label for="display-name">Как к тебе обращаться</label>
-                    <input type="text" id="display-name" placeholder="Имя" disabled>
-                </div>
-
-                <div class="setting-group">
-                    <label for="persona">Персона</label>
-                    <select id="persona" disabled>
-                        <option value="mira">Мира (подруга, 42)</option>
-                    </select>
-                </div>
-
-                <div class="setting-group">
-                    <label for="partner-name">Имя партнёра</label>
-                    <input type="text" id="partner-name" placeholder="Имя партнёра">
-                </div>
-
-                <div class="setting-group">
-                    <label for="partner-gender">Пол партнёра</label>
-                    <select id="partner-gender" disabled>
-                        <option value="">Не указано</option>
-                        <option value="male">Мужской</option>
-                        <option value="female">Женский</option>
-                    </select>
-                </div>
-
-                <div class="setting-group">
-                    <label>Праздничные даты</label>
-                    <input type="date" id="birthday" placeholder="День рождения">
-                    <label class="small-label">День рождения</label>
-                    <input type="date" id="anniversary" placeholder="Годовщина">
-                    <label class="small-label">Годовщина свадьбы</label>
-                </div>
-
-                <div class="setting-group">
-                    <label>Ритуалы</label>
-                    <div class="checkbox-group">
-                        <label>
-                            <input type="checkbox" id="ritual-morning" data-ritual="morning">
-                            Утренний check-in
-                        </label>
-                        <label>
-                            <input type="checkbox" id="ritual-evening" data-ritual="evening">
-                            Вечерний check-in
-                        </label>
-                    </div>
-                </div>
-
-                <div class="setting-group" id="time-settings">
-                    <label for="morning-time">Время утреннего ритуала</label>
-                    <input type="time" id="morning-time">
-
-                    <label for="evening-time">Время вечернего ритуала</label>
-                    <input type="time" id="evening-time">
-                </div>
-
-                <div class="setting-group">
-                    <label>
-                        <input type="checkbox" id="proactive-messages">
-                        Проактивные сообщения
-                    </label>
-                    <span class="hint">Мира будет иногда писать первой</span>
-                </div>
-
-                <!-- Триггеры и темы для избегания -->
-                <div class="setting-group">
-                    <label for="topics-avoided">Темы которые НЕ хочется обсуждать</label>
-                    <textarea id="topics-avoided" placeholder="Например: политика, религия, работа..." rows="3"></textarea>
-                    <span class="hint">Укажите темы через запятую</span>
-                </div>
-
-                <!-- Предпочтения по контенту -->
-                <div class="setting-group">
-                    <label>Предпочтения по контенту</label>
-
-                    <label>
-                        <input type="checkbox" id="meditation-enabled">
-                        Присылать медитации
-                    </label>
-
-                    <div id="meditation-settings" style="margin-left: 20px; display: none;">
-                        <label class="small-label">Типы медитаций:</label>
-                        <div class="checkbox-group">
-                            <label><input type="checkbox" class="meditation-type" value="morning"> 🌅 Утренние</label>
-                            <label><input type="checkbox" class="meditation-type" value="sleep"> 🌙 Для сна</label>
-                            <label><input type="checkbox" class="meditation-type" value="anxiety"> 🌊 При тревоге</label>
-                            <label><input type="checkbox" class="meditation-type" value="relaxation"> 🧘‍♀️ Расслабление</label>
-                        </div>
-
-                        <label for="meditation-frequency" class="small-label">Частота:</label>
-                        <select id="meditation-frequency">
-                            <option value="daily">Ежедневно</option>
-                            <option value="3_per_week">3 раза в неделю</option>
-                            <option value="weekly">Еженедельно</option>
-                        </select>
-                    </div>
-
-                    <label>
-                        <input type="checkbox" id="exercises-enabled">
-                        Присылать упражнения для релаксации
-                    </label>
-                </div>
-
-                <!-- Тихие часы -->
-                <div class="setting-group">
-                    <label>Время когда НЕ беспокоить</label>
-                    <div style="display: flex; gap: 10px; align-items: center;">
-                        <div>
-                            <label for="quiet-start" class="small-label">С</label>
-                            <input type="time" id="quiet-start">
-                        </div>
-                        <span>—</span>
-                        <div>
-                            <label for="quiet-end" class="small-label">До</label>
-                            <input type="time" id="quiet-end">
-                        </div>
-                    </div>
-                    <span class="hint">В это время бот не будет писать первым</span>
-                </div>
-
-                <!-- Экспорт данных -->
-                <div class="setting-group">
-                    <h3>📥 Экспорт данных</h3>
-                    <button id="export-history" class="btn-secondary">
-                        📄 Скачать историю переписки
-                    </button>
-                    <button id="export-stats" class="btn-secondary">
-                        📊 Скачать статистику настроения
-                    </button>
-                </div>
 
                 <!-- Реферальная программа -->
-                <div class="setting-group">
+                <div class="referral-section">
                     <h3>👭 Пригласи подругу</h3>
                     <p class="hint">Пригласи подругу и получите обе +7 дней Premium!</p>
 
                     <div class="referral-code-box">
                         <label class="small-label">Твоя реферальная ссылка:</label>
-                        <div style="display: flex; gap: 5px;">
-                            <input type="text" id="referral-link" readonly style="flex: 1;">
-                            <button id="copy-referral" class="btn-secondary">📋</button>
+                        <input type="text" id="referral-link" readonly>
+                        <div class="referral-buttons">
+                            <button id="copy-referral" class="btn-secondary">📋 Скопировать</button>
+                            <button id="share-referral" class="btn-primary">📤 Поделиться</button>
                         </div>
                     </div>
 
@@ -357,10 +261,216 @@
                             </div>
                         </div>
                     </div>
+                </div>
+            </div>
+        </div>
 
-                    <button id="share-referral" class="btn-primary">
-                        📤 Поделиться в Telegram
-                    </button>
+        <!-- Settings Tab -->
+        <div id="settings-tab" class="tab-content">
+            <div class="section">
+                <h2>⚙️ Настройки</h2>
+
+                <!-- Основная информация -->
+                <div class="accordion-item">
+                    <div class="accordion-header" >
+                        <span>👤 Основная информация</span>
+                        <span class="accordion-icon">▼</span>
+                    </div>
+                    <div class="accordion-content active">
+                        <div class="setting-group">
+                            <label for="display-name">Как к тебе обращаться</label>
+                            <input type="text" id="display-name" placeholder="Твоё имя" disabled>
+                        </div>
+
+                        <div class="setting-group">
+                            <label for="persona">Персона</label>
+                            <select id="persona" disabled>
+                                <option value="mira">Мира (подруга, 42)</option>
+                            </select>
+                        </div>
+
+                        <div class="setting-group">
+                            <label>Праздничные даты</label>
+                            <div class="date-input-group">
+                                <div>
+                                    <label class="small-label">День рождения</label>
+                                    <input type="date" id="birthday">
+                                </div>
+                                <div>
+                                    <label class="small-label">Годовщина свадьбы</label>
+                                    <input type="date" id="anniversary">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- О себе и семье -->
+                <div class="accordion-item">
+                    <div class="accordion-header" >
+                        <span>👨‍👩‍👧‍👦 О себе и семье</span>
+                        <span class="accordion-icon">▼</span>
+                    </div>
+                    <div class="accordion-content">
+                        <div class="setting-group">
+                            <label for="partner-name">Имя партнёра</label>
+                            <input type="text" id="partner-name" placeholder="Имя партнёра">
+                        </div>
+
+                        <div class="setting-group">
+                            <label for="partner-gender">Пол партнёра</label>
+                            <input type="text" id="partner-gender" value="Мужской" readonly style="background: var(--tg-theme-secondary-bg-color); cursor: default;">
+                        </div>
+
+                        <div class="setting-group">
+                            <label for="children">Дети</label>
+                            <textarea id="children" placeholder="Имена и возраст детей, например: Маша 7 лет, Петя 3 года" rows="2"></textarea>
+                        </div>
+
+                        <div class="setting-group">
+                            <label for="parents">Родители</label>
+                            <textarea id="parents" placeholder="Информация о родителях" rows="2"></textarea>
+                        </div>
+
+                        <div class="setting-group">
+                            <label for="pets">Домашние животные</label>
+                            <input type="text" id="pets" placeholder="Например: кот Мурзик, собака Рекс">
+                        </div>
+
+                        <div class="setting-group">
+                            <label for="city">Город</label>
+                            <input type="text" id="city" placeholder="Ваш город">
+                        </div>
+
+                        <div class="setting-group">
+                            <label for="work">Работа/занятость</label>
+                            <input type="text" id="work" placeholder="Чем занимаешься">
+                        </div>
+
+                        <div class="setting-group">
+                            <label for="hobbies">Интересы и хобби</label>
+                            <textarea id="hobbies" placeholder="Что тебе интересно, чем увлекаешься" rows="3"></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Ритуалы и уведомления -->
+                <div class="accordion-item">
+                    <div class="accordion-header" >
+                        <span>🔔 Ритуалы и уведомления</span>
+                        <span class="accordion-icon">▼</span>
+                    </div>
+                    <div class="accordion-content">
+                        <div class="setting-group">
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="ritual-morning" data-ritual="morning">
+                                <span>🌅 Утренний check-in</span>
+                            </label>
+                        </div>
+
+                        <div class="setting-group" id="morning-time-group" style="display: none;">
+                            <label for="morning-time" class="small-label">Время утреннего ритуала</label>
+                            <input type="time" id="morning-time">
+                        </div>
+
+                        <div class="setting-group">
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="ritual-evening" data-ritual="evening">
+                                <span>🌙 Вечерний check-in</span>
+                            </label>
+                        </div>
+
+                        <div class="setting-group" id="evening-time-group" style="display: none;">
+                            <label for="evening-time" class="small-label">Время вечернего ритуала</label>
+                            <input type="time" id="evening-time">
+                        </div>
+
+                        <div class="setting-group">
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="proactive-messages">
+                                <span>💬 Проактивные сообщения</span>
+                            </label>
+                            <span class="hint">Мира будет иногда писать первой</span>
+                        </div>
+
+                        <div class="setting-group">
+                            <label>🔕 Время когда НЕ беспокоить</label>
+                            <div class="time-range-group">
+                                <div class="time-input">
+                                    <label class="small-label">С</label>
+                                    <input type="time" id="quiet-start">
+                                </div>
+                                <span class="time-separator">—</span>
+                                <div class="time-input">
+                                    <label class="small-label">До</label>
+                                    <input type="time" id="quiet-end">
+                                </div>
+                            </div>
+                            <span class="hint">В это время бот не будет писать первым</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Предпочтения по контенту -->
+                <div class="accordion-item">
+                    <div class="accordion-header" >
+                        <span>🎯 Предпочтения по контенту</span>
+                        <span class="accordion-icon">▼</span>
+                    </div>
+                    <div class="accordion-content">
+                        <div class="setting-group">
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="meditation-enabled">
+                                <span>🧘‍♀️ Присылать медитации</span>
+                            </label>
+
+                            <div id="meditation-settings" style="margin-left: 20px; display: none;">
+                                <label class="small-label">Типы медитаций:</label>
+                                <div class="checkbox-group">
+                                    <label><input type="checkbox" class="meditation-type" value="morning"> 🌅 Утренние</label>
+                                    <label><input type="checkbox" class="meditation-type" value="sleep"> 🌙 Для сна</label>
+                                    <label><input type="checkbox" class="meditation-type" value="anxiety"> 🌊 При тревоге</label>
+                                    <label><input type="checkbox" class="meditation-type" value="relaxation"> 🧘‍♀️ Расслабление</label>
+                                </div>
+
+                                <label for="meditation-frequency" class="small-label">Частота:</label>
+                                <select id="meditation-frequency">
+                                    <option value="daily">Ежедневно</option>
+                                    <option value="3_per_week">3 раза в неделю</option>
+                                    <option value="weekly">Еженедельно</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="setting-group">
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="exercises-enabled">
+                                <span>💆‍♀️ Присылать упражнения для релаксации</span>
+                            </label>
+                        </div>
+
+                        <div class="setting-group">
+                            <label for="topics-avoided">🚫 Темы которые НЕ хочется обсуждать</label>
+                            <textarea id="topics-avoided" placeholder="Например: политика, религия, работа..." rows="3"></textarea>
+                            <span class="hint">Укажите темы через запятую</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Экспорт данных -->
+                <div class="accordion-item">
+                    <div class="accordion-header" >
+                        <span>📥 Экспорт данных</span>
+                        <span class="accordion-icon">▼</span>
+                    </div>
+                    <div class="accordion-content">
+                        <button id="export-history" class="btn-secondary">
+                            📄 Скачать историю переписки
+                        </button>
+                        <button id="export-stats" class="btn-secondary" style="margin-top: 10px;">
+                            📊 Скачать статистику настроения
+                        </button>
+                    </div>
                 </div>
 
                 <button id="save-settings" class="btn-primary">Сохранить</button>

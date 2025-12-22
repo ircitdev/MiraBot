@@ -636,6 +636,26 @@ async def _handle_onboarding(
             onboarding_step=2,
         )
 
+        # Проверяем, был ли пользователь приглашён по реферальной ссылке
+        # Если да - отправляем уведомление рефереру
+        try:
+            from database.repositories.referral import ReferralRepository
+            from services.referral import ReferralService
+
+            referral_repo = ReferralRepository()
+            referral_service = ReferralService()
+
+            # Проверяем есть ли реферал для этого пользователя
+            referral = await referral_repo.get_by_referred(user.id)
+            if referral and referral.referrer_id:
+                # Отправляем уведомление рефереру
+                await referral_service.notify_referrer_about_friend(
+                    referrer_id=referral.referrer_id,
+                    friend_name=display_name
+                )
+        except Exception as e:
+            logger.error(f"Failed to notify referrer: {e}")
+
         text = f"""{display_name}, очень приятно 💛
 
 Можешь рассказать немного о себе? Есть ли у тебя партнёр/муж?

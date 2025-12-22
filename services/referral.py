@@ -42,47 +42,69 @@ class ReferralService:
     
     async def apply_referral(self, new_user_id: int, code: str) -> dict:
         """Применяет реферальный код для нового пользователя."""
-        
+
         referral = await self.referral_repo.get_by_code(code)
-        
+
         if not referral:
             return {"success": False, "error": "Код не найден"}
-        
+
         if referral.referrer_id == new_user_id:
             return {"success": False, "error": "Нельзя использовать свой код"}
-        
+
         # Проверяем, не использовался ли уже
         existing = await self.referral_repo.get_by_referred(new_user_id)
         if existing:
             return {"success": False, "error": "Ты уже использовала реферальный код"}
-        
+
         # Применяем бонусы
         await self._give_bonus(new_user_id, settings.REFERRAL_BONUS_DAYS)
         await self._give_bonus(referral.referrer_id, settings.REFERRAL_BONUS_DAYS)
-        
+
         # Записываем реферал
         await self.referral_repo.activate(
             referral_id=referral.id,
             referred_id=new_user_id,
         )
-        
+
         # Проверяем milestone
         referral_count = await self.referral_repo.count_by_referrer(referral.referrer_id)
-        
+
         if referral_count == 3:
             await self._give_bonus(referral.referrer_id, settings.REFERRAL_MILESTONE_3)
             await self.user_repo.update(referral.referrer_id, special_status="guardian")
             logger.info(f"User {referral.referrer_id} reached 3 referrals milestone")
-        
+
         referrer = await self.user_repo.get(referral.referrer_id)
-        
+
         logger.info(f"Referral {code} activated: {referral.referrer_id} -> {new_user_id}")
-        
+
         return {
             "success": True,
             "bonus_days": settings.REFERRAL_BONUS_DAYS,
             "referrer_name": referrer.display_name if referrer else None,
+            "referrer_id": referral.referrer_id,  # Добавляем ID реферера для отправки уведомления
         }
+
+    async def notify_referrer_about_friend(self, referrer_id: int, friend_name: str) -> None:
+        """Отправляет уведомление рефереру о том, что его подруга начала общение."""
+        try:
+            from telegram import Bot
+            from config.settings import settings
+
+            bot = Bot(token=settings.TELEGRAM_BOT_TOKEN)
+
+            message = f"Я познакомилась с твоей подругой {friend_name}! Спасибо! 💛"
+
+            # Получаем telegram_id реферера
+            referrer = await self.user_repo.get(referrer_id)
+            if referrer and referrer.telegram_id:
+                await bot.send_message(
+                    chat_id=referrer.telegram_id,
+                    text=message
+                )
+                logger.info(f"Sent referral notification to user {referrer_id} about {friend_name}")
+        except Exception as e:
+            logger.error(f"Failed to send referral notification: {e}")
     
     async def _give_bonus(self, user_id: int, days: int) -> None:
         """Добавляет бонусные дни к подписке."""
