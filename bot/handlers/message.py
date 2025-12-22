@@ -36,6 +36,11 @@ from services.music_forwarder import music_forwarder
 from bot.handlers.payments import handle_promo_code_input
 from services.storage.file_storage import file_storage_service
 from services.tts_yandex import send_voice_message
+from ai.crisis_protocol import (
+    get_emergency_message,
+    requires_emergency_message,
+    detect_crisis_type,
+)
 
 
 # Инициализируем сервисы
@@ -293,6 +298,30 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
             user_data["voice_requested"] = True
             logger.debug(f"Voice request detected for user {user_tg.id}")
 
+        # 6.7. КРИЗИСНЫЙ ПРОТОКОЛ — проверка перед ответом Claude
+        from ai.crisis_detector import CrisisDetector
+        crisis_detector = CrisisDetector()
+        crisis_check = crisis_detector.check(message_text)
+
+        # Если обнаружен кризис высокого уровня — отправляем экстренное сообщение НЕМЕДЛЕННО
+        if requires_emergency_message(crisis_check.get("level")):
+            crisis_type = detect_crisis_type(crisis_check.get("matched_keywords", []))
+            emergency_text = get_emergency_message(
+                crisis_level=crisis_check["level"],
+                crisis_type=crisis_type
+            )
+
+            if emergency_text:
+                # Отправляем экстренное сообщение ДО ответа Claude
+                await update.message.reply_text(
+                    emergency_text,
+                    parse_mode="Markdown"
+                )
+                logger.warning(
+                    f"CRISIS ALERT: Level={crisis_check['level']}, "
+                    f"Type={crisis_type}, User={user_tg.id}"
+                )
+
         # 7. Streaming ответ от Claude
         result = await _generate_and_stream_response(
             update=update,
@@ -353,11 +382,17 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 
         # 9. Добавляем кнопки при кризисе (если streaming уже отправил текст)
         if result["is_crisis"]:
-            keyboard = get_crisis_keyboard()
-            await update.message.reply_text(
-                "💛 Если нужна помощь прямо сейчас:",
-                reply_markup=keyboard,
-            )
+            # Используем уровень кризиса из детектора
+            crisis_level = crisis_check.get("level", "medium")
+            keyboard = get_crisis_keyboard(crisis_level=crisis_level)
+
+            # Отправляем кнопки только если НЕ отправляли экстренное сообщение
+            # (для critical/high уровня экстренное сообщение уже содержит контакты)
+            if crisis_level not in ["critical", "high"]:
+                await update.message.reply_text(
+                    "💛 Если нужна помощь прямо сейчас:",
+                    reply_markup=keyboard,
+                )
 
         # 9.5. Контекстные подсказки (20% шанс, только при вопросах)
         response_text = result["response"]
