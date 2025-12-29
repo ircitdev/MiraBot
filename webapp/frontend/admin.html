@@ -180,6 +180,83 @@
             background: var(--md-sys-color-surface-variant);
         }
 
+        /* Moderator Profile */
+        .moderator-profile {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 6px 12px 6px 6px;
+            border-radius: 24px;
+            cursor: pointer;
+            transition: background 0.2s;
+            background: var(--md-sys-color-surface-variant);
+            border: 2px solid transparent;
+        }
+
+        .moderator-profile:hover {
+            background: var(--md-sys-color-primary-container);
+            border-color: var(--md-sys-color-primary);
+        }
+
+        .moderator-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            object-fit: cover;
+            background: var(--md-sys-color-primary);
+        }
+
+        .moderator-info {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            line-height: 1.2;
+        }
+
+        .moderator-name {
+            font-weight: 500;
+            font-size: 13px;
+            color: var(--md-sys-color-on-surface);
+        }
+
+        .moderator-role {
+            font-size: 11px;
+            color: var(--md-sys-color-on-surface-variant);
+        }
+
+        .moderator-dropdown {
+            position: absolute;
+            top: 60px;
+            right: 24px;
+            background: var(--md-sys-color-surface);
+            border: 1px solid var(--md-sys-color-outline);
+            border-radius: 12px;
+            box-shadow: var(--md-sys-elevation-2);
+            min-width: 200px;
+            z-index: 1000;
+            overflow: hidden;
+        }
+
+        .moderator-dropdown a {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            color: var(--md-sys-color-on-surface);
+            text-decoration: none;
+            transition: background 0.2s;
+            font-size: 14px;
+        }
+
+        .moderator-dropdown a:hover {
+            background: var(--md-sys-color-surface-variant);
+        }
+
+        .moderator-dropdown a .material-icons {
+            font-size: 20px;
+            color: var(--md-sys-color-on-surface-variant);
+        }
+
         /* Sub Navigation */
         .sub-nav {
             background: var(--md-sys-color-surface);
@@ -3155,9 +3232,30 @@
                 <span class="nav-label">Конфиг</span>
             </button>
         </nav>
-        <button class="theme-toggle" onclick="toggleTheme()">
-            <span class="material-icons">dark_mode</span>
-        </button>
+        <div style="display: flex; align-items: center; gap: 12px;">
+            <button class="theme-toggle" onclick="toggleTheme()">
+                <span class="material-icons">dark_mode</span>
+            </button>
+            <!-- Moderator Profile -->
+            <div class="moderator-profile" id="moderator-profile" onclick="toggleModeratorMenu(event)" style="display: none;">
+                <img id="moderator-avatar" class="moderator-avatar" alt="Avatar">
+                <div class="moderator-info">
+                    <span id="moderator-name" class="moderator-name"></span>
+                    <span id="moderator-role" class="moderator-role"></span>
+                </div>
+            </div>
+        </div>
+        <!-- Moderator Dropdown Menu -->
+        <div class="moderator-dropdown" id="moderator-dropdown" style="display: none;">
+            <a href="#" onclick="openModeratorProfile(event)">
+                <span class="material-icons">person</span>
+                Профиль
+            </a>
+            <a href="#" onclick="openMyLogs(event)">
+                <span class="material-icons">history</span>
+                Мои действия
+            </a>
+        </div>
     </div>
 
     <!-- Sub Navigation (for sections with subsections) -->
@@ -5023,6 +5121,128 @@
             </div>
         </div><!-- END TAB: Config -->
 
+        <!-- TAB: Moderator Profile -->
+        <div id="tab-moderator-profile" class="tab-content">
+            <div class="analytics-section">
+                <div class="analytics-header">
+                    <h2>
+                        <span class="material-icons">person</span>
+                        Профиль модератора
+                    </h2>
+                </div>
+
+                <div id="moderator-profile-content" class="config-grid" style="gap: 24px;">
+                    <!-- Profile Card -->
+                    <div class="config-card" style="grid-column: span 2;">
+                        <div class="config-card-header" style="margin-bottom: 20px;">
+                            <div style="display: flex; align-items: center; gap: 16px;">
+                                <img id="profile-avatar-large" class="moderator-avatar" style="width: 80px; height: 80px;" alt="Avatar">
+                                <div>
+                                    <h3 id="profile-full-name" style="margin: 0; font-size: 24px; font-weight: 500;"></h3>
+                                    <p id="profile-role-badge" style="margin: 4px 0 0 0; color: var(--md-sys-color-on-surface-variant);"></p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="config-grid">
+                            <div class="config-field">
+                                <label>Telegram ID</label>
+                                <input type="text" id="profile-telegram-id" readonly style="background: var(--md-sys-color-surface-variant);" />
+                            </div>
+                            <div class="config-field">
+                                <label>Username</label>
+                                <input type="text" id="profile-username" readonly style="background: var(--md-sys-color-surface-variant);" />
+                            </div>
+                            <div class="config-field">
+                                <label>Имя</label>
+                                <input type="text" id="profile-first-name" readonly style="background: var(--md-sys-color-surface-variant);" />
+                            </div>
+                            <div class="config-field">
+                                <label>Фамилия</label>
+                                <input type="text" id="profile-last-name" readonly style="background: var(--md-sys-color-surface-variant);" />
+                            </div>
+                            <div class="config-field">
+                                <label>Последний вход</label>
+                                <input type="text" id="profile-last-login" readonly style="background: var(--md-sys-color-surface-variant);" />
+                            </div>
+                            <div class="config-field">
+                                <label>Дата создания</label>
+                                <input type="text" id="profile-created-at" readonly style="background: var(--md-sys-color-surface-variant);" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Settings Card -->
+                    <div class="config-card" style="grid-column: span 2;">
+                        <div class="config-card-header">
+                            <span class="material-icons">palette</span>
+                            <h4>Персонализация</h4>
+                        </div>
+                        <div class="config-field">
+                            <label>Акцентный цвет админ-панели</label>
+                            <div style="display: flex; gap: 12px; align-items: center;">
+                                <input type="color" id="profile-accent-color" style="width: 60px; height: 40px; border: 1px solid var(--md-sys-color-outline); border-radius: 8px; cursor: pointer;" />
+                                <span id="profile-accent-color-preview" style="font-family: monospace; color: var(--md-sys-color-on-surface-variant);"></span>
+                                <button class="md-button md-button-filled" onclick="updateAccentColor()">
+                                    <span class="material-icons">save</span>
+                                    Сохранить
+                                </button>
+                            </div>
+                            <span class="config-hint">Цвет акцентов в интерфейсе админ-панели</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div><!-- END TAB: Moderator Profile -->
+
+        <!-- TAB: Moderator Logs -->
+        <div id="tab-moderator-logs" class="tab-content">
+            <div class="analytics-section">
+                <div class="analytics-header">
+                    <h2>
+                        <span class="material-icons">history</span>
+                        Мои действия
+                    </h2>
+                    <div class="analytics-controls">
+                        <button class="md-button md-button-outlined" onclick="loadMyLogs()">
+                            <span class="material-icons">refresh</span>
+                            Обновить
+                        </button>
+                    </div>
+                </div>
+
+                <div class="filters-section" style="margin-bottom: 20px;">
+                    <div style="display: flex; gap: 12px; align-items: center;">
+                        <div style="flex: 1;">
+                            <label style="display: block; margin-bottom: 6px; font-size: 13px; color: var(--md-sys-color-on-surface-variant);">Тип действия</label>
+                            <select id="my-logs-action-filter" onchange="loadMyLogs()" style="width: 100%; padding: 10px; border: 1px solid var(--md-sys-color-outline); border-radius: 8px; background: var(--md-sys-color-surface); color: var(--md-sys-color-on-surface);">
+                                <option value="">Все действия</option>
+                                <option value="user_block">Блокировка пользователя</option>
+                                <option value="user_unblock">Разблокировка пользователя</option>
+                                <option value="subscription_grant">Выдача подписки</option>
+                                <option value="broadcast_send">Отправка рассылки</option>
+                            </select>
+                        </div>
+                        <div style="flex: 1;">
+                            <label style="display: block; margin-bottom: 6px; font-size: 13px; color: var(--md-sys-color-on-surface-variant);">Количество записей</label>
+                            <select id="my-logs-limit" onchange="loadMyLogs()" style="width: 100%; padding: 10px; border: 1px solid var(--md-sys-color-outline); border-radius: 8px; background: var(--md-sys-color-surface); color: var(--md-sys-color-on-surface);">
+                                <option value="50" selected>50 записей</option>
+                                <option value="100">100 записей</option>
+                                <option value="200">200 записей</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="my-logs-container">
+                    <div class="loading">
+                        <div class="spinner"></div>
+                        <div>Загрузка логов...</div>
+                    </div>
+                </div>
+            </div>
+        </div><!-- END TAB: Moderator Logs -->
+
     </div>
 
     <!-- Promotion Dialog -->
@@ -6069,6 +6289,10 @@
                 loadUsers();
             } else if (tabName === 'analytics') {
                 // Analytics data is loaded on page load
+            } else if (tabName === 'moderator-profile') {
+                loadModeratorProfilePage();
+            } else if (tabName === 'moderator-logs') {
+                loadMyLogs();
             }
         }
 
@@ -6104,6 +6328,255 @@
         if (savedTab) {
             // Delay to ensure DOM is ready
             setTimeout(() => switchAdminTab(savedTab), 100);
+        }
+
+        // Moderator Profile Functions
+        let currentModeratorData = null;
+
+        async function loadModeratorProfile() {
+            if (!adminToken) return;
+
+            try {
+                const response = await fetch('/api/moderators/me', {
+                    headers: {
+                        'Authorization': `tma ${adminToken}`
+                    }
+                });
+
+                if (response.ok) {
+                    currentModeratorData = await response.json();
+                    displayModeratorProfile(currentModeratorData);
+                }
+            } catch (error) {
+                console.error('Failed to load moderator profile:', error);
+            }
+        }
+
+        function displayModeratorProfile(moderator) {
+            const profileElement = document.getElementById('moderator-profile');
+            const avatarElement = document.getElementById('moderator-avatar');
+            const nameElement = document.getElementById('moderator-name');
+            const roleElement = document.getElementById('moderator-role');
+
+            if (moderator.avatar_url) {
+                avatarElement.src = moderator.avatar_url;
+            } else {
+                // Generate default avatar with initials
+                const initials = (moderator.first_name?.[0] || '') + (moderator.last_name?.[0] || '');
+                avatarElement.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(initials)}&background=${moderator.accent_color?.replace('#', '') || '6750A4'}&color=fff&size=128`;
+            }
+
+            const fullName = [moderator.first_name, moderator.last_name].filter(Boolean).join(' ') || moderator.username || 'Модератор';
+            nameElement.textContent = fullName;
+
+            const roleText = moderator.role === 'admin' ? 'Администратор' : 'Модератор';
+            roleElement.textContent = roleText;
+
+            // Apply accent color if set
+            if (moderator.accent_color) {
+                document.documentElement.style.setProperty('--moderator-accent', moderator.accent_color);
+            }
+
+            profileElement.style.display = 'flex';
+        }
+
+        function toggleModeratorMenu(event) {
+            event.stopPropagation();
+            const dropdown = document.getElementById('moderator-dropdown');
+            dropdown.style.display = dropdown.style.display === 'none' ? 'block' : 'none';
+        }
+
+        function openModeratorProfile(event) {
+            event.preventDefault();
+            document.getElementById('moderator-dropdown').style.display = 'none';
+            switchAdminTab('moderator-profile');
+        }
+
+        function openMyLogs(event) {
+            event.preventDefault();
+            document.getElementById('moderator-dropdown').style.display = 'none';
+            switchAdminTab('moderator-logs');
+        }
+
+        // Close moderator dropdown when clicking outside
+        document.addEventListener('click', (event) => {
+            const dropdown = document.getElementById('moderator-dropdown');
+            const profile = document.getElementById('moderator-profile');
+            if (dropdown && !profile?.contains(event.target)) {
+                dropdown.style.display = 'none';
+            }
+        });
+
+        // Load moderator profile on page load
+        if (adminToken) {
+            loadModeratorProfile();
+        }
+
+        // Moderator Profile Page Functions
+        async function loadModeratorProfilePage() {
+            if (!currentModeratorData) {
+                await loadModeratorProfile();
+            }
+
+            if (!currentModeratorData) return;
+
+            const moderator = currentModeratorData;
+
+            // Large avatar
+            const avatarLarge = document.getElementById('profile-avatar-large');
+            if (moderator.avatar_url) {
+                avatarLarge.src = moderator.avatar_url;
+            } else {
+                const initials = (moderator.first_name?.[0] || '') + (moderator.last_name?.[0] || '');
+                avatarLarge.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(initials)}&background=${moderator.accent_color?.replace('#', '') || '6750A4'}&color=fff&size=256`;
+            }
+
+            // Full name and role
+            const fullName = [moderator.first_name, moderator.last_name].filter(Boolean).join(' ') || moderator.username || 'Модератор';
+            document.getElementById('profile-full-name').textContent = fullName;
+            document.getElementById('profile-role-badge').textContent = moderator.role === 'admin' ? 'Администратор' : 'Модератор';
+
+            // Profile fields
+            document.getElementById('profile-telegram-id').value = moderator.telegram_id || '—';
+            document.getElementById('profile-username').value = moderator.username ? '@' + moderator.username : '—';
+            document.getElementById('profile-first-name').value = moderator.first_name || '—';
+            document.getElementById('profile-last-name').value = moderator.last_name || '—';
+
+            const lastLogin = moderator.last_login_at ? new Date(moderator.last_login_at).toLocaleString('ru-RU') : '—';
+            document.getElementById('profile-last-login').value = lastLogin;
+
+            const createdAt = moderator.created_at ? new Date(moderator.created_at).toLocaleString('ru-RU') : '—';
+            document.getElementById('profile-created-at').value = createdAt;
+
+            // Accent color
+            const accentColor = moderator.accent_color || '#1976d2';
+            document.getElementById('profile-accent-color').value = accentColor;
+            document.getElementById('profile-accent-color-preview').textContent = accentColor;
+        }
+
+        async function updateAccentColor() {
+            const newColor = document.getElementById('profile-accent-color').value;
+
+            try {
+                const response = await fetch('/api/moderators/me/accent-color', {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `tma ${adminToken}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ accent_color: newColor })
+                });
+
+                if (response.ok) {
+                    document.getElementById('profile-accent-color-preview').textContent = newColor;
+                    document.documentElement.style.setProperty('--moderator-accent', newColor);
+
+                    // Update current moderator data
+                    if (currentModeratorData) {
+                        currentModeratorData.accent_color = newColor;
+                        displayModeratorProfile(currentModeratorData);
+                    }
+
+                    showToast('Акцентный цвет обновлён!', 'success');
+                } else {
+                    showToast('Ошибка обновления цвета', 'error');
+                }
+            } catch (error) {
+                console.error('Failed to update accent color:', error);
+                showToast('Ошибка обновления цвета', 'error');
+            }
+        }
+
+        // My Logs Functions
+        const ACTION_NAMES = {
+            'user_block': 'Блокировка пользователя',
+            'user_unblock': 'Разблокировка пользователя',
+            'subscription_grant': 'Выдача подписки',
+            'subscription_update': 'Обновление подписки',
+            'broadcast_send': 'Отправка рассылки',
+            'moderator_create': 'Создание модератора',
+            'moderator_update': 'Обновление модератора',
+            'moderator_activate': 'Активация модератора',
+            'moderator_deactivate': 'Деактивация модератора',
+        };
+
+        async function loadMyLogs() {
+            const container = document.getElementById('my-logs-container');
+            const actionFilter = document.getElementById('my-logs-action-filter')?.value || '';
+            const limit = document.getElementById('my-logs-limit')?.value || '50';
+
+            container.innerHTML = '<div class="loading"><div class="spinner"></div><div>Загрузка логов...</div></div>';
+
+            try {
+                const params = new URLSearchParams({ limit });
+                if (actionFilter) params.append('action', actionFilter);
+
+                const response = await fetch(`/api/admin-logs/me?${params}`, {
+                    headers: {
+                        'Authorization': `tma ${adminToken}`
+                    }
+                });
+
+                if (response.ok) {
+                    const logs = await response.json();
+                    renderMyLogs(logs);
+                } else {
+                    container.innerHTML = '<div class="error-message">Ошибка загрузки логов</div>';
+                }
+            } catch (error) {
+                console.error('Failed to load my logs:', error);
+                container.innerHTML = '<div class="error-message">Ошибка загрузки логов</div>';
+            }
+        }
+
+        function renderMyLogs(logs) {
+            const container = document.getElementById('my-logs-container');
+
+            if (!logs || logs.length === 0) {
+                container.innerHTML = '<div style="text-align: center; padding: 40px; color: var(--md-sys-color-on-surface-variant);">Нет записей</div>';
+                return;
+            }
+
+            const tableHTML = `
+                <table class="data-table" style="width: 100%;">
+                    <thead>
+                        <tr>
+                            <th style="width: 15%;">Время</th>
+                            <th style="width: 25%;">Действие</th>
+                            <th style="width: 15%;">Ресурс</th>
+                            <th style="width: 30%;">Детали</th>
+                            <th style="width: 10%;">IP</th>
+                            <th style="width: 5%;">Статус</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${logs.map(log => `
+                            <tr class="${log.success ? '' : 'error-row'}">
+                                <td>${new Date(log.created_at).toLocaleString('ru-RU', {
+                                    day: '2-digit',
+                                    month: '2-digit',
+                                    year: '2-digit',
+                                    hour: '2-digit',
+                                    minute: '2-digit'
+                                })}</td>
+                                <td>${ACTION_NAMES[log.action] || log.action}</td>
+                                <td>${log.resource_type || '—'} ${log.resource_id ? '#' + log.resource_id : ''}</td>
+                                <td style="font-size: 12px; color: var(--md-sys-color-on-surface-variant);">
+                                    ${log.details ? JSON.stringify(log.details).substring(0, 80) : '—'}
+                                </td>
+                                <td style="font-family: monospace; font-size: 11px;">${log.ip_address || '—'}</td>
+                                <td style="text-align: center;">
+                                    ${log.success
+                                        ? '<span class="material-icons" style="color: #4CAF50; font-size: 18px;">check_circle</span>'
+                                        : '<span class="material-icons" style="color: #F44336; font-size: 18px;">error</span>'}
+                                </td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+
+            container.innerHTML = tableHTML;
         }
 
         // Broadcast inline function

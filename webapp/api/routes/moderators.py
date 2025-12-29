@@ -308,6 +308,36 @@ async def deactivate_moderator(
     return {"success": True, "message": "Модератор деактивирован"}
 
 
+@router.put("/me/accent-color")
+async def update_my_accent_color(
+    request: Request,
+    data: dict,
+    admin_data: dict = Depends(get_current_admin)
+) -> dict:
+    """
+    Обновить акцентный цвет текущего модератора/админа.
+
+    Body:
+        - accent_color: Цвет в HEX формате (например, #1976d2)
+    """
+    accent_color = data.get("accent_color")
+
+    if not accent_color or not accent_color.startswith("#"):
+        raise HTTPException(status_code=400, detail="Неверный формат цвета. Используйте HEX формат (#RRGGBB)")
+
+    repo = AdminUserRepository()
+    moderator = await repo.update(admin_data["admin_id"], accent_color=accent_color)
+
+    if not moderator:
+        raise HTTPException(status_code=404, detail="Модератор не найден")
+
+    return {
+        "success": True,
+        "accent_color": moderator.accent_color,
+        "message": "Акцентный цвет обновлён"
+    }
+
+
 @router.get("/{moderator_id}/check-permission")
 async def check_moderator_permission(
     moderator_id: int,
