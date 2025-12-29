@@ -2227,6 +2227,17 @@ async def generate_user_report(
             admin_user_id=admin_data["admin_id"],
         )
 
+        # Сохраняем отчёт в базу данных
+        from database.repositories.user_report import UserReportRepository
+        report_repo = UserReportRepository()
+        await report_repo.create(
+            telegram_id=telegram_id,
+            content=summary,
+            created_by=admin_data["admin_id"],
+            tokens_used=tokens_used,
+            cost_usd=cost_usd,
+        )
+
     except Exception as e:
         logger.error(f"Failed to generate report: {e}")
         raise HTTPException(
