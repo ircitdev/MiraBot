@@ -4102,8 +4102,8 @@
         </div>
 
         <!-- Users Table -->
-        <div class="table-container">
-            <table>
+        <div class="table-container" style="overflow-x: auto;">
+            <table style="min-width: 1200px;">
                 <thead>
                     <tr>
                         <th style="width: 50px;">
@@ -4126,6 +4126,10 @@
                             Сообщений
                             <span class="material-icons sort-icon">unfold_more</span>
                         </th>
+                        <th class="sortable" data-sort="api_cost" onclick="sortTable('api_cost')">
+                            API ($)
+                            <span class="material-icons sort-icon">unfold_more</span>
+                        </th>
                         <th class="sortable" data-sort="last_active_at" onclick="sortTable('last_active_at')">
                             Последняя активность
                             <span class="material-icons sort-icon">unfold_more</span>
@@ -4135,7 +4139,7 @@
                 </thead>
                 <tbody id="users-table-body">
                     <tr>
-                        <td colspan="8">
+                        <td colspan="9">
                             <div class="loading">
                                 <div class="spinner"></div>
                                 <div>Загрузка...</div>
@@ -7578,6 +7582,9 @@
             }
         }
 
+        // Кеш расходов API
+        let apiCostsCache = {};
+
         async function loadUsers(search = '') {
             try {
                 // Загрузить всех пользователей если кеш пуст или поиск изменился
@@ -7587,6 +7594,18 @@
                     params.append('limit', 500); // Загрузить больше для клиентской фильтрации
 
                     allUsers = await apiRequest(`/users?${params.toString()}`);
+
+                    // Загружаем расходы API для всех пользователей
+                    try {
+                        const apiCostsSummary = await apiRequest('/api-costs/users/summary');
+                        apiCostsCache = {};
+                        apiCostsSummary.forEach(cost => {
+                            apiCostsCache[cost.telegram_id] = cost.total_cost;
+                        });
+                    } catch (error) {
+                        console.warn('Failed to load API costs:', error);
+                        apiCostsCache = {};
+                    }
                 }
 
                 // Применить фильтры
@@ -7607,7 +7626,7 @@
                 tbody.innerHTML = '';
 
                 if (paginatedUsers.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="8"><div class="loading">Пользователи не найдены</div></td></tr>';
+                    tbody.innerHTML = '<tr><td colspan="9"><div class="loading">Пользователи не найдены</div></td></tr>';
                     updatePaginationInfo();
                     return;
                 }
@@ -7634,6 +7653,12 @@
                         ? `<a href="https://t.me/${user.username}" target="_blank" class="telegram-link">@${user.username}</a>`
                         : '<span class="no-link">-</span>';
 
+                    // Расходы API
+                    const apiCost = apiCostsCache[user.telegram_id] || 0;
+                    const apiCostHtml = apiCost > 0
+                        ? `<span style="color: var(--md-sys-color-primary); font-weight: 500;">$${apiCost.toFixed(4)}</span>`
+                        : '<span style="color: var(--md-sys-color-outline);">$0.0000</span>';
+
                     row.innerHTML = `
                         <td>
                             <input type="checkbox" class="user-checkbox"
@@ -7645,6 +7670,7 @@
                         <td>${usernameHtml}</td>
                         <td><span class="badge ${badgeClass}">${user.subscription_plan}</span></td>
                         <td>${user.total_messages}</td>
+                        <td>${apiCostHtml}</td>
                         <td>${lastActive}</td>
                         <td>
                             <button class="icon-button" onclick="viewUser(${user.telegram_id})" title="Просмотр">
@@ -9398,8 +9424,16 @@
             if (!currentSortField) return users;
 
             return [...users].sort((a, b) => {
-                let aVal = a[currentSortField];
-                let bVal = b[currentSortField];
+                let aVal, bVal;
+
+                // Обработка сортировки по API расходам
+                if (currentSortField === 'api_cost') {
+                    aVal = apiCostsCache[a.telegram_id] || 0;
+                    bVal = apiCostsCache[b.telegram_id] || 0;
+                } else {
+                    aVal = a[currentSortField];
+                    bVal = b[currentSortField];
+                }
 
                 // Обработка null/undefined значений
                 if (aVal == null) return 1;
