@@ -2133,6 +2133,21 @@ async def generate_user_report(
         output_cost = (response.usage.output_tokens / 1_000_000) * 15.0
         cost_usd = round(input_cost + output_cost, 6)
 
+        # Трекаем стоимость API
+        from database.repositories.api_cost import ApiCostRepository
+        api_cost_repo = ApiCostRepository()
+        await api_cost_repo.create(
+            user_id=user.id,
+            provider='claude',
+            operation='generate_report',
+            cost_usd=cost_usd,
+            input_tokens=response.usage.input_tokens,
+            output_tokens=response.usage.output_tokens,
+            total_tokens=tokens_used,
+            model="claude-sonnet-4-20250514",
+            admin_user_id=admin_data["telegram_id"],
+        )
+
     except Exception as e:
         logger.error(f"Failed to generate report: {e}")
         raise HTTPException(

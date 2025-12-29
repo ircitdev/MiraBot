@@ -1084,3 +1084,62 @@ class UserReport(Base):
 
     def __repr__(self) -> str:
         return f"<UserReport(id={self.id}, telegram_id={self.telegram_id}, created_at={self.created_at})>"
+
+
+class ApiCost(Base):
+    """
+    Расходы на вызовы AI/TTS/STT API по пользователям.
+    Отслеживаем Claude, Yandex TTS/STT, OpenAI.
+    """
+    __tablename__ = "api_costs"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    user_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("users.id"), nullable=False, index=True)
+
+    # Провайдер API
+    provider: Mapped[str] = mapped_column(String(50), nullable=False, index=True)
+    # Значения: 'claude', 'yandex_tts', 'yandex_stt', 'openai'
+
+    # Операция
+    operation: Mapped[str] = mapped_column(String(100), nullable=False)
+    # Примеры: 'chat_completion', 'text_to_speech', 'speech_to_text', 'generate_report'
+
+    # Использование токенов (для Claude, OpenAI)
+    input_tokens: Mapped[Optional[int]] = mapped_column(Integer)
+    output_tokens: Mapped[Optional[int]] = mapped_column(Integer)
+    total_tokens: Mapped[Optional[int]] = mapped_column(Integer)
+
+    # Использование символов (для Yandex TTS)
+    characters_count: Mapped[Optional[int]] = mapped_column(Integer)
+
+    # Использование аудио секунд (для Yandex STT)
+    audio_seconds: Mapped[Optional[int]] = mapped_column(Integer)
+
+    # Стоимость в USD
+    cost_usd: Mapped[float] = mapped_column(Float, nullable=False)
+
+    # Модель API
+    model: Mapped[Optional[str]] = mapped_column(String(100))
+    # Примеры: 'claude-sonnet-4-20250514', 'gpt-4', 'yandex-tts-premium'
+
+    # Контекст (опционально)
+    message_id: Mapped[Optional[int]] = mapped_column(BigInteger)  # ID сообщения
+    admin_user_id: Mapped[Optional[int]] = mapped_column(BigInteger)  # ID админа (для отчётов)
+
+    # Метаданные
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=func.now(), index=True)
+
+    # Связи
+    user: Mapped["User"] = relationship("User")
+
+    # Индексы
+    __table_args__ = (
+        Index("idx_api_cost_user", "user_id"),
+        Index("idx_api_cost_provider", "provider"),
+        Index("idx_api_cost_created", "created_at"),
+        Index("idx_api_cost_user_created", "user_id", "created_at"),
+        Index("idx_api_cost_provider_created", "provider", "created_at"),
+    )
+
+    def __repr__(self) -> str:
+        return f"<ApiCost(id={self.id}, user_id={self.user_id}, provider={self.provider}, cost=${self.cost_usd:.4f})>"

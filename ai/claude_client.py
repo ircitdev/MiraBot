@@ -12,6 +12,7 @@ from config.settings import settings
 from utils.retry import async_retry, APIError
 from database.repositories.memory import MemoryRepository
 from database.repositories.conversation import ConversationRepository
+from database.repositories.api_cost import ApiCostRepository
 from ai.prompts.system_prompt import build_system_prompt
 from ai.memory.context_builder import ContextBuilder
 from ai.crisis_detector import CrisisDetector
@@ -33,6 +34,7 @@ class ClaudeClient:
         self.memory_repo = MemoryRepository()
         self.conversation_repo = ConversationRepository()
         self.trigger_repo = TriggerRepository()
+        self.api_cost_repo = ApiCostRepository()
         self.context_builder = ContextBuilder()
         self.crisis_detector = CrisisDetector()
         self.max_retries = 3
@@ -129,6 +131,14 @@ class ClaudeClient:
             await self._extract_and_save_profile(
                 user_id=user_id,
                 user_message=user_message,
+            )
+
+            # 10. Трекаем стоимость API
+            await self._track_api_cost(
+                user_id=user_id,
+                operation='chat_completion',
+                input_tokens=response.usage.input_tokens,
+                output_tokens=response.usage.output_tokens,
             )
 
             logger.info(
@@ -264,6 +274,14 @@ class ClaudeClient:
             await self._extract_and_save_profile(
                 user_id=user_id,
                 user_message=user_message,
+            )
+
+            # 10. Трекаем стоимость API
+            await self._track_api_cost(
+                user_id=user_id,
+                operation='chat_completion_stream',
+                input_tokens=input_tokens,
+                output_tokens=output_tokens,
             )
 
             logger.info(
@@ -544,6 +562,14 @@ class ClaudeClient:
 
             response_text = response.content[0].text
 
+            # Трекаем стоимость API
+            await self._track_api_cost(
+                user_id=user_id,
+                operation='image_analysis',
+                input_tokens=response.usage.input_tokens,
+                output_tokens=response.usage.output_tokens,
+            )
+
             logger.info(
                 f"Generated image response for user {user_id}, "
                 f"tokens: {response.usage.input_tokens + response.usage.output_tokens}"
@@ -779,3 +805,55 @@ class ClaudeClient:
         except Exception as e:
             # Не падаем если не удалось сохранить профиль
             logger.warning(f"Failed to extract/save profile: {e}")
+
+    async def _track_api_cost(
+        self,
+        user_id: int,
+        operation: str,
+        input_tokens: int,
+        output_tokens: int,
+        message_id: Optional[int] = None,
+        admin_user_id: Optional[int] = None,
+    ) -> None:
+        """
+        Трекает расходы на Claude API.
+
+        Args:
+            user_id: ID пользователя
+            operation: Операция (chat_completion, generate_report, image_analysis)
+            input_tokens: Входящие токены
+            output_tokens: Выходящие токены
+            message_id: ID сообщения (опционально)
+            admin_user_id: ID админа (опционально)
+        """
+        try:
+            # Цены для claude-sonnet-4-20250514
+            # Input: $3 per million tokens
+            # Output: $15 per million tokens
+            input_cost = (input_tokens / 1_000_000) * 3.0
+            output_cost = (output_tokens / 1_000_000) * 15.0
+            total_cost = round(input_cost + output_cost, 6)
+
+            total_tokens = input_tokens + output_tokens
+
+            await self.api_cost_repo.create(
+                user_id=user_id,
+                provider='claude',
+                operation=operation,
+                cost_usd=total_cost,
+                input_tokens=input_tokens,
+                output_tokens=output_tokens,
+                total_tokens=total_tokens,
+                model=settings.CLAUDE_MODEL,
+                message_id=message_id,
+                admin_user_id=admin_user_id,
+            )
+
+            logger.debug(
+                f"Tracked API cost for user {user_id}: "
+                f"${total_cost:.6f} ({input_tokens}+{output_tokens} tokens)"
+            )
+
+        except Exception as e:
+            # Не падаем если не удалось сохранить стоимость
+            logger.warning(f"Failed to track API cost: {e}")
