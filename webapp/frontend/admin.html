@@ -3169,6 +3169,432 @@
         .admin-content.hidden {
             display: none !important;
         }
+
+        /* ========================================
+           MOBILE RESPONSIVE STYLES
+           ======================================== */
+
+        /* Tablets and small laptops (768px - 1024px) */
+        @media (max-width: 1024px) {
+            .app-bar {
+                padding: 8px 16px;
+            }
+
+            .container {
+                padding: 16px;
+            }
+
+            .analytics-section {
+                padding: 16px;
+            }
+
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .config-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Mobile devices (max-width: 768px) */
+        @media (max-width: 768px) {
+            /* App Bar */
+            .app-bar {
+                padding: 6px 12px;
+                flex-wrap: wrap;
+                gap: 8px;
+            }
+
+            .app-bar h1 {
+                font-size: 16px;
+            }
+
+            .app-bar h1 .material-icons {
+                font-size: 20px;
+            }
+
+            /* Main Navigation */
+            .main-nav {
+                width: 100%;
+                order: 3;
+                justify-content: flex-start;
+                padding: 0;
+                overflow-x: auto;
+                scrollbar-width: none; /* Firefox */
+                -ms-overflow-style: none; /* IE/Edge */
+            }
+
+            .main-nav::-webkit-scrollbar {
+                display: none; /* Chrome/Safari */
+            }
+
+            .main-nav-item {
+                padding: 6px 10px;
+                font-size: 12px;
+                flex-shrink: 0;
+            }
+
+            .main-nav-item .material-icons {
+                font-size: 16px;
+            }
+
+            /* Moderator Profile */
+            .moderator-profile {
+                padding: 4px 8px 4px 4px;
+                gap: 6px;
+            }
+
+            .moderator-avatar {
+                width: 32px;
+                height: 32px;
+            }
+
+            .moderator-name {
+                font-size: 12px;
+            }
+
+            .moderator-role {
+                font-size: 10px;
+            }
+
+            .moderator-dropdown {
+                right: 12px;
+                min-width: 180px;
+            }
+
+            /* Sub Navigation */
+            .sub-nav {
+                padding: 0 12px;
+                overflow-x: auto;
+                scrollbar-width: none;
+                -ms-overflow-style: none;
+            }
+
+            .sub-nav::-webkit-scrollbar {
+                display: none;
+            }
+
+            .sub-nav-section {
+                padding: 6px 0;
+                min-width: 100%;
+            }
+
+            .sub-nav-item {
+                padding: 6px 12px;
+                font-size: 12px;
+                flex-shrink: 0;
+            }
+
+            /* Container */
+            .container {
+                padding: 12px;
+            }
+
+            /* Analytics Section */
+            .analytics-section {
+                padding: 12px;
+                margin: 12px 0;
+            }
+
+            .analytics-header {
+                margin-bottom: 16px;
+            }
+
+            .analytics-header h2 {
+                font-size: 18px;
+            }
+
+            .analytics-header h2 .material-icons {
+                font-size: 22px;
+            }
+
+            /* Stats Grid */
+            .stats-grid {
+                grid-template-columns: 1fr;
+                gap: 12px;
+            }
+
+            .stat-card {
+                padding: 12px;
+            }
+
+            .stat-card h3 {
+                font-size: 13px;
+            }
+
+            .stat-value {
+                font-size: 24px;
+            }
+
+            .stat-change {
+                font-size: 11px;
+            }
+
+            /* Data Table */
+            .data-table {
+                font-size: 12px;
+            }
+
+            .data-table th,
+            .data-table td {
+                padding: 8px 6px;
+            }
+
+            /* Hide less important columns on mobile */
+            .data-table .hide-mobile {
+                display: none;
+            }
+
+            /* Analytics Controls */
+            .analytics-controls {
+                flex-direction: column;
+                gap: 8px;
+                align-items: stretch;
+            }
+
+            .md-button {
+                width: 100%;
+                justify-content: center;
+            }
+
+            /* Filters Section */
+            .filters-section {
+                padding: 12px;
+            }
+
+            .filters-section > div {
+                flex-direction: column;
+                gap: 8px;
+            }
+
+            .filters-section label {
+                font-size: 12px;
+            }
+
+            .filters-section select,
+            .filters-section input {
+                width: 100%;
+            }
+
+            /* Config Section */
+            .config-tab-btn {
+                font-size: 11px;
+                padding: 6px 10px;
+                flex-shrink: 0;
+            }
+
+            .config-tab-btn .material-icons {
+                font-size: 16px;
+            }
+
+            .config-card {
+                padding: 12px;
+            }
+
+            .config-card-header h4 {
+                font-size: 14px;
+            }
+
+            .config-field label {
+                font-size: 12px;
+            }
+
+            .config-field input,
+            .config-field select,
+            .config-field textarea {
+                font-size: 14px;
+                padding: 8px;
+            }
+
+            .config-hint {
+                font-size: 10px;
+            }
+
+            /* Legend Section */
+            .legend-container {
+                padding: 12px;
+            }
+
+            .legend-header h2 {
+                font-size: 20px;
+            }
+
+            .legend-section {
+                padding: 12px;
+            }
+
+            .legend-section h3 {
+                font-size: 14px;
+            }
+
+            .legend-grid {
+                grid-template-columns: 1fr;
+            }
+
+            /* Photo Gallery */
+            .photos-gallery {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 8px;
+            }
+
+            /* Modal */
+            .modal-content {
+                width: calc(100% - 24px);
+                max-width: none;
+                margin: 12px;
+                padding: 16px;
+            }
+
+            .modal-header h2 {
+                font-size: 18px;
+            }
+
+            .modal-body {
+                padding: 12px 0;
+            }
+
+            /* Moderator Profile Page */
+            #moderator-profile-content {
+                padding: 12px;
+            }
+
+            #moderator-profile-content .config-card {
+                grid-column: span 1;
+            }
+
+            /* My Logs Page */
+            #my-logs-container {
+                padding: 12px;
+            }
+
+            /* Toast Notifications */
+            .toast {
+                min-width: 250px;
+                max-width: calc(100% - 24px);
+                margin: 0 12px;
+            }
+        }
+
+        /* Small mobile devices (max-width: 480px) */
+        @media (max-width: 480px) {
+            .app-bar h1 {
+                font-size: 14px;
+            }
+
+            .main-nav-item .nav-label {
+                display: none !important;
+            }
+
+            .moderator-info {
+                display: none;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .stat-card {
+                padding: 10px;
+            }
+
+            .stat-value {
+                font-size: 20px;
+            }
+
+            .config-tab-btn .material-icons {
+                margin: 0;
+            }
+
+            .photos-gallery {
+                grid-template-columns: 1fr;
+            }
+
+            .data-table {
+                font-size: 11px;
+            }
+
+            .data-table th,
+            .data-table td {
+                padding: 6px 4px;
+            }
+
+            /* Stack buttons vertically */
+            .analytics-controls button {
+                font-size: 13px;
+            }
+
+            /* Reduce modal padding */
+            .modal-content {
+                padding: 12px;
+            }
+        }
+
+        /* Landscape orientation on mobile */
+        @media (max-height: 500px) and (orientation: landscape) {
+            .app-bar {
+                position: relative;
+            }
+
+            .sub-nav {
+                position: relative;
+            }
+
+            .modal-content {
+                max-height: 90vh;
+                overflow-y: auto;
+            }
+        }
+
+        /* Touch-friendly styles */
+        @media (hover: none) and (pointer: coarse) {
+            /* Increase touch targets */
+            .md-button,
+            .main-nav-item,
+            .sub-nav-item,
+            .config-tab-btn {
+                min-height: 44px;
+                min-width: 44px;
+            }
+
+            /* Better spacing for touch */
+            .main-nav,
+            .sub-nav-section {
+                gap: 6px;
+            }
+
+            /* Remove hover effects */
+            .main-nav-item:hover,
+            .sub-nav-item:hover,
+            .md-button:hover {
+                background: transparent;
+            }
+
+            .main-nav-item:active,
+            .sub-nav-item:active,
+            .md-button:active {
+                opacity: 0.7;
+            }
+        }
+
+        /* Scrollbar styling for better mobile experience */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--md-sys-color-outline);
+            border-radius: 3px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--md-sys-color-on-surface-variant);
+        }
     </style>
 </head>
 <body data-theme="light">
