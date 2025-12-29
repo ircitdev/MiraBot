@@ -76,7 +76,22 @@ async def get_current_user(
 
         # Проверить старый ADMIN_TOKEN из настроек
         if hasattr(settings, 'ADMIN_TOKEN') and token == settings.ADMIN_TOKEN:
-            # Вернуть данные для админа
+            # Для старого токена пытаемся найти первого активного админа
+            from database.repositories.admin_user import AdminUserRepository
+
+            repo = AdminUserRepository()
+            admins = await repo.list_all(role="admin", is_active=True)
+
+            if admins:
+                # Берём первого активного админа
+                first_admin = admins[0]
+                return {
+                    "user_id": first_admin.telegram_id,
+                    "username": first_admin.username or "admin",
+                    "first_name": first_admin.first_name or "Admin",
+                }
+
+            # Fallback на дефолтные значения
             return {
                 "user_id": getattr(settings, 'ADMIN_TELEGRAM_ID', 65876198),
                 "username": "admin",
@@ -86,17 +101,25 @@ async def get_current_user(
         # Проверить JWT токен из админ-панели
         try:
             import jwt
-            payload = jwt.decode(token, settings.ADMIN_SECRET_KEY, algorithms=["HS256"])
-            # JWT токен содержит telegram_id админа
-            return {
-                "user_id": payload.get("telegram_id"),
-                "username": payload.get("username"),
-                "first_name": payload.get("first_name", "Admin"),
-            }
-        except jwt.InvalidTokenError:
-            # Токен невалидный, продолжаем проверку других методов
-            pass
-        except Exception:
+            from loguru import logger
+
+            try:
+                payload = jwt.decode(token, settings.ADMIN_SECRET_KEY, algorithms=["HS256"])
+                logger.info(f"JWT decoded successfully: {payload}")
+
+                # JWT токен содержит telegram_id админа
+                return {
+                    "user_id": payload.get("telegram_id"),
+                    "username": payload.get("username"),
+                    "first_name": payload.get("first_name", "Admin"),
+                }
+            except jwt.InvalidTokenError as e:
+                logger.warning(f"Invalid JWT token: {e}")
+                # Токен невалидный, продолжаем проверку других методов
+                pass
+        except Exception as e:
+            from loguru import logger
+            logger.error(f"JWT decoding error: {e}")
             # Любая другая ошибка - игнорируем
             pass
 
