@@ -215,12 +215,17 @@ async def get_user_detail(
     }
 
 
+class SubscriptionUpdateRequest(BaseModel):
+    """Запрос на обновление подписки."""
+    plan: str
+    days: int
+
+
 @router.post("/users/{telegram_id}/subscription")
 @log_admin_action(action="subscription_grant", resource_type="subscription")
 async def update_user_subscription(
     telegram_id: int,
-    plan: str,
-    days: int,
+    data: SubscriptionUpdateRequest,
     admin_data: dict = Depends(get_current_admin),
 ):
     """Обновить подписку пользователя."""
@@ -234,7 +239,7 @@ async def update_user_subscription(
 
     sub_service = SubscriptionService()
 
-    expires_at = datetime.now() + timedelta(days=days)
+    expires_at = datetime.now() + timedelta(days=data.days)
 
     # Получить активную подписку
     current_sub = await subscription_repo.get_active(user.id)
@@ -243,21 +248,21 @@ async def update_user_subscription(
         # Обновить существующую
         await subscription_repo.update(
             current_sub.id,
-            plan=plan,
+            plan=data.plan,
             expires_at=expires_at,
         )
     else:
         # Создать новую
         await subscription_repo.create(
             user_id=user.id,
-            plan=plan,
+            plan=data.plan,
             expires_at=expires_at,
         )
 
     return {
         "status": "ok",
         "user_id": user.id,
-        "plan": plan,
+        "plan": data.plan,
         "expires_at": expires_at,
         "resource_id": telegram_id,
     }
