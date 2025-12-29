@@ -92,8 +92,11 @@ class SystemStatsResponse(BaseModel):
     total_users: int
     active_users_today: int
     active_users_week: int
+    active_users_month: int
     total_messages: int
     messages_today: int
+    messages_week: int
+    messages_month: int
     premium_users: int
     trial_users: int
     free_users: int
@@ -442,6 +445,13 @@ async def get_system_stats(
         )
         active_week = active_week_result.scalar() or 0
 
+        # Активные за месяц
+        month_ago = datetime.now() - timedelta(days=30)
+        active_month_result = await session.execute(
+            select(func.count(User.id)).where(User.last_active_at >= month_ago)
+        )
+        active_month = active_month_result.scalar() or 0
+
         # Всего сообщений
         total_messages_result = await session.execute(
             select(func.count(Message.id))
@@ -454,6 +464,18 @@ async def get_system_stats(
         )
         messages_today = messages_today_result.scalar() or 0
 
+        # Сообщения за неделю
+        messages_week_result = await session.execute(
+            select(func.count(Message.id)).where(Message.created_at >= week_ago)
+        )
+        messages_week = messages_week_result.scalar() or 0
+
+        # Сообщения за месяц
+        messages_month_result = await session.execute(
+            select(func.count(Message.id)).where(Message.created_at >= month_ago)
+        )
+        messages_month = messages_month_result.scalar() or 0
+
     # Подписки (требует подсчета через SubscriptionRepository)
     # Пока заглушки
     premium_users = 0
@@ -464,8 +486,11 @@ async def get_system_stats(
         "total_users": total_users,
         "active_users_today": active_today,
         "active_users_week": active_week,
+        "active_users_month": active_month,
         "total_messages": total_messages,
         "messages_today": messages_today,
+        "messages_week": messages_week,
+        "messages_month": messages_month,
         "premium_users": premium_users,
         "trial_users": trial_users,
         "free_users": free_users,
@@ -481,6 +506,8 @@ class TopActiveUserItem(BaseModel):
     avatar_url: Optional[str]
     is_premium: bool
     messages_this_week: int
+    mood_emoji: Optional[str] = None
+    primary_emotion: Optional[str] = None
 
 
 @router.get("/stats/top-active", response_model=List[TopActiveUserItem])
@@ -531,10 +558,46 @@ async def get_top_active_users(
         )
         active_subs = {sub.user_id: sub for sub in subscriptions_result.scalars().all()}
 
+        # Получаем последние настроения пользователей
+        from database.models import MoodEntry
+        moods_result = await session.execute(
+            select(MoodEntry)
+            .where(MoodEntry.user_id.in_(user_ids))
+            .order_by(MoodEntry.created_at.desc())
+        )
+
+        # Группируем по user_id, берём последнее
+        last_moods = {}
+        for mood in moods_result.scalars().all():
+            if mood.user_id not in last_moods:
+                last_moods[mood.user_id] = mood
+
+        # Маппинг эмоций на эмоджи
+        emotion_emoji_map = {
+            "happy": "😊",
+            "sad": "😢",
+            "anxious": "😰",
+            "angry": "😠",
+            "neutral": "😐",
+            "excited": "🤗",
+            "tired": "😴",
+            "frustrated": "😤",
+            "grateful": "🙏",
+            "hopeful": "✨",
+        }
+
         top_users = []
         for user, messages_count in rows:
             sub = active_subs.get(user.id)
             is_premium = sub is not None and sub.plan == "premium"
+
+            # Получаем настроение
+            mood = last_moods.get(user.id)
+            mood_emoji = None
+            primary_emotion = None
+            if mood:
+                primary_emotion = mood.primary_emotion
+                mood_emoji = emotion_emoji_map.get(primary_emotion, "😐")
 
             top_users.append({
                 "telegram_id": user.telegram_id,
@@ -544,6 +607,8 @@ async def get_top_active_users(
                 "avatar_url": user.avatar_url,
                 "is_premium": is_premium,
                 "messages_this_week": messages_count or 0,
+                "mood_emoji": mood_emoji,
+                "primary_emotion": primary_emotion,
             })
 
         return top_users

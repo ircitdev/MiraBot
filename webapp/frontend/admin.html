@@ -3802,29 +3802,40 @@
         <div id="tab-overview" class="tab-content active">
         <!-- Stats Grid -->
         <div class="stats-grid" id="stats-grid">
+            <!-- Пользователи -->
             <div class="stat-card">
                 <div class="stat-value" id="total-users">-</div>
-                <div class="stat-label">Всего пользователей</div>
+                <div class="stat-label">Пользователей</div>
+                <div class="stat-hint" style="margin-top: 8px; font-size: 13px; color: var(--md-sys-color-primary);">
+                    <span id="premium-users">0</span> Premium
+                </div>
             </div>
+
+            <!-- Активность -->
             <div class="stat-card">
                 <div class="stat-value" id="active-today">-</div>
-                <div class="stat-label">Активны сегодня</div>
+                <div class="stat-label">Активны</div>
+                <div class="stat-hint" style="margin-top: 8px; font-size: 13px;">
+                    <span id="active-week">0</span> за неделю • <span id="active-month">0</span> за месяц
+                </div>
             </div>
-            <div class="stat-card">
-                <div class="stat-value" id="active-week">-</div>
-                <div class="stat-label">Активны за неделю</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-value" id="total-messages">-</div>
-                <div class="stat-label">Всего сообщений</div>
-            </div>
+
+            <!-- Сообщения -->
             <div class="stat-card">
                 <div class="stat-value" id="messages-today">-</div>
-                <div class="stat-label">Сообщений сегодня</div>
+                <div class="stat-label">Сообщений</div>
+                <div class="stat-hint" style="margin-top: 8px; font-size: 13px;">
+                    <span id="messages-week">0</span> за неделю • <span id="messages-month">0</span> за месяц
+                </div>
             </div>
+
+            <!-- API расходы -->
             <div class="stat-card">
-                <div class="stat-value" id="premium-users">-</div>
-                <div class="stat-label">Premium пользователей</div>
+                <div class="stat-value" id="api-cost-today">$-</div>
+                <div class="stat-label">API расходы</div>
+                <div class="stat-hint" style="margin-top: 8px; font-size: 13px;">
+                    <span id="api-cost-week">$0</span> за неделю • <span id="api-cost-month">$0</span> за месяц
+                </div>
             </div>
         </div>
 
@@ -7576,14 +7587,58 @@
             try {
                 const data = await apiRequest('/stats/system');
 
+                // Пользователи
                 document.getElementById('total-users').textContent = data.total_users;
+                document.getElementById('premium-users').textContent = data.premium_users;
+
+                // Активность
                 document.getElementById('active-today').textContent = data.active_users_today;
                 document.getElementById('active-week').textContent = data.active_users_week;
-                document.getElementById('total-messages').textContent = data.total_messages;
+                document.getElementById('active-month').textContent = data.active_users_month || data.active_users_week; // fallback
+
+                // Сообщения
                 document.getElementById('messages-today').textContent = data.messages_today;
-                document.getElementById('premium-users').textContent = data.premium_users;
+                document.getElementById('messages-week').textContent = data.messages_week || '-';
+                document.getElementById('messages-month').textContent = data.messages_month || '-';
+
+                // Загружаем API расходы
+                await loadApiCostsStats();
             } catch (error) {
                 console.error('Failed to load system stats:', error);
+            }
+        }
+
+        async function loadApiCostsStats() {
+            try {
+                const now = new Date();
+                const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                const weekStart = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+                const monthStart = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+                // Получаем данные по датам
+                const data = await apiRequest(`/api-costs/by-date?from_date=${weekStart.toISOString()}&to_date=${now.toISOString()}`);
+
+                // Считаем суммы
+                let costToday = 0, costWeek = 0, costMonth = 0;
+
+                data.forEach(entry => {
+                    const entryDate = new Date(entry.date);
+                    const cost = entry.total_cost || 0;
+
+                    if (entryDate >= todayStart) costToday += cost;
+                    if (entryDate >= weekStart) costWeek += cost;
+                    if (entryDate >= monthStart) costMonth += cost;
+                });
+
+                // Обновляем UI
+                document.getElementById('api-cost-today').textContent = `$${costToday.toFixed(4)}`;
+                document.getElementById('api-cost-week').textContent = `$${costWeek.toFixed(4)}`;
+                document.getElementById('api-cost-month').textContent = `$${costMonth.toFixed(4)}`;
+            } catch (error) {
+                console.error('Failed to load API costs:', error);
+                document.getElementById('api-cost-today').textContent = '$-';
+                document.getElementById('api-cost-week').textContent = '$-';
+                document.getElementById('api-cost-month').textContent = '$-';
             }
         }
 
@@ -7618,12 +7673,20 @@
                     const avatarHtml = user.avatar_url
                         ? `<img src="${user.avatar_url}" class="top-user-avatar" alt="" onclick="event.stopPropagation(); viewUser(${user.telegram_id})" onerror="this.outerHTML='<span class=\\'top-user-avatar-placeholder\\' style=\\'background: ${avatarColor}\\' onclick=\\'event.stopPropagation(); viewUser(${user.telegram_id})\\'>${initial}</span>'">`
                         : `<span class="top-user-avatar-placeholder" style="background: ${avatarColor}" onclick="event.stopPropagation(); viewUser(${user.telegram_id})">${initial}</span>`;
+
+                    // Премиум звёздочка
                     const premiumStar = user.is_premium ? '<span class="premium-star">⭐</span>' : '';
+
+                    // Эмоджи настроения рядом с аватаркой
+                    const moodEmoji = user.mood_emoji ? `<span class="mood-emoji" style="position: absolute; bottom: -5px; right: -5px; font-size: 24px; background: white; border-radius: 50%; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">${user.mood_emoji}</span>` : '';
 
                     return `
                         <div class="top-user-card" onclick="openChat(${user.telegram_id}, '${name.replace(/'/g, "\\'")}')">
                             ${premiumStar}
-                            ${avatarHtml}
+                            <div style="position: relative; display: inline-block;">
+                                ${avatarHtml}
+                                ${moodEmoji}
+                            </div>
                             <div class="top-user-name">${name}</div>
                             <div class="top-user-messages">${user.messages_this_week} сообщ.</div>
                         </div>
