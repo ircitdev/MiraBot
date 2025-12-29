@@ -3171,6 +3171,65 @@
         }
 
         /* ========================================
+           MOBILE BOTTOM NAVIGATION
+           ======================================== */
+
+        .mobile-bottom-nav {
+            display: none; /* Скрыто на десктопе */
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: var(--md-sys-color-surface);
+            border-top: 1px solid var(--md-sys-color-outline);
+            box-shadow: 0 -4px 8px rgba(0, 0, 0, 0.1);
+            z-index: 1000;
+            overflow-x: auto;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+
+        .mobile-bottom-nav::-webkit-scrollbar {
+            display: none;
+        }
+
+        .mobile-nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 6px 8px;
+            background: none;
+            border: none;
+            color: var(--md-sys-color-on-surface-variant);
+            cursor: pointer;
+            transition: all 0.2s;
+            border-radius: 12px;
+            min-width: 56px;
+            flex-shrink: 0;
+        }
+
+        .mobile-nav-item .material-icons {
+            font-size: 20px;
+            margin-bottom: 2px;
+        }
+
+        .mobile-nav-label {
+            font-size: 10px;
+            font-weight: 500;
+            white-space: nowrap;
+        }
+
+        .mobile-nav-item.active {
+            color: var(--md-sys-color-primary);
+            background: var(--md-sys-color-primary-container);
+        }
+
+        .mobile-nav-item:active {
+            opacity: 0.7;
+        }
+
+        /* ========================================
            MOBILE RESPONSIVE STYLES
            ======================================== */
 
@@ -3199,48 +3258,45 @@
 
         /* Mobile devices (max-width: 768px) */
         @media (max-width: 768px) {
+            /* Show mobile bottom navigation */
+            .mobile-bottom-nav {
+                display: flex !important;
+                flex-direction: row;
+                justify-content: space-around;
+                padding: 8px 0;
+                gap: 4px;
+            }
+
+            /* Add bottom padding to body to account for fixed bottom nav */
+            body {
+                padding-bottom: 60px;
+            }
+
             /* App Bar */
             .app-bar {
-                padding: 6px 12px;
-                flex-wrap: wrap;
-                gap: 8px;
+                padding: 8px 12px;
+                flex-wrap: nowrap;
+                gap: 12px;
+                justify-content: space-between;
             }
 
             .app-bar h1 {
-                font-size: 16px;
+                font-size: 18px;
+                font-weight: 600;
             }
 
             .app-bar h1 .material-icons {
-                font-size: 20px;
+                font-size: 22px;
             }
 
-            /* Main Navigation */
+            /* Hide main navigation on mobile (will use bottom nav instead) */
             .main-nav {
-                width: 100%;
-                order: 3;
-                justify-content: flex-start;
-                padding: 0;
-                overflow-x: auto;
-                scrollbar-width: none; /* Firefox */
-                -ms-overflow-style: none; /* IE/Edge */
+                display: none !important;
             }
 
-            .main-nav::-webkit-scrollbar {
-                display: none; /* Chrome/Safari */
-            }
-
-            .main-nav-item {
-                padding: 6px 10px;
-                font-size: 12px;
-                flex-shrink: 0;
-            }
-
-            .main-nav-item .material-icons {
-                font-size: 16px;
-            }
-
-            /* Moderator Profile */
+            /* Moderator Profile - always visible on mobile */
             .moderator-profile {
+                display: flex !important;
                 padding: 4px 8px 4px 4px;
                 gap: 6px;
             }
@@ -3250,8 +3306,14 @@
                 height: 32px;
             }
 
+            .moderator-info {
+                display: flex !important;
+                flex-direction: column;
+            }
+
             .moderator-name {
                 font-size: 12px;
+                font-weight: 500;
             }
 
             .moderator-role {
@@ -3624,9 +3686,9 @@
 
     <!-- App Bar with Main Navigation -->
     <div class="app-bar admin-content">
-        <h1>
+        <h1 class="app-title">
             <span class="material-icons">dashboard</span>
-            Админ-панель Мира
+            <span class="title-text">ADMINs</span>
         </h1>
         <nav class="main-nav">
             <button class="main-nav-item active" data-tab="overview" onclick="switchAdminTab('overview')">
@@ -6771,6 +6833,14 @@
         function switchAdminTab(tabName) {
             // Update main nav items
             document.querySelectorAll('.main-nav-item').forEach(item => {
+                item.classList.remove('active');
+                if (item.dataset.tab === tabName) {
+                    item.classList.add('active');
+                }
+            });
+
+            // Update mobile bottom nav items
+            document.querySelectorAll('.mobile-nav-item').forEach(item => {
                 item.classList.remove('active');
                 if (item.dataset.tab === tabName) {
                     item.classList.add('active');
@@ -11378,5 +11448,37 @@
             return html;
         }
     </script>
+
+    <!-- Mobile Bottom Navigation (только на мобильных устройствах) -->
+    <nav class="mobile-bottom-nav" id="mobile-bottom-nav">
+        <button class="mobile-nav-item active" data-tab="overview" onclick="switchAdminTab('overview')">
+            <span class="material-icons">dashboard</span>
+            <span class="mobile-nav-label">Обзор</span>
+        </button>
+        <button class="mobile-nav-item" data-tab="users" onclick="switchAdminTab('users')">
+            <span class="material-icons">people</span>
+            <span class="mobile-nav-label">Пользователи</span>
+        </button>
+        <button class="mobile-nav-item" data-tab="analytics" onclick="switchAdminTab('analytics')">
+            <span class="material-icons">analytics</span>
+            <span class="mobile-nav-label">Аналитика</span>
+        </button>
+        <button class="mobile-nav-item" data-tab="payments" onclick="switchAdminTab('payments')">
+            <span class="material-icons">payments</span>
+            <span class="mobile-nav-label">Платежи</span>
+        </button>
+        <button class="mobile-nav-item" data-tab="broadcast" onclick="switchAdminTab('broadcast')">
+            <span class="material-icons">campaign</span>
+            <span class="mobile-nav-label">Рассылка</span>
+        </button>
+        <button class="mobile-nav-item" data-tab="context" onclick="switchAdminTab('context')">
+            <span class="material-icons">psychology</span>
+            <span class="mobile-nav-label">Контекст</span>
+        </button>
+        <button class="mobile-nav-item" data-tab="config" onclick="switchAdminTab('config')">
+            <span class="material-icons">settings</span>
+            <span class="mobile-nav-label">Конфиг</span>
+        </button>
+    </nav>
 </body>
 </html>
