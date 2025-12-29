@@ -20,6 +20,7 @@ from database.repositories.user import UserRepository
 from database.repositories.subscription import SubscriptionRepository
 from database.repositories.conversation import ConversationRepository
 from database.repositories.mood import MoodRepository
+from database.repositories.admin_log import AdminLogRepository
 from services.referral import ReferralService
 from bot.keyboards.inline import get_premium_keyboard, get_crisis_keyboard, get_hints_keyboard
 from bot.handlers.photos import send_photos
@@ -46,6 +47,7 @@ from ai.crisis_protocol import (
 # Инициализируем сервисы
 claude = ClaudeClient()
 user_repo = UserRepository()
+admin_log_repo = AdminLogRepository()
 subscription_repo = SubscriptionRepository()
 conversation_repo = ConversationRepository()
 mood_repo = MoodRepository()
@@ -735,6 +737,29 @@ async def _handle_onboarding(
                 onboarding_completed=True,
             )
 
+            # Логируем завершение онбоардинга
+            try:
+                # Получаем информацию о реферале
+                from database.repositories.referral import ReferralRepository
+                referral_repo = ReferralRepository()
+                referral = await referral_repo.get_by_referred_id(user.id)
+                referrer_id = referral.referrer.telegram_id if referral and referral.referrer else None
+
+                await admin_log_repo.create(
+                    admin_user_id=None,  # Системное действие
+                    action="user_onboarding_completed",
+                    resource_type="user",
+                    resource_id=user.telegram_id,
+                    details={
+                        "display_name": user.display_name,
+                        "referrer_telegram_id": referrer_id,
+                        "partner_skipped": True
+                    },
+                    success=True
+                )
+            except Exception as e:
+                logger.warning(f"Failed to log onboarding completion for user {user.telegram_id}: {e}")
+
             display_name = user.display_name or "дорогая"
             opening_question = _get_opening_question()
 
@@ -779,6 +804,31 @@ async def _handle_onboarding(
             onboarding_step=3,
             onboarding_completed=True,
         )
+
+        # Логируем завершение онбоардинга
+        try:
+            # Получаем информацию о реферале
+            from database.repositories.referral import ReferralRepository
+            referral_repo = ReferralRepository()
+            referral = await referral_repo.get_by_referred_id(user.id)
+            referrer_id = referral.referrer.telegram_id if referral and referral.referrer else None
+
+            await admin_log_repo.create(
+                admin_user_id=None,  # Системное действие
+                action="user_onboarding_completed",
+                resource_type="user",
+                resource_id=user.telegram_id,
+                details={
+                    "display_name": user.display_name,
+                    "referrer_telegram_id": referrer_id,
+                    "partner_name": partner_name,
+                    "partner_gender": partner_gender,
+                    "partner_skipped": False
+                },
+                success=True
+            )
+        except Exception as e:
+            logger.warning(f"Failed to log onboarding completion for user {user.telegram_id}: {e}")
 
         display_name = user.display_name or "дорогая"
         opening_question = _get_opening_question()

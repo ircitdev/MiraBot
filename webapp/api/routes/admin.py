@@ -10,6 +10,8 @@ from loguru import logger
 from sqlalchemy import select, func, desc
 
 from webapp.api.auth import get_current_user
+from webapp.api.middleware import get_current_admin
+from webapp.api.decorators import log_admin_action, log_critical_action
 from database.repositories.user import UserRepository
 from database.repositories.conversation import ConversationRepository
 from database.repositories.mood import MoodRepository
@@ -211,11 +213,12 @@ async def get_user_detail(
 
 
 @router.post("/users/{telegram_id}/subscription")
+@log_admin_action(action="subscription_grant", resource_type="subscription")
 async def update_user_subscription(
     telegram_id: int,
     plan: str,
     days: int,
-    _admin: dict = Depends(require_admin),
+    admin_data: dict = Depends(get_current_admin),
 ):
     """Обновить подписку пользователя."""
     user = await user_repo.get_by_telegram_id(telegram_id)
@@ -253,14 +256,16 @@ async def update_user_subscription(
         "user_id": user.id,
         "plan": plan,
         "expires_at": expires_at,
+        "resource_id": telegram_id,
     }
 
 
 @router.post("/users/{telegram_id}/block")
+@log_critical_action(action="user_block", resource_type="user")
 async def block_user(
     telegram_id: int,
     reason: str,
-    _admin: dict = Depends(require_admin),
+    admin_data: dict = Depends(get_current_admin),
 ):
     """Заблокировать пользователя."""
     user = await user_repo.get_by_telegram_id(telegram_id)
@@ -274,13 +279,14 @@ async def block_user(
         block_reason=reason,
     )
 
-    return {"status": "ok", "user_id": user.id, "blocked": True}
+    return {"status": "ok", "user_id": user.id, "blocked": True, "resource_id": telegram_id}
 
 
 @router.post("/users/{telegram_id}/unblock")
+@log_admin_action(action="user_unblock", resource_type="user")
 async def unblock_user(
     telegram_id: int,
-    _admin: dict = Depends(require_admin),
+    admin_data: dict = Depends(get_current_admin),
 ):
     """Разблокировать пользователя."""
     user = await user_repo.get_by_telegram_id(telegram_id)
@@ -294,7 +300,7 @@ async def unblock_user(
         block_reason=None,
     )
 
-    return {"status": "ok", "user_id": user.id, "blocked": False}
+    return {"status": "ok", "user_id": user.id, "blocked": False, "resource_id": telegram_id}
 
 
 class AdminMessageRequest(BaseModel):
@@ -303,9 +309,10 @@ class AdminMessageRequest(BaseModel):
 
 
 @router.delete("/users/{telegram_id}")
+@log_critical_action(action="user_delete", resource_type="user")
 async def delete_user(
     telegram_id: int,
-    _admin: dict = Depends(require_admin),
+    admin_data: dict = Depends(get_current_admin),
 ):
     """
     Удалить пользователя и все его данные.
@@ -345,6 +352,7 @@ async def delete_user(
     return {
         "status": "ok",
         "message": f"Пользователь {telegram_id} и все его данные удалены",
+        "resource_id": telegram_id,
     }
 
 
