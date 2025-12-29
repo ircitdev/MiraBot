@@ -90,7 +90,7 @@ async def list_user_reports(
 @log_admin_action(action="report_create", resource_type="report")
 async def create_user_report(
     telegram_id: int,
-    request: CreateReportRequest,
+    data: CreateReportRequest,
     admin_data: dict = Depends(get_current_admin)
 ) -> ReportResponse:
     """
@@ -112,10 +112,10 @@ async def create_user_report(
 
     report = await repo.create(
         telegram_id=telegram_id,
-        content=request.content,
+        content=data.content,
         created_by=admin_data["admin_id"],
-        tokens_used=request.tokens_used,
-        cost_usd=request.cost_usd,
+        tokens_used=data.tokens_used,
+        cost_usd=data.cost_usd,
     )
 
     # Загружаем имя создателя
