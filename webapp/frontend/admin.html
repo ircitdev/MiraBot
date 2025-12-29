@@ -3902,6 +3902,9 @@
                     <button class="analytics-tab-button" onclick="switchAnalyticsTab('subscriptions')">
                         Подписки
                     </button>
+                    <button class="analytics-tab-button" onclick="switchAnalyticsTab('api-costs')">
+                        Расходы API
+                    </button>
                     <button class="analytics-tab-button" onclick="switchAnalyticsTab('mood')">
                         Настроение
                     </button>
@@ -3934,6 +3937,40 @@
                 <div class="analytics-tab" id="analytics-subscriptions" style="display: none;">
                     <div class="chart-container" style="max-width: 500px; margin: 0 auto;">
                         <canvas id="subscriptions-chart"></canvas>
+                    </div>
+                </div>
+
+                <!-- API Costs Chart -->
+                <div class="analytics-tab" id="analytics-api-costs" style="display: none;">
+                    <!-- Статистика сверху -->
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px;">
+                        <div style="background: var(--md-sys-color-surface-variant); padding: 16px; border-radius: 12px;">
+                            <div style="font-size: 12px; color: var(--md-sys-color-on-surface-variant); margin-bottom: 4px;">Всего потрачено</div>
+                            <div id="api-total-cost" style="font-size: 24px; font-weight: 600; color: var(--md-sys-color-primary);">$0.0000</div>
+                        </div>
+                        <div style="background: var(--md-sys-color-surface-variant); padding: 16px; border-radius: 12px;">
+                            <div style="font-size: 12px; color: var(--md-sys-color-on-surface-variant); margin-bottom: 4px;">Всего токенов</div>
+                            <div id="api-total-tokens" style="font-size: 24px; font-weight: 600; color: var(--md-sys-color-secondary);">0</div>
+                        </div>
+                        <div style="background: var(--md-sys-color-surface-variant); padding: 16px; border-radius: 12px;">
+                            <div style="font-size: 12px; color: var(--md-sys-color-on-surface-variant); margin-bottom: 4px;">Пользователей</div>
+                            <div id="api-unique-users" style="font-size: 24px; font-weight: 600; color: var(--md-sys-color-tertiary);">0</div>
+                        </div>
+                    </div>
+
+                    <div class="chart-controls">
+                        <button class="chart-period-button active" onclick="changeApiCostsPeriod(7)">
+                            7 дней
+                        </button>
+                        <button class="chart-period-button" onclick="changeApiCostsPeriod(30)">
+                            30 дней
+                        </button>
+                        <button class="chart-period-button" onclick="changeApiCostsPeriod(90)">
+                            90 дней
+                        </button>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="api-costs-chart"></canvas>
                     </div>
                 </div>
 
@@ -9637,10 +9674,12 @@
 
         let activityChart = null;
         let subscriptionsChart = null;
+        let apiCostsChart = null;
         let moodChart = null;
         let emotionsChart = null;
         let tagsChart = null;
         let currentActivityPeriod = 7;
+        let currentApiCostsPeriod = 30;
         let currentMoodPeriod = 30;
         // currentEmotionsPeriod уже объявлен выше
         let currentTagsPeriod = 30;
@@ -9656,6 +9695,7 @@
             // Update tabs
             document.getElementById('analytics-activity').style.display = tab === 'activity' ? 'block' : 'none';
             document.getElementById('analytics-subscriptions').style.display = tab === 'subscriptions' ? 'block' : 'none';
+            document.getElementById('analytics-api-costs').style.display = tab === 'api-costs' ? 'block' : 'none';
             document.getElementById('analytics-mood').style.display = tab === 'mood' ? 'block' : 'none';
             document.getElementById('analytics-emotions').style.display = tab === 'emotions' ? 'block' : 'none';
             document.getElementById('analytics-tags').style.display = tab === 'tags' ? 'block' : 'none';
@@ -9667,6 +9707,8 @@
                 loadEmotionsChart(currentEmotionsPeriod);
             } else if (tab === 'tags' && !tagsChart) {
                 loadTagsChart(currentTagsPeriod);
+            } else if (tab === 'api-costs' && !apiCostsChart) {
+                loadApiCostsChart(currentApiCostsPeriod);
             }
         }
 
@@ -10005,6 +10047,132 @@
             } catch (error) {
                 console.error('Failed to load tags chart:', error);
                 showToast('Ошибка загрузки графика тегов', 'error');
+            }
+        }
+
+        // Change API costs period
+        function changeApiCostsPeriod(days) {
+            currentApiCostsPeriod = days;
+
+            // Update buttons
+            document.querySelectorAll('#analytics-api-costs .chart-period-button').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+
+            // Reload chart
+            loadApiCostsChart(days);
+        }
+
+        // Load API costs chart
+        async function loadApiCostsChart(days = 30) {
+            try {
+                // Загружаем статистику
+                const toDate = new Date();
+                const fromDate = new Date();
+                fromDate.setDate(fromDate.getDate() - days);
+
+                const statsData = await apiRequest(`/api-costs/stats?from_date=${fromDate.toISOString().split('T')[0]}&to_date=${toDate.toISOString().split('T')[0]}`);
+
+                // Обновляем статистику сверху
+                document.getElementById('api-total-cost').textContent = `$${statsData.total_cost.toFixed(4)}`;
+                document.getElementById('api-total-tokens').textContent = statsData.total_tokens.toLocaleString();
+                document.getElementById('api-unique-users').textContent = statsData.unique_users.toLocaleString();
+
+                // Загружаем данные по датам
+                const costsData = await apiRequest(`/api-costs/by-date?from_date=${fromDate.toISOString().split('T')[0]}&to_date=${toDate.toISOString().split('T')[0]}`);
+
+                // Группируем по датам и провайдерам
+                const dateMap = {};
+                costsData.forEach(item => {
+                    if (!dateMap[item.date]) {
+                        dateMap[item.date] = {};
+                    }
+                    dateMap[item.date][item.provider] = item.total_cost;
+                });
+
+                const dates = Object.keys(dateMap).sort();
+                const providers = ['claude', 'yandex_tts', 'yandex_stt', 'openai'];
+                const providerNames = {
+                    'claude': 'Claude',
+                    'yandex_tts': 'Yandex TTS',
+                    'yandex_stt': 'Yandex STT',
+                    'openai': 'OpenAI'
+                };
+                const providerColors = {
+                    'claude': '#6750A4',
+                    'yandex_tts': '#7D5260',
+                    'yandex_stt': '#3E2723',
+                    'openai': '#1E88E5'
+                };
+
+                // Формируем datasets
+                const datasets = providers.map(provider => ({
+                    label: providerNames[provider],
+                    data: dates.map(date => dateMap[date][provider] || 0),
+                    backgroundColor: providerColors[provider],
+                    borderWidth: 0,
+                })).filter(dataset => dataset.data.some(val => val > 0)); // Показываем только используемые провайдеры
+
+                const ctx = document.getElementById('api-costs-chart').getContext('2d');
+
+                if (apiCostsChart) {
+                    apiCostsChart.destroy();
+                }
+
+                apiCostsChart = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: dates.map(date => new Date(date).toLocaleDateString('ru-RU', { month: 'short', day: 'numeric' })),
+                        datasets: datasets
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: true,
+                                position: 'top',
+                            },
+                            title: {
+                                display: true,
+                                text: `Расходы на API за ${days} дней (по провайдерам)`
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        return `${context.dataset.label}: $${context.parsed.y.toFixed(4)}`;
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            x: {
+                                stacked: true,
+                                title: {
+                                    display: true,
+                                    text: 'Дата'
+                                }
+                            },
+                            y: {
+                                stacked: true,
+                                beginAtZero: true,
+                                title: {
+                                    display: true,
+                                    text: 'Стоимость (USD)'
+                                },
+                                ticks: {
+                                    callback: function(value) {
+                                        return '$' + value.toFixed(4);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            } catch (error) {
+                console.error('Failed to load API costs chart:', error);
+                showToast('Ошибка загрузки графика расходов API', 'error');
             }
         }
 
