@@ -26,6 +26,7 @@ python-multipart==0.0.6
 # Auth
 python-jose[cryptography]==3.3.0
 passlib[bcrypt]==1.7.4
+PyJWT==2.10.1
 
 # Payments
 yookassa==3.0.1
