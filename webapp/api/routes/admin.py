@@ -652,7 +652,12 @@ async def get_user_messages(
                     if ("photo" in tags and f.file_type == "photo") or \
                        (msg.message_type == "voice" and f.file_type == "voice"):
                         # Генерируем signed URL
-                        file_url = await gcs_client.get_signed_url(f.gcs_path, expiration_minutes=60)
+                        signed_url = await gcs_client.get_signed_url(f.gcs_path, expiration_minutes=60)
+                        if signed_url:
+                            file_url = signed_url
+                        elif gcs_client.is_available:
+                            # Fallback: публичный URL
+                            file_url = gcs_client.get_public_url(f.gcs_path)
                         break
 
         result.append({
@@ -702,15 +707,24 @@ async def get_user_files(
     result = []
     for f in files[:limit]:
         # Генерируем signed URL для просмотра
-        signed_url = None
-        if gcs_client.is_available and f.gcs_path:
-            signed_url = await gcs_client.get_signed_url(f.gcs_path, expiration_minutes=60)
+        file_url = None
+        if f.gcs_path:
+            if gcs_client.is_available:
+                signed_url = await gcs_client.get_signed_url(f.gcs_path, expiration_minutes=60)
+                if signed_url:
+                    file_url = signed_url
+                else:
+                    # Fallback: публичный URL
+                    file_url = gcs_client.get_public_url(f.gcs_path)
+            else:
+                # GCS недоступен - возвращаем None
+                file_url = None
 
         result.append({
             "id": f.id,
             "file_type": f.file_type,
             "gcs_path": f.gcs_path,
-            "gcs_url": signed_url,
+            "gcs_url": file_url,
             "file_name": f.file_name,
             "file_size": f.file_size,
             "mime_type": f.mime_type,
@@ -2038,7 +2052,7 @@ class ReportResponse(BaseModel):
 @router.post("/users/{telegram_id}/report", response_model=ReportResponse)
 async def generate_user_report(
     telegram_id: int,
-    _admin: dict = Depends(require_admin),
+    admin_data: dict = Depends(get_current_admin),
 ):
     """
     Генерирует AI-отчёт по всей переписке с пользователем.
@@ -2145,7 +2159,7 @@ async def generate_user_report(
             output_tokens=response.usage.output_tokens,
             total_tokens=tokens_used,
             model="claude-sonnet-4-20250514",
-            admin_user_id=admin_data["telegram_id"],
+            admin_user_id=admin_data["admin_id"],
         )
 
     except Exception as e:
@@ -2678,7 +2692,19 @@ async def get_legend_photos(
     for photo in photos:
         photo_copy = dict(photo)
         gcs_path = f"mira/{photo['file']}"
-        photo_copy["image_url"] = await gcs_client.get_signed_url(gcs_path, expiration_minutes=1440)  # 24 часа
+
+        # Пытаемся получить signed URL
+        signed_url = await gcs_client.get_signed_url(gcs_path, expiration_minutes=1440)  # 24 часа
+
+        if signed_url:
+            photo_copy["image_url"] = signed_url
+        elif gcs_client.is_available:
+            # Если GCS доступен, но signed URL не получился - используем публичный URL
+            photo_copy["image_url"] = gcs_client.get_public_url(gcs_path)
+        else:
+            # Fallback: локальный путь (если файлы есть на сервере)
+            photo_copy["image_url"] = None
+
         photos_with_urls.append(photo_copy)
 
     return {

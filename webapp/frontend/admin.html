@@ -6090,7 +6090,7 @@
                 <button class="chat-tab active" data-tab="messages" onclick="switchChatTab('messages')">
                     <span class="material-icons">chat</span> Переписка
                 </button>
-                <button class="chat-tab" data-tab="reports" onclick="switchChatTab('reports')">
+                <button class="chat-tab" data-tab="reports" onclick="switchChatTab('reports'); loadUserReports();">
                     <span class="material-icons">assessment</span> Отчёты
                     <span class="reports-count" id="reports-count" style="display: none;">0</span>
                 </button>
