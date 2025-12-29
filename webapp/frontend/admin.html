@@ -7616,8 +7616,8 @@
                     const initial = name[0].toUpperCase();
                     const avatarColor = getAvatarColor(user.telegram_id);
                     const avatarHtml = user.avatar_url
-                        ? `<img src="${user.avatar_url}" class="top-user-avatar" alt="" onclick="event.stopPropagation(); openUserProfile(${user.telegram_id})" onerror="this.outerHTML='<span class=\\'top-user-avatar-placeholder\\' style=\\'background: ${avatarColor}\\' onclick=\\'event.stopPropagation(); openUserProfile(${user.telegram_id})\\'>${initial}</span>'">`
-                        : `<span class="top-user-avatar-placeholder" style="background: ${avatarColor}" onclick="event.stopPropagation(); openUserProfile(${user.telegram_id})">${initial}</span>`;
+                        ? `<img src="${user.avatar_url}" class="top-user-avatar" alt="" onclick="event.stopPropagation(); viewUser(${user.telegram_id})" onerror="this.outerHTML='<span class=\\'top-user-avatar-placeholder\\' style=\\'background: ${avatarColor}\\' onclick=\\'event.stopPropagation(); viewUser(${user.telegram_id})\\'>${initial}</span>'">`
+                        : `<span class="top-user-avatar-placeholder" style="background: ${avatarColor}" onclick="event.stopPropagation(); viewUser(${user.telegram_id})">${initial}</span>`;
                     const premiumStar = user.is_premium ? '<span class="premium-star">⭐</span>' : '';
 
                     return `
@@ -7844,11 +7844,41 @@
                 userLink = `<span class="no-link">ID: ${user.telegram_id}</span>`;
             }
 
+            // Загружаем расходы API
+            let apiCostHtml = '<span style="color: var(--md-sys-color-outline);">Загрузка...</span>';
+            let apiTokensHtml = '<span style="color: var(--md-sys-color-outline);">—</span>';
+
+            try {
+                const apiCosts = await apiRequest(`/api-costs/users/${user.telegram_id}`);
+                if (apiCosts && apiCosts.total_cost > 0) {
+                    apiCostHtml = `<span style="color: var(--md-sys-color-primary); font-weight: 500;">$${apiCosts.total_cost.toFixed(4)}</span>`;
+                    // Подсчитываем общее количество токенов (примерно, на основе стоимости)
+                    const estimatedTokens = Math.round((apiCosts.total_cost / 0.000015) * 1000);
+                    apiTokensHtml = `<span style="color: var(--md-sys-color-secondary);">${estimatedTokens.toLocaleString()}</span>`;
+
+                    // Добавляем разбивку по провайдерам если есть
+                    if (apiCosts.by_provider && Object.keys(apiCosts.by_provider).length > 0) {
+                        const providerBreakdown = Object.entries(apiCosts.by_provider)
+                            .map(([provider, cost]) => `${provider}: $${cost.toFixed(4)}`)
+                            .join(', ');
+                        apiCostHtml += `<br><small style="color: var(--md-sys-color-on-surface-variant);">${providerBreakdown}</small>`;
+                    }
+                } else {
+                    apiCostHtml = '<span style="color: var(--md-sys-color-outline);">$0.0000</span>';
+                    apiTokensHtml = '<span style="color: var(--md-sys-color-outline);">0</span>';
+                }
+            } catch (error) {
+                console.error('Failed to load API costs:', error);
+                apiCostHtml = '<span style="color: var(--md-sys-color-error);">Ошибка загрузки</span>';
+            }
+
             document.getElementById('user-info-content').innerHTML = `
                 <p><strong>Telegram:</strong> ${userLink}</p>
                 <p><strong>ID:</strong> ${user.telegram_id}</p>
                 <p><strong>Подписка:</strong> ${user.subscription_plan}</p>
                 <p><strong>Сообщений:</strong> ${user.total_messages} (за неделю: ${user.messages_this_week})</p>
+                <p><strong>API Токенов:</strong> ${apiTokensHtml}</p>
+                <p><strong>API Расходы:</strong> ${apiCostHtml}</p>
                 <p><strong>Проактивный режим:</strong> ${user.proactive_messages ? '✅ Включён' : '❌ Выключен'}</p>
                 <p><strong>Партнёр:</strong> ${user.partner_name || 'не указан'}</p>
                 <p><strong>Ритуалы:</strong> ${user.rituals_enabled?.join(', ') || 'нет'}</p>
@@ -8002,7 +8032,7 @@
                 `;
             } catch (error) {
                 console.error('Failed to load referrals:', error);
-                container.innerHTML = '<div class="no-data"><p>Ошибка загрузки</p></div>';
+                container.innerHTML = `<div class="no-data"><p>Ошибка загрузки: ${error.message}</p></div>`;
             }
         }
 
@@ -8078,7 +8108,7 @@
                 `;
             } catch (error) {
                 console.error('Failed to load goals:', error);
-                container.innerHTML = '<div class="no-data"><p>Ошибка загрузки</p></div>';
+                container.innerHTML = `<div class="no-data"><p>Ошибка загрузки: ${error.message}</p></div>`;
             }
         }
 
@@ -8319,7 +8349,7 @@
                 `;
             } catch (error) {
                 console.error('Failed to load profile:', error);
-                container.innerHTML = '<div class="no-data"><p>Ошибка загрузки профиля</p></div>';
+                container.innerHTML = `<div class="no-data"><p>Ошибка загрузки профиля: ${error.message}</p></div>`;
             }
         }
 
