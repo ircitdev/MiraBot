@@ -1013,3 +1013,82 @@ class PaymentStats(Base):
 
     def __repr__(self) -> str:
         return f"<PaymentStats(date={self.date})>"
+
+
+class AdminUser(Base):
+    """Администраторы и модераторы админ-панели."""
+
+    __tablename__ = "admin_users"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    telegram_id: Mapped[int] = mapped_column(BigInteger, unique=True, nullable=False, index=True)
+    username: Mapped[Optional[str]] = mapped_column(String(255))
+    first_name: Mapped[Optional[str]] = mapped_column(String(255))
+    last_name: Mapped[Optional[str]] = mapped_column(String(255))
+
+    # Роль: 'admin' или 'moderator'
+    role: Mapped[str] = mapped_column(String(50), nullable=False, default='moderator', index=True)
+
+    # Персонализация
+    avatar_url: Mapped[Optional[str]] = mapped_column(String(500))  # URL фото профиля
+    accent_color: Mapped[str] = mapped_column(String(7), default='#1976d2')  # HEX цвет
+
+    # Метаданные
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=func.now())
+    created_by_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey('admin_users.id'))
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    last_login_at: Mapped[Optional[datetime]] = mapped_column(DateTime)
+
+    # Связи
+    created_by: Mapped[Optional["AdminUser"]] = relationship("AdminUser", remote_side=[id], foreign_keys=[created_by_id])
+    logs: Mapped[List["AdminLog"]] = relationship("AdminLog", back_populates="admin_user", cascade="all, delete-orphan")
+
+    # Индексы
+    __table_args__ = (
+        Index("idx_admin_user_telegram_id", "telegram_id"),
+        Index("idx_admin_user_role", "role"),
+        Index("idx_admin_user_active", "is_active"),
+    )
+
+    def __repr__(self) -> str:
+        return f"<AdminUser(id={self.id}, telegram_id={self.telegram_id}, role={self.role})>"
+
+
+class AdminLog(Base):
+    """Лог действий администраторов и модераторов."""
+
+    __tablename__ = "admin_logs"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    admin_user_id: Mapped[int] = mapped_column(Integer, ForeignKey('admin_users.id'), nullable=False)
+
+    # Действие
+    action: Mapped[str] = mapped_column(String(100), nullable=False, index=True)  # 'user_block', 'user_unblock', etc.
+    resource_type: Mapped[Optional[str]] = mapped_column(String(50), index=True)  # 'user', 'subscription', 'message'
+    resource_id: Mapped[Optional[int]] = mapped_column(Integer)  # ID объекта
+
+    # Детали
+    details: Mapped[Optional[dict]] = mapped_column(JSONB)  # Дополнительные данные
+    ip_address: Mapped[Optional[str]] = mapped_column(String(45))  # IPv4/IPv6
+    user_agent: Mapped[Optional[str]] = mapped_column(String(500))
+
+    # Результат
+    success: Mapped[bool] = mapped_column(Boolean, default=True)
+    error_message: Mapped[Optional[str]] = mapped_column(Text)
+
+    # Время
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=func.now(), index=True)
+
+    # Связи
+    admin_user: Mapped["AdminUser"] = relationship("AdminUser", back_populates="logs")
+
+    # Индексы
+    __table_args__ = (
+        Index("idx_admin_log_user", "admin_user_id"),
+        Index("idx_admin_log_action", "action"),
+        Index("idx_admin_log_resource", "resource_type", "resource_id"),
+        Index("idx_admin_log_created", "created_at"),
+    )
+
+    def __repr__(self) -> str:
+        return f"<AdminLog(id={self.id}, action={self.action}, admin_user_id={self.admin_user_id})>"
