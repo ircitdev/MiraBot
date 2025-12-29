@@ -36,7 +36,7 @@ app.include_router(programs.router, prefix="/api/programs", tags=["programs"])
 app.include_router(promo.router, prefix="/api/promo", tags=["promo"])
 app.include_router(moderators.router, prefix="/api", tags=["moderators"])
 app.include_router(admin_logs.router, prefix="/api", tags=["admin-logs"])
-app.include_router(reports.router, prefix="/api", tags=["reports"])
+app.include_router(reports.router, prefix="/api/admin", tags=["reports"])
 app.include_router(api_costs.router, prefix="/api", tags=["api-costs"])
 
 # Static files
