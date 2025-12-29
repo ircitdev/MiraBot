@@ -13,12 +13,13 @@ from database.repositories.subscription import SubscriptionRepository
 from database.repositories.conversation import ConversationRepository
 from database.repositories.referral import ReferralRepository
 from database.repositories.promo import promo_repo
+from database.repositories.admin_user import AdminUserRepository
 from config.settings import settings
 from services.audit import audit_service
 from services.export import export_service
 
 
-# Telegram ID администратора
+# Telegram ID администратора (legacy)
 ADMIN_ID = 65876198
 
 # Состояния для ConversationHandler
@@ -45,17 +46,41 @@ user_repo = UserRepository()
 subscription_repo = SubscriptionRepository()
 conversation_repo = ConversationRepository()
 referral_repo = ReferralRepository()
+admin_user_repo = AdminUserRepository()
 
 
-def is_admin(user_id: int) -> bool:
-    """Проверяет, является ли пользователь администратором."""
-    return user_id == ADMIN_ID
+async def is_admin(user_id: int) -> bool:
+    """Проверяет, является ли пользователь администратором или модератором."""
+    # Сначала проверяем legacy ADMIN_ID для обратной совместимости
+    if user_id == ADMIN_ID:
+        return True
+
+    # Проверяем в базе данных
+    admin_user = await admin_user_repo.get_by_telegram_id(user_id)
+    return admin_user is not None and admin_user.is_active
+
+
+def generate_admin_jwt(telegram_id: int, username: str = None, first_name: str = None) -> str:
+    """Генерирует JWT токен для доступа к админ-панели."""
+    import jwt
+    from datetime import datetime, timedelta
+
+    payload = {
+        "telegram_id": telegram_id,
+        "username": username,
+        "first_name": first_name,
+        "exp": datetime.utcnow() + timedelta(days=30),  # Токен действителен 30 дней
+        "iat": datetime.utcnow(),
+    }
+
+    token = jwt.encode(payload, settings.ADMIN_SECRET_KEY, algorithm="HS256")
+    return token
 
 
 async def admin_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Главное меню администратора /admin."""
 
-    if not is_admin(update.effective_user.id):
+    if not await is_admin(update.effective_user.id):
         await update.message.reply_text("⛔ У тебя нет доступа к этой команде.")
         return
 
@@ -84,15 +109,24 @@ async def admin_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
 async def web_admin_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Команда /web_admin - отправляет ссылку на веб-админку с токеном."""
 
-    if not is_admin(update.effective_user.id):
+    if not await is_admin(update.effective_user.id):
         await update.message.reply_text("⛔ У тебя нет доступа к этой команде.")
         return
 
-    admin_url = f"https://mira.uspeshnyy.ru/admin?token={settings.ADMIN_TOKEN}"
+    # Генерируем JWT токен для пользователя
+    user = update.effective_user
+    jwt_token = generate_admin_jwt(
+        telegram_id=user.id,
+        username=user.username,
+        first_name=user.first_name,
+    )
+
+    admin_url = f"https://mira.uspeshnyy.ru/admin?token={jwt_token}"
 
     await update.message.reply_text(
         f"🌐 <b>Web-админка</b>\n\n"
-        f"<a href=\"{admin_url}\">Открыть админ-панель</a>",
+        f"<a href=\"{admin_url}\">Открыть админ-панель</a>\n\n"
+        f"Ссылка персональная и действительна 30 дней.",
         parse_mode="HTML",
         disable_web_page_preview=True
     )
@@ -104,17 +138,27 @@ async def handle_admin_callback(update: Update, context: ContextTypes.DEFAULT_TY
     query = update.callback_query
     await query.answer()
 
-    if not is_admin(query.from_user.id):
+    if not await is_admin(query.from_user.id):
         await query.edit_message_text("⛔ У тебя нет доступа.")
         return ConversationHandler.END
 
     data = query.data
 
     if data == "admin:web_admin":
-        admin_url = f"https://mira.uspeshnyy.ru/admin?token={settings.ADMIN_TOKEN}"
+        # Генерируем JWT токен для пользователя
+        user = query.from_user
+        jwt_token = generate_admin_jwt(
+            telegram_id=user.id,
+            username=user.username,
+            first_name=user.first_name,
+        )
+
+        admin_url = f"https://mira.uspeshnyy.ru/admin?token={jwt_token}"
+
         await query.message.reply_text(
             f"🌐 <b>Web-админка</b>\n\n"
-            f"<a href=\"{admin_url}\">Открыть админ-панель</a>",
+            f"<a href=\"{admin_url}\">Открыть админ-панель</a>\n\n"
+            f"Ссылка персональная и действительна 30 дней.",
             parse_mode="HTML",
             disable_web_page_preview=True
         )
@@ -526,7 +570,7 @@ async def _start_give_premium(query, context) -> int:
 async def receive_user_id(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Получение ID пользователя для выдачи премиума."""
 
-    if not is_admin(update.effective_user.id):
+    if not await is_admin(update.effective_user.id):
         return ConversationHandler.END
 
     text = update.message.text.strip()
@@ -569,7 +613,7 @@ async def receive_user_id(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
 async def receive_days(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Получение количества дней и выдача премиума."""
 
-    if not is_admin(update.effective_user.id):
+    if not await is_admin(update.effective_user.id):
         return ConversationHandler.END
 
     text = update.message.text.strip()
@@ -758,7 +802,7 @@ async def _start_block_user(query, context, telegram_id: int) -> int:
 async def receive_block_reason(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Получение причины блокировки."""
 
-    if not is_admin(update.effective_user.id):
+    if not await is_admin(update.effective_user.id):
         return ConversationHandler.END
 
     text = update.message.text.strip()
@@ -902,7 +946,7 @@ async def _start_broadcast(query, context, segment: str) -> int:
 async def receive_broadcast_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Получение текста рассылки."""
 
-    if not is_admin(update.effective_user.id):
+    if not await is_admin(update.effective_user.id):
         return ConversationHandler.END
 
     text = update.message.text.strip()
@@ -1451,7 +1495,7 @@ async def _start_create_promo(query, context) -> int:
 async def receive_promo_code_input(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Получение кода промокода."""
 
-    if not is_admin(update.effective_user.id):
+    if not await is_admin(update.effective_user.id):
         return ConversationHandler.END
 
     text = update.message.text.strip().upper()
@@ -1531,7 +1575,7 @@ async def _receive_promo_type(query, context, promo_type: str) -> int:
 async def receive_promo_value(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Получение значения промокода."""
 
-    if not is_admin(update.effective_user.id):
+    if not await is_admin(update.effective_user.id):
         return ConversationHandler.END
 
     text = update.message.text.strip()
@@ -1583,7 +1627,7 @@ async def receive_promo_value(update: Update, context: ContextTypes.DEFAULT_TYPE
 async def receive_promo_max_uses(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Получение лимита использований и создание промокода."""
 
-    if not is_admin(update.effective_user.id):
+    if not await is_admin(update.effective_user.id):
         return ConversationHandler.END
 
     text = update.message.text.strip()
