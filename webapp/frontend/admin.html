@@ -4763,9 +4763,25 @@
                 <div class="analytics-header">
                     <h2>
                         <span class="material-icons">settings</span>
-                        Системные настройки
+                        Конфигурация
                     </h2>
-                    <div class="analytics-controls">
+                </div>
+
+                <!-- Config Tabs -->
+                <div style="display: flex; gap: 8px; margin-bottom: 20px; border-bottom: 1px solid var(--md-sys-color-outline); padding-bottom: 8px;">
+                    <button class="md-button md-button-outlined config-tab-btn active" onclick="switchConfigTab('settings')" id="config-tab-settings">
+                        <span class="material-icons">settings</span>
+                        Настройки
+                    </button>
+                    <button class="md-button md-button-outlined config-tab-btn" onclick="switchConfigTab('logs')" id="config-tab-logs">
+                        <span class="material-icons">history</span>
+                        Лог операций
+                    </button>
+                </div>
+
+                <!-- Settings Tab Content -->
+                <div id="config-content-settings" class="config-tab-content active">
+                    <div class="analytics-controls" style="margin-bottom: 20px;">
                         <button class="md-button md-button-outlined" onclick="loadAllSettings()">
                             <span class="material-icons">refresh</span>
                             Обновить
@@ -4775,7 +4791,6 @@
                             Сохранить все
                         </button>
                     </div>
-                </div>
 
                 <!-- Config API Section -->
                 <div id="config-section-api" class="config-section active">
@@ -5118,6 +5133,69 @@
                         </div>
                     </div>
                 </div>
+                </div><!-- END Settings Tab Content -->
+
+                <!-- Logs Tab Content -->
+                <div id="config-content-logs" class="config-tab-content" style="display: none;">
+                    <div class="analytics-controls" style="margin-bottom: 20px;">
+                        <button class="md-button md-button-outlined" onclick="loadAllAdminLogs()">
+                            <span class="material-icons">refresh</span>
+                            Обновить
+                        </button>
+                    </div>
+
+                    <!-- Filters -->
+                    <div class="filters-section" style="margin-bottom: 20px;">
+                        <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+                            <div style="flex: 1; min-width: 200px;">
+                                <label style="display: block; margin-bottom: 6px; font-size: 13px; color: var(--md-sys-color-on-surface-variant);">Администратор</label>
+                                <select id="admin-logs-admin-filter" onchange="loadAllAdminLogs()" style="width: 100%; padding: 10px; border: 1px solid var(--md-sys-color-outline); border-radius: 8px; background: var(--md-sys-color-surface); color: var(--md-sys-color-on-surface);">
+                                    <option value="">Все модераторы и админы</option>
+                                </select>
+                            </div>
+                            <div style="flex: 1; min-width: 200px;">
+                                <label style="display: block; margin-bottom: 6px; font-size: 13px; color: var(--md-sys-color-on-surface-variant);">Действие</label>
+                                <select id="admin-logs-action-filter" onchange="loadAllAdminLogs()" style="width: 100%; padding: 10px; border: 1px solid var(--md-sys-color-outline); border-radius: 8px; background: var(--md-sys-color-surface); color: var(--md-sys-color-on-surface);">
+                                    <option value="">Все действия</option>
+                                    <option value="user_block">Блокировка пользователя</option>
+                                    <option value="user_unblock">Разблокировка</option>
+                                    <option value="subscription_grant">Выдача подписки</option>
+                                    <option value="subscription_update">Обновление подписки</option>
+                                    <option value="broadcast_send">Рассылка</option>
+                                    <option value="moderator_create">Создание модератора</option>
+                                    <option value="moderator_update">Обновление модератора</option>
+                                    <option value="moderator_deactivate">Деактивация модератора</option>
+                                </select>
+                            </div>
+                            <div style="flex: 1; min-width: 150px;">
+                                <label style="display: block; margin-bottom: 6px; font-size: 13px; color: var(--md-sys-color-on-surface-variant);">Записей</label>
+                                <select id="admin-logs-limit" onchange="loadAllAdminLogs()" style="width: 100%; padding: 10px; border: 1px solid var(--md-sys-color-outline); border-radius: 8px; background: var(--md-sys-color-surface); color: var(--md-sys-color-on-surface);">
+                                    <option value="50">50 записей</option>
+                                    <option value="100" selected>100 записей</option>
+                                    <option value="200">200 записей</option>
+                                    <option value="500">500 записей</option>
+                                </select>
+                            </div>
+                            <div style="flex: 1; min-width: 150px;">
+                                <label style="display: block; margin-bottom: 6px; font-size: 13px; color: var(--md-sys-color-on-surface-variant);">Статус</label>
+                                <select id="admin-logs-success-filter" onchange="loadAllAdminLogs()" style="width: 100%; padding: 10px; border: 1px solid var(--md-sys-color-outline); border-radius: 8px; background: var(--md-sys-color-surface); color: var(--md-sys-color-on-surface);">
+                                    <option value="">Все</option>
+                                    <option value="true">Успешные</option>
+                                    <option value="false">Ошибки</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Logs Container -->
+                    <div id="all-admin-logs-container">
+                        <div class="loading">
+                            <div class="spinner"></div>
+                            <div>Загрузка логов...</div>
+                        </div>
+                    </div>
+                </div><!-- END Logs Tab Content -->
+
             </div>
         </div><!-- END TAB: Config -->
 
@@ -6485,6 +6563,150 @@
                 console.error('Failed to update accent color:', error);
                 showToast('Ошибка обновления цвета', 'error');
             }
+        }
+
+        // Config Tab Switching
+        function switchConfigTab(tabName) {
+            // Update tab buttons
+            document.querySelectorAll('.config-tab-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            document.getElementById('config-tab-' + tabName).classList.add('active');
+
+            // Update tab content
+            document.querySelectorAll('.config-tab-content').forEach(content => {
+                content.style.display = 'none';
+            });
+            const tabContent = document.getElementById('config-content-' + tabName);
+            if (tabContent) {
+                tabContent.style.display = 'block';
+            }
+
+            // Load data for logs tab
+            if (tabName === 'logs') {
+                loadAllAdminLogs();
+                loadAdminUsersForFilter();
+            }
+        }
+
+        // Load admin users for filter dropdown
+        async function loadAdminUsersForFilter() {
+            try {
+                const response = await fetch('/api/moderators/', {
+                    headers: {
+                        'Authorization': `tma ${adminToken}`
+                    }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    const select = document.getElementById('admin-logs-admin-filter');
+
+                    if (select && data) {
+                        // Keep the "All" option and add moderators
+                        const moderators = Array.isArray(data) ? data : [];
+                        moderators.forEach(moderator => {
+                            const fullName = [moderator.first_name, moderator.last_name].filter(Boolean).join(' ') || moderator.username || `ID ${moderator.telegram_id}`;
+                            const roleText = moderator.role === 'admin' ? ' (Админ)' : ' (Модератор)';
+                            const option = document.createElement('option');
+                            option.value = moderator.id;
+                            option.textContent = fullName + roleText;
+                            select.appendChild(option);
+                        });
+                    }
+                }
+            } catch (error) {
+                console.error('Failed to load admin users for filter:', error);
+            }
+        }
+
+        // Load all admin logs (for Config > Logs tab)
+        async function loadAllAdminLogs() {
+            const container = document.getElementById('all-admin-logs-container');
+            const adminFilter = document.getElementById('admin-logs-admin-filter')?.value || '';
+            const actionFilter = document.getElementById('admin-logs-action-filter')?.value || '';
+            const successFilter = document.getElementById('admin-logs-success-filter')?.value || '';
+            const limit = document.getElementById('admin-logs-limit')?.value || '100';
+
+            container.innerHTML = '<div class="loading"><div class="spinner"></div><div>Загрузка логов...</div></div>';
+
+            try {
+                const params = new URLSearchParams({ limit });
+                if (adminFilter) params.append('admin_user_id', adminFilter);
+                if (actionFilter) params.append('action', actionFilter);
+                if (successFilter !== '') params.append('success', successFilter);
+
+                const response = await fetch(`/api/admin-logs/?${params}`, {
+                    headers: {
+                        'Authorization': `tma ${adminToken}`
+                    }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    renderAllAdminLogs(data.logs || [], data.total || 0);
+                } else {
+                    container.innerHTML = '<div class="error-message">Ошибка загрузки логов</div>';
+                }
+            } catch (error) {
+                console.error('Failed to load all admin logs:', error);
+                container.innerHTML = '<div class="error-message">Ошибка загрузки логов</div>';
+            }
+        }
+
+        function renderAllAdminLogs(logs, total) {
+            const container = document.getElementById('all-admin-logs-container');
+
+            if (!logs || logs.length === 0) {
+                container.innerHTML = '<div style="text-align: center; padding: 40px; color: var(--md-sys-color-on-surface-variant);">Нет записей</div>';
+                return;
+            }
+
+            const tableHTML = `
+                <div style="margin-bottom: 12px; color: var(--md-sys-color-on-surface-variant); font-size: 14px;">
+                    Показано ${logs.length} из ${total} записей
+                </div>
+                <table class="data-table" style="width: 100%;">
+                    <thead>
+                        <tr>
+                            <th style="width: 12%;">Время</th>
+                            <th style="width: 18%;">Администратор</th>
+                            <th style="width: 20%;">Действие</th>
+                            <th style="width: 12%;">Ресурс</th>
+                            <th style="width: 23%;">Детали</th>
+                            <th style="width: 10%;">IP</th>
+                            <th style="width: 5%;">Статус</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${logs.map(log => `
+                            <tr class="${log.success ? '' : 'error-row'}">
+                                <td style="font-size: 12px;">${new Date(log.created_at).toLocaleString('ru-RU', {
+                                    day: '2-digit',
+                                    month: '2-digit',
+                                    year: '2-digit',
+                                    hour: '2-digit',
+                                    minute: '2-digit'
+                                })}</td>
+                                <td style="font-size: 13px;">ID ${log.admin_user_id}</td>
+                                <td style="font-size: 13px;">${ACTION_NAMES[log.action] || log.action}</td>
+                                <td style="font-size: 12px;">${log.resource_type || '—'} ${log.resource_id ? '#' + log.resource_id : ''}</td>
+                                <td style="font-size: 11px; color: var(--md-sys-color-on-surface-variant);">
+                                    ${log.details ? JSON.stringify(log.details).substring(0, 60) + '...' : '—'}
+                                </td>
+                                <td style="font-family: monospace; font-size: 11px;">${log.ip_address || '—'}</td>
+                                <td style="text-align: center;">
+                                    ${log.success
+                                        ? '<span class="material-icons" style="color: #4CAF50; font-size: 18px;">check_circle</span>'
+                                        : '<span class="material-icons" style="color: #F44336; font-size: 18px;">error</span>'}
+                                </td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+
+            container.innerHTML = tableHTML;
         }
 
         // My Logs Functions
