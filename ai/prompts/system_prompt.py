@@ -867,10 +867,89 @@ def _build_user_context_block(context: Dict[str, Any]) -> str:
         if mood.get("avg_anxiety") and mood["avg_anxiety"] >= 6:
             parts.append("- ⚠️ Повышенная тревожность")
 
+    # НОВОЕ: Текущее настроение (смешанные эмоции)
+    if context.get("current_mood"):
+        mood_block = _format_current_mood(context["current_mood"])
+        parts.append(mood_block)
+
     if not parts:
         return "Это новая собеседница, ты пока мало о ней знаешь."
 
     return "\n".join(parts)
+
+
+def _format_current_mood(mood: Dict[str, Any]) -> str:
+    """
+    Форматирует эмоциональное состояние текущего сообщения для промпта.
+
+    Args:
+        mood: Данные от mood_analyzer (MoodAnalysis)
+
+    Returns:
+        Отформатированный текст для промпта
+    """
+    # Переводим эмоции на русский
+    EMOTION_NAMES = {
+        "happy": "счастлива/рада",
+        "calm": "спокойна",
+        "neutral": "нейтральна",
+        "tired": "уставшая",
+        "sad": "грустная",
+        "anxious": "тревожная",
+        "angry": "злая/раздражённая",
+        "frustrated": "разочарована",
+        "hopeless": "отчаявшаяся",
+        "overwhelmed": "перегружена",
+    }
+
+    TRIGGER_NAMES = {
+        "partner": "отношения с партнёром",
+        "children": "дети",
+        "work": "работа",
+        "family": "семья",
+        "health": "здоровье",
+        "finance": "финансы",
+        "self": "самореализация",
+    }
+
+    lines = ["\n### 🎭 ЭМОЦИОНАЛЬНОЕ СОСТОЯНИЕ (текущее сообщение)\n"]
+
+    primary = mood.get("primary_emotion", "neutral")
+    secondary = mood.get("secondary_emotions", [])
+    score = mood.get("mood_score", 0)
+    energy = mood.get("energy_level")
+    anxiety = mood.get("anxiety_level")
+    triggers = mood.get("triggers", [])
+    confidence = mood.get("confidence", 0.0)
+
+    # Основная эмоция
+    primary_ru = EMOTION_NAMES.get(primary, primary)
+    lines.append(f"**Основная эмоция:** {primary_ru} (настроение: {score:+d}/5)")
+
+    # Смешанные эмоции (КРИТИЧЕСКИ ВАЖНО)
+    if secondary:
+        secondary_ru = [EMOTION_NAMES.get(e, e) for e in secondary]
+        lines.append(f"**⚠️ СМЕШАННЫЕ эмоции:** {', '.join(secondary_ru)}")
+        lines.append("*(Обрати внимание: человек испытывает НЕСКОЛЬКО эмоций одновременно — это важно!)*")
+
+    # Энергия и тревога
+    if energy:
+        lines.append(f"**Уровень энергии:** {energy}/10")
+    if anxiety:
+        lines.append(f"**Уровень тревоги:** {anxiety}/10")
+
+    # Триггеры
+    if triggers:
+        triggers_ru = [TRIGGER_NAMES.get(t, t) for t in triggers]
+        lines.append(f"**Триггеры:** {', '.join(triggers_ru)}")
+
+    lines.append("\n**КАК ИСПОЛЬЗОВАТЬ:**")
+    lines.append("- Если есть СМЕШАННЫЕ эмоции — признай ВСЕ, не только главную")
+    lines.append("- Пример: \"Похоже, ты одновременно и рада, и тревожишься... Это нормально.\"")
+    lines.append("- НЕ упрощай: если человек чувствует 3 эмоции — не своди всё к одной")
+    lines.append(f"- Уверенность анализа: {confidence:.0%} — если низкая, лучше переспросить\n")
+
+    return "\n".join(lines)
 
 
 def _build_style_adaptation_block(style: Dict[str, Any]) -> str:

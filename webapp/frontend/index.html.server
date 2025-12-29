@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Мира — Настройки и Статистика</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <link rel="stylesheet" href="/static/styles.css?v=1.9.7">
+    <script src="/static/app.js?v=1.9.7" defer></script>
+</head>
+<body>
+    <div id="app">
+        <!-- Tabs -->
+        <div class="tabs">
+            <button class="tab active" data-tab="stats">
+                <svg class="tab-icon" width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M3 13h2v8H3v-8zm4-6h2v14H7V7zm4-4h2v18h-2V3zm4 8h2v10h-2V11zm4-3h2v13h-2V8z"/>
+                </svg>
+                <span class="tab-text">Статистика</span>
+            </button>
+            <button class="tab" data-tab="settings">
+                <svg class="tab-icon" width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M19.14 12.94c.04-.31.06-.63.06-.94 0-.31-.02-.63-.06-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.04.31-.06.63-.06.94s.02.63.06.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/>
+                </svg>
+                <span class="tab-text">Настройки</span>
+            </button>
+            <button class="tab" data-tab="payment">
+                <svg class="tab-icon" width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M20 4H4c-1.11 0-1.99.89-1.99 2L2 18c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V6c0-1.11-.89-2-2-2zm0 14H4v-6h16v6zm0-10H4V6h16v2z"/>
+                </svg>
+                <span class="tab-text">Оплата</span>
+            </button>
+            <button class="tab tab-privacy" data-tab="privacy" title="Конфиденциальность">
+                <svg class="tab-icon" width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 2C9.24 2 7 4.24 7 7V10H6C4.9 10 4 10.9 4 12V20C4 21.1 4.9 22 6 22H18C19.1 22 20 21.1 20 20V12C20 10.9 19.1 10 18 10H17V7C17 4.24 14.76 2 12 2ZM12 4C13.66 4 15 5.34 15 7V10H9V7C9 5.34 10.34 4 12 4ZM12 13C13.1 13 14 13.9 14 15C14 15.74 13.6 16.39 13 16.73V19H11V16.73C10.4 16.39 10 15.74 10 15C10 13.9 10.9 13 12 13Z"/>
+                </svg>
+                <span class="tab-text">Приватность</span>
+            </button>
+        </div>
+
+        <!-- Stats Tab -->
+        <div id="stats-tab" class="tab-content active">
+            <div class="section">
+                <h2>📊 Статистика</h2>
+
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-value" id="total-messages">-</div>
+                        <div class="stat-label">Всего сообщений</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="week-messages">-</div>
+                        <div class="stat-label">За неделю</div>
+                    </div>
+                </div>
+
+                <div class="subscription-card">
+                    <h3 id="subscription-title">Premium</h3>
+                    <p id="subscription-info"></p>
+                </div>
+
+                <!-- Кнопка приглашения подруг -->
+                <button id="invite-friends-btn" class="invite-friends-btn" onclick="document.querySelector('.tab[data-tab=&quot;payment&quot;]').click()">
+                    👭 Пригласи подруг, продли Premium
+                </button>
+            </div>
+
+            <!-- Настроение (изначально открыт) -->
+            <div class="accordion-item">
+                <div class="accordion-header active">
+                    <span>📈 Настроение</span>
+                    <span class="accordion-icon">▼</span>
+                </div>
+                <div class="accordion-content active">
+                    <div class="section-header">
+                        <div class="period-toggle">
+                            <button class="period-btn active" data-days="7">7д</button>
+                            <button class="period-btn" data-days="14">14д</button>
+                            <button class="period-btn" data-days="30">30д</button>
+                        </div>
+                    </div>
+                    <div class="mood-summary" id="mood-summary">Статистика появится по мере общения</div>
+                    <canvas id="mood-chart"></canvas>
+                </div>
+            </div>
+
+            <!-- Топ темы -->
+            <div class="accordion-item">
+                <div class="accordion-header">
+                    <span>💭 Топ темы</span>
+                    <span class="accordion-icon">▼</span>
+                </div>
+                <div class="accordion-content">
+                    <div id="topics-list">Статистика появится по мере общения</div>
+                </div>
+            </div>
+
+            <!-- Эмоции -->
+            <div class="accordion-item">
+                <div class="accordion-header">
+                    <span>😊 Эмоции</span>
+                    <span class="accordion-icon">▼</span>
+                </div>
+                <div class="accordion-content">
+                    <div id="emotions-list">Статистика появится по мере общения</div>
+                </div>
+            </div>
+
+            <!-- Мои цели -->
+            <div class="accordion-item">
+                <div class="accordion-header">
+                    <span>🎯 Мои цели</span>
+                    <span class="accordion-icon">▼</span>
+                </div>
+                <div class="accordion-content">
+                    <div id="goals-list">Статистика появится по мере общения</div>
+                </div>
+            </div>
+
+            <!-- Мои программы -->
+            <div class="accordion-item">
+                <div class="accordion-header">
+                    <span>📚 Мои программы</span>
+                    <span class="accordion-icon">▼</span>
+                </div>
+                <div class="accordion-content">
+                    <div id="programs-list">
+                        <div class="loading">Загрузка...</div>
+                    </div>
+                    <div id="programs-summary" class="programs-summary"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Payment Tab -->
+        <div id="payment-tab" class="tab-content">
+            <div class="section">
+                <h2>💎 Подписка</h2>
+
+                <!-- Текущий статус подписки -->
+                <div class="payment-status-card" id="payment-status-card">
+                    <div class="payment-status-header">
+                        <span class="payment-plan-icon" id="payment-plan-icon">✨</span>
+                        <div class="payment-plan-info">
+                            <h3 id="payment-plan-name">Загрузка...</h3>
+                            <p id="payment-plan-status" class="payment-status-text"></p>
+                        </div>
+                    </div>
+                    <div class="payment-days-left" id="payment-days-left" style="display: none;">
+                        <div class="days-circle">
+                            <span class="days-number" id="days-number">—</span>
+                            <span class="days-label">дней</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Реферальные бонусы -->
+                <div class="referral-bonus-card">
+                    <h3>🎁 Бонусы за рефералов</h3>
+                    <div class="referral-bonus-stats">
+                        <div class="bonus-stat">
+                            <span class="bonus-value" id="payment-referral-count">—</span>
+                            <span class="bonus-label">Приглашено</span>
+                        </div>
+                        <div class="bonus-stat">
+                            <span class="bonus-value bonus-highlight" id="payment-referral-days">—</span>
+                            <span class="bonus-label">Дней Premium</span>
+                        </div>
+                    </div>
+                    <p class="hint">Пригласи подругу — получите обе +7 дней Premium!</p>
+                </div>
+
+                <!-- Промо-код -->
+                <div class="setting-group">
+                    <h3>🎟️ Промо-код</h3>
+                    <div class="promo-input-group">
+                        <input type="text" id="promo-code-input" placeholder="Введи промо-код" maxlength="20">
+                        <button id="apply-promo-btn" class="btn-primary">Применить</button>
+                    </div>
+                    <p id="promo-result" class="promo-result"></p>
+                </div>
+
+                <!-- Тарифы (для Free пользователей) -->
+                <div class="tariffs-section" id="tariffs-section">
+                    <h3>📋 Тарифы Premium</h3>
+                    <div class="tariffs-list" id="tariffs-list">
+                        <div class="tariff-card" data-plan="monthly">
+                            <div class="tariff-header">
+                                <span class="tariff-name">1 месяц</span>
+                                <span class="tariff-price" id="price-monthly">499 ₽</span>
+                            </div>
+                            <div class="tariff-features">
+                                <span>Безлимитное общение</span>
+                            </div>
+                        </div>
+                        <div class="tariff-card tariff-popular" data-plan="quarterly">
+                            <div class="tariff-badge">Выгодно</div>
+                            <div class="tariff-header">
+                                <span class="tariff-name">3 месяца</span>
+                                <div class="tariff-price-block">
+                                    <span class="tariff-price" id="price-quarterly">1 249 ₽</span>
+                                    <span class="tariff-old-price" id="price-quarterly-old">1 497 ₽</span>
+                                </div>
+                            </div>
+                            <div class="tariff-features">
+                                <span>Экономия 15%</span>
+                            </div>
+                        </div>
+                        <div class="tariff-card" data-plan="yearly">
+                            <div class="tariff-header">
+                                <span class="tariff-name">1 год</span>
+                                <div class="tariff-price-block">
+                                    <span class="tariff-price" id="price-yearly">3 990 ₽</span>
+                                    <span class="tariff-old-price" id="price-yearly-old">5 988 ₽</span>
+                                </div>
+                            </div>
+                            <div class="tariff-features">
+                                <span>Экономия 30%</span>
+                            </div>
+                        </div>
+                    </div>
+                    <p class="hint" style="text-align: center; margin-top: 12px;">
+                        Нажми на тариф в боте: /subscription
+                    </p>
+                </div>
+
+                <!-- Кнопка продления (для Premium) -->
+                <div id="renew-section" style="display: none;">
+                    <button id="renew-btn" class="btn-primary" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                        🔄 Продлить подписку
+                    </button>
+                </div>
+
+                <!-- Реферальная программа -->
+                <div class="referral-section">
+                    <h3>👭 Пригласи подругу</h3>
+                    <p class="hint">Пригласи подругу и получите обе +7 дней Premium!</p>
+
+                    <div class="referral-code-box">
+                        <label class="small-label">Твоя реферальная ссылка:</label>
+                        <input type="text" id="referral-link" readonly>
+                        <div class="referral-buttons">
+                            <button id="copy-referral" class="btn-secondary">📋 Скопировать</button>
+                            <button id="share-referral" class="btn-primary">📤 Поделиться</button>
+                        </div>
+                    </div>
+
+                    <div class="referral-stats">
+                        <div class="stat-row">
+                            <span>Приглашено подруг:</span>
+                            <strong id="referral-count">—</strong>
+                        </div>
+                        <div class="stat-row">
+                            <span>Заработано дней Premium:</span>
+                            <strong id="referral-bonus">—</strong>
+                        </div>
+                        <div class="milestone-box">
+                            <span class="small-label">До следующей награды (3 подруги):</span>
+                            <div class="progress-bar">
+                                <div id="milestone-progress" class="progress-fill"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Settings Tab -->
+        <div id="settings-tab" class="tab-content">
+            <div class="section">
+                <h2>⚙️ Настройки</h2>
+
+                <!-- Основная информация -->
+                <div class="accordion-item">
+                    <div class="accordion-header">
+                        <span>👤 Основная информация</span>
+                        <span class="accordion-icon">▼</span>
+                    </div>
+                    <div class="accordion-content active">
+                        <div class="setting-group">
+                            <label for="display-name">Как к тебе обращаться</label>
+                            <input type="text" id="display-name" placeholder="Твоё имя" disabled>
+                        </div>
+
+                        <div class="setting-group">
+                            <label for="persona">Персона</label>
+                            <select id="persona" disabled>
+                                <option value="mira">Мира (подруга, 42)</option>
+                            </select>
+                        </div>
+
+                        <div class="setting-group">
+                            <label>Праздничные даты</label>
+                            <div class="date-input-group">
+                                <div>
+                                    <label class="small-label">День рождения</label>
+                                    <input type="date" id="birthday">
+                                </div>
+                                <div>
+                                    <label class="small-label">Годовщина свадьбы</label>
+                                    <input type="date" id="anniversary">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- О себе и семье -->
+                <div class="accordion-item">
+                    <div class="accordion-header">
+                        <span>👨‍👩‍👧‍👦 О себе и семье</span>
+                        <span class="accordion-icon">▼</span>
+                    </div>
+                    <div class="accordion-content">
+                        <div class="setting-group">
+                            <label for="partner-name">Имя партнёра</label>
+                            <input type="text" id="partner-name" placeholder="Имя партнёра">
+                        </div>
+
+                        <div class="setting-group">
+                            <label for="partner-gender">Пол партнёра</label>
+                            <input type="text" id="partner-gender" value="Мужской" readonly style="background: var(--tg-theme-secondary-bg-color); cursor: default;">
+                        </div>
+
+                        <div class="setting-group">
+                            <label for="children">Дети</label>
+                            <textarea id="children" placeholder="Имена и возраст детей, например: Маша 7 лет, Петя 3 года" rows="2"></textarea>
+                        </div>
+
+                        <div class="setting-group">
+                            <label for="parents">Родители</label>
+                            <textarea id="parents" placeholder="Информация о родителях" rows="2"></textarea>
+                        </div>
+
+                        <div class="setting-group">
+                            <label for="pets">Домашние животные</label>
+                            <input type="text" id="pets" placeholder="Например: кот Мурзик, собака Рекс">
+                        </div>
+
+                        <div class="setting-group">
+                            <label for="city">Город</label>
+                            <input type="text" id="city" placeholder="Ваш город">
+                        </div>
+
+                        <div class="setting-group">
+                            <label for="work">Работа/занятость</label>
+                            <input type="text" id="work" placeholder="Чем занимаешься">
+                        </div>
+
+                        <div class="setting-group">
+                            <label for="hobbies">Интересы и хобби</label>
+                            <textarea id="hobbies" placeholder="Что тебе интересно, чем увлекаешься" rows="3"></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Ритуалы и уведомления -->
+                <div class="accordion-item">
+                    <div class="accordion-header">
+                        <span>🔔 Ритуалы и уведомления</span>
+                        <span class="accordion-icon">▼</span>
+                    </div>
+                    <div class="accordion-content">
+                        <div class="setting-group">
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="ritual-morning" data-ritual="morning">
+                                <span>🌅 Утренний check-in</span>
+                            </label>
+                        </div>
+
+                        <div class="setting-group" id="morning-time-group" style="display: none;">
+                            <label for="morning-time" class="small-label">Время утреннего ритуала</label>
+                            <input type="time" id="morning-time">
+                        </div>
+
+                        <div class="setting-group">
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="ritual-evening" data-ritual="evening">
+                                <span>🌙 Вечерний check-in</span>
+                            </label>
+                        </div>
+
+                        <div class="setting-group" id="evening-time-group" style="display: none;">
+                            <label for="evening-time" class="small-label">Время вечернего ритуала</label>
+                            <input type="time" id="evening-time">
+                        </div>
+
+                        <div class="setting-group">
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="proactive-messages">
+                                <span>💬 Проактивные сообщения</span>
+                            </label>
+                            <span class="hint">Мира будет иногда писать первой</span>
+                        </div>
+
+                        <div class="setting-group">
+                            <label>🔕 Время когда НЕ беспокоить</label>
+                            <div class="time-range-group">
+                                <div class="time-input">
+                                    <label class="small-label">С</label>
+                                    <input type="time" id="quiet-start">
+                                </div>
+                                <span class="time-separator">—</span>
+                                <div class="time-input">
+                                    <label class="small-label">До</label>
+                                    <input type="time" id="quiet-end">
+                                </div>
+                            </div>
+                            <span class="hint">В это время бот не будет писать первым</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Предпочтения по контенту -->
+                <div class="accordion-item">
+                    <div class="accordion-header">
+                        <span>🎯 Предпочтения по контенту</span>
+                        <span class="accordion-icon">▼</span>
+                    </div>
+                    <div class="accordion-content">
+                        <div class="setting-group">
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="meditation-enabled">
+                                <span>🧘‍♀️ Присылать медитации</span>
+                            </label>
+
+                            <div id="meditation-settings" style="margin-left: 20px; display: none;">
+                                <label class="small-label">Типы медитаций:</label>
+                                <div class="checkbox-group">
+                                    <label><input type="checkbox" class="meditation-type" value="morning"> 🌅 Утренние</label>
+                                    <label><input type="checkbox" class="meditation-type" value="sleep"> 🌙 Для сна</label>
+                                    <label><input type="checkbox" class="meditation-type" value="anxiety"> 🌊 При тревоге</label>
+                                    <label><input type="checkbox" class="meditation-type" value="relaxation"> 🧘‍♀️ Расслабление</label>
+                                </div>
+
+                                <label for="meditation-frequency" class="small-label">Частота:</label>
+                                <select id="meditation-frequency">
+                                    <option value="daily">Ежедневно</option>
+                                    <option value="3_per_week">3 раза в неделю</option>
+                                    <option value="weekly">Еженедельно</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="setting-group">
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="exercises-enabled">
+                                <span>💆‍♀️ Присылать упражнения для релаксации</span>
+                            </label>
+                        </div>
+
+                        <div class="setting-group">
+                            <label for="topics-avoided">🚫 Темы которые НЕ хочется обсуждать</label>
+                            <textarea id="topics-avoided" placeholder="Например: политика, религия, работа..." rows="3"></textarea>
+                            <span class="hint">Укажите темы через запятую</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Экспорт данных -->
+                <div class="accordion-item">
+                    <div class="accordion-header">
+                        <span>📥 Экспорт данных</span>
+                        <span class="accordion-icon">▼</span>
+                    </div>
+                    <div class="accordion-content">
+                        <button id="export-history" class="btn-secondary">
+                            📄 Скачать историю переписки
+                        </button>
+                        <button id="export-stats" class="btn-secondary" style="margin-top: 10px;">
+                            📊 Скачать статистику настроения
+                        </button>
+                    </div>
+                </div>
+
+                <button id="save-settings" class="btn-primary">Сохранить</button>
+            </div>
+        </div>
+
+        <!-- Privacy Tab -->
+        <div id="privacy-tab" class="tab-content">
+            <div class="section">
+                <h2>🔒 Конфиденциальность</h2>
+
+                <div class="privacy-section">
+                    <h3>📋 Какие данные мы собираем</h3>
+                    <ul class="privacy-list">
+                        <li><strong>Telegram ID</strong> — для идентификации аккаунта</li>
+                        <li><strong>Имя и username</strong> — для персонализации общения</li>
+                        <li><strong>История переписки</strong> — для контекста и памяти</li>
+                        <li><strong>Настроение</strong> — для отслеживания прогресса</li>
+                        <li><strong>Настройки</strong> — ваши предпочтения в приложении</li>
+                    </ul>
+                </div>
+
+                <div class="privacy-section">
+                    <h3>🛡️ Как мы защищаем данные</h3>
+                    <ul class="privacy-list">
+                        <li>Данные хранятся на защищённых серверах</li>
+                        <li>Передача данных по зашифрованному каналу (HTTPS)</li>
+                        <li>Доступ к данным только у администратора</li>
+                        <li>Мы НЕ передаём данные третьим лицам</li>
+                        <li>Мы НЕ используем данные для рекламы</li>
+                    </ul>
+                </div>
+
+                <div class="privacy-section">
+                    <h3>🤖 Использование AI</h3>
+                    <ul class="privacy-list">
+                        <li>Мира работает на базе Claude AI (Anthropic)</li>
+                        <li>Ваши сообщения обрабатываются для генерации ответов</li>
+                        <li>AI НЕ обучается на ваших данных</li>
+                        <li>Anthropic соблюдает строгую политику конфиденциальности</li>
+                    </ul>
+                </div>
+
+                <div class="privacy-section">
+                    <h3>✨ Ваши права</h3>
+                    <ul class="privacy-list">
+                        <li><strong>Экспорт данных</strong> — скачайте свои данные в любой момент</li>
+                        <li><strong>Удаление данных</strong> — напишите /deletedata в боте</li>
+                        <li><strong>Отказ от рассылок</strong> — отключите в настройках</li>
+                    </ul>
+                </div>
+
+                <div class="privacy-section">
+                    <h3>📧 Контакты</h3>
+                    <p>По вопросам конфиденциальности:</p>
+                    <p><a href="https://t.me/uspeshnyy" target="_blank">@uspeshnyy</a> в Telegram</p>
+                </div>
+
+                <div class="privacy-footer">
+                    <p class="hint">Последнее обновление: 20 декабря 2025</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/app.js"></script>
+</body>
+</html>

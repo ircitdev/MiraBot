@@ -322,6 +322,29 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
                     f"Type={crisis_type}, User={user_tg.id}"
                 )
 
+        # 6.8. НОВОЕ: Анализ настроения ПЕРЕД Claude (для смешанных эмоций)
+        from ai.mood_analyzer import mood_analyzer
+
+        mood_analysis = mood_analyzer.analyze(message_text)
+        current_mood = {
+            "mood_score": mood_analysis.mood_score,
+            "primary_emotion": mood_analysis.primary_emotion,
+            "secondary_emotions": mood_analysis.secondary_emotions,
+            "energy_level": mood_analysis.energy_level,
+            "anxiety_level": mood_analysis.anxiety_level,
+            "triggers": mood_analysis.triggers,
+            "confidence": mood_analysis.confidence,
+        }
+
+        # Добавляем текущее настроение в user_data для промпта
+        user_data["current_mood"] = current_mood
+
+        logger.debug(
+            f"Mood analyzed: {mood_analysis.primary_emotion} "
+            f"(secondary: {mood_analysis.secondary_emotions}), "
+            f"score: {mood_analysis.mood_score}"
+        )
+
         # 7. Streaming ответ от Claude
         result = await _generate_and_stream_response(
             update=update,

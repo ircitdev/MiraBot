@@ -38,11 +38,25 @@ def get_premium_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(keyboard)
 
 
-def get_crisis_keyboard() -> InlineKeyboardMarkup:
-    """Клавиатура для кризисных ситуаций."""
+def get_crisis_keyboard(crisis_level: str = "medium") -> InlineKeyboardMarkup:
+    """
+    Клавиатура для кризисных ситуаций.
+
+    Args:
+        crisis_level: Уровень кризиса (low, medium, high, critical)
+
+    Returns:
+        InlineKeyboardMarkup с кнопками помощи
+    """
     keyboard = [
-        [InlineKeyboardButton("📞 Телефон доверия", callback_data="crisis:hotline")],
+        [InlineKeyboardButton("📞 Телефон доверия 8-800-2000-122", callback_data="crisis:hotline")],
     ]
+
+    # Для высокого и критического уровня — дополнительные кнопки
+    if crisis_level in ["high", "critical"]:
+        keyboard.append([InlineKeyboardButton("🆘 Экстренная помощь 112", callback_data="crisis:emergency")])
+        keyboard.append([InlineKeyboardButton("💜 Центр помощи женщинам", callback_data="crisis:women_help")])
+
     return InlineKeyboardMarkup(keyboard)
 
 

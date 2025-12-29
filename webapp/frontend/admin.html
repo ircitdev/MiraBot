@@ -4768,7 +4768,7 @@
                 </div>
 
                 <!-- Config Tabs -->
-                <div style="display: flex; gap: 8px; margin-bottom: 20px; border-bottom: 1px solid var(--md-sys-color-outline); padding-bottom: 8px;">
+                <div style="display: flex; gap: 8px; margin-bottom: 20px; border-bottom: 1px solid var(--md-sys-color-outline); padding-bottom: 8px; flex-wrap: wrap;">
                     <button class="md-button md-button-outlined config-tab-btn active" onclick="switchConfigTab('settings')" id="config-tab-settings">
                         <span class="material-icons">settings</span>
                         Настройки
@@ -4776,6 +4776,14 @@
                     <button class="md-button md-button-outlined config-tab-btn" onclick="switchConfigTab('logs')" id="config-tab-logs">
                         <span class="material-icons">history</span>
                         Лог операций
+                    </button>
+                    <button class="md-button md-button-outlined config-tab-btn" onclick="switchConfigTab('changelog')" id="config-tab-changelog">
+                        <span class="material-icons">update</span>
+                        Changelog
+                    </button>
+                    <button class="md-button md-button-outlined config-tab-btn" onclick="switchConfigTab('todo')" id="config-tab-todo">
+                        <span class="material-icons">checklist</span>
+                        TODO
                     </button>
                 </div>
 
@@ -5195,6 +5203,26 @@
                         </div>
                     </div>
                 </div><!-- END Logs Tab Content -->
+
+                <!-- Changelog Tab Content -->
+                <div id="config-content-changelog" class="config-tab-content" style="display: none;">
+                    <div id="changelog-container" style="max-width: 900px; margin: 0 auto;">
+                        <div class="loading">
+                            <div class="spinner"></div>
+                            <div>Загрузка changelog...</div>
+                        </div>
+                    </div>
+                </div><!-- END Changelog Tab Content -->
+
+                <!-- TODO Tab Content -->
+                <div id="config-content-todo" class="config-tab-content" style="display: none;">
+                    <div id="todo-container" style="max-width: 900px; margin: 0 auto;">
+                        <div class="loading">
+                            <div class="spinner"></div>
+                            <div>Загрузка TODO...</div>
+                        </div>
+                    </div>
+                </div><!-- END TODO Tab Content -->
 
             </div>
         </div><!-- END TAB: Config -->
@@ -6582,10 +6610,85 @@
                 tabContent.style.display = 'block';
             }
 
-            // Load data for logs tab
+            // Check if moderator and show read-only notice for settings tab
+            if (tabName === 'settings' && currentModeratorData && currentModeratorData.role === 'moderator') {
+                showModeratorReadOnlyNotice();
+                disableSettingsForModerator();
+            }
+
+            // Load data for each tab
             if (tabName === 'logs') {
                 loadAllAdminLogs();
                 loadAdminUsersForFilter();
+            } else if (tabName === 'changelog') {
+                loadChangelog();
+            } else if (tabName === 'todo') {
+                loadTODO();
+            }
+        }
+
+        // Show read-only notice for moderators
+        function showModeratorReadOnlyNotice() {
+            const settingsContent = document.getElementById('config-content-settings');
+
+            // Remove existing notice if any
+            const existingNotice = settingsContent.querySelector('.moderator-readonly-notice');
+            if (existingNotice) return;
+
+            const notice = document.createElement('div');
+            notice.className = 'moderator-readonly-notice';
+            notice.innerHTML = `
+                <div style="
+                    background: #FFF3CD;
+                    border: 1px solid #FFE69C;
+                    border-radius: 8px;
+                    padding: 12px 16px;
+                    margin-bottom: 20px;
+                    display: flex;
+                    align-items: center;
+                    gap: 12px;
+                    color: #856404;
+                ">
+                    <span class="material-icons" style="color: #FFC107;">visibility</span>
+                    <div>
+                        <strong>Доступ только для чтения</strong>
+                        <div style="font-size: 13px; margin-top: 4px;">
+                            У вас роль модератора. Просмотр настроек разрешен, но изменения могут вносить только администраторы.
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            const controls = settingsContent.querySelector('.analytics-controls');
+            if (controls) {
+                settingsContent.insertBefore(notice, controls.nextSibling);
+            }
+        }
+
+        // Disable settings inputs for moderators
+        function disableSettingsForModerator() {
+            if (!currentModeratorData || currentModeratorData.role !== 'moderator') return;
+
+            // Disable all inputs and buttons in settings tab
+            const settingsContent = document.getElementById('config-content-settings');
+            if (settingsContent) {
+                const inputs = settingsContent.querySelectorAll('input, textarea, select');
+                inputs.forEach(input => {
+                    input.disabled = true;
+                    input.style.opacity = '0.6';
+                    input.style.cursor = 'not-allowed';
+                });
+
+                const buttons = settingsContent.querySelectorAll('button');
+                buttons.forEach(button => {
+                    if (!button.classList.contains('md-button-outlined') || button.textContent.includes('Обновить')) {
+                        // Keep "Refresh" button enabled
+                        return;
+                    }
+                    button.disabled = true;
+                    button.style.opacity = '0.6';
+                    button.style.cursor = 'not-allowed';
+                });
             }
         }
 
@@ -10726,6 +10829,128 @@
                 switchConfigSection('config-api');
             }
         };
+
+        // Load Changelog
+        async function loadChangelog() {
+            const container = document.getElementById('changelog-container');
+            container.innerHTML = '<div class="loading"><div class="spinner"></div><div>Загрузка changelog...</div></div>';
+
+            try {
+                const response = await fetch('/CHANGELOG.md');
+                if (response.ok) {
+                    const markdown = await response.text();
+                    container.innerHTML = renderMarkdownToHTML(markdown);
+                } else {
+                    container.innerHTML = '<div class="error-message">Не удалось загрузить CHANGELOG.md</div>';
+                }
+            } catch (error) {
+                console.error('Failed to load changelog:', error);
+                container.innerHTML = '<div class="error-message">Ошибка загрузки changelog</div>';
+            }
+        }
+
+        // Load TODO
+        async function loadTODO() {
+            const container = document.getElementById('todo-container');
+            container.innerHTML = '<div class="loading"><div class="spinner"></div><div>Загрузка TODO...</div></div>';
+
+            try {
+                // Load all TODO files
+                const todoFiles = [
+                    { name: 'TODO_MODERATOR_ACCESS.md', path: '/docs/23.12.25/TODO_MODERATOR_ACCESS.md', title: 'Система модераторского доступа' }
+                ];
+
+                let html = '<div style="margin-bottom: 20px; color: var(--md-sys-color-on-surface-variant);">TODO списки проекта</div>';
+
+                for (const file of todoFiles) {
+                    try {
+                        const response = await fetch(file.path);
+                        if (response.ok) {
+                            const markdown = await response.text();
+                            html += `
+                                <div class="todo-accordion" style="margin-bottom: 16px; border: 1px solid var(--md-sys-color-outline); border-radius: 12px; overflow: hidden;">
+                                    <div class="todo-accordion-header" onclick="toggleTodoAccordion(this)" style="padding: 16px 20px; background: var(--md-sys-color-surface-variant); cursor: pointer; display: flex; justify-content: space-between; align-items: center;">
+                                        <div>
+                                            <strong style="font-size: 16px; color: var(--md-sys-color-on-surface);">${file.title}</strong>
+                                            <div style="font-size: 13px; color: var(--md-sys-color-on-surface-variant); margin-top: 4px;">${file.name}</div>
+                                        </div>
+                                        <span class="material-icons" style="transition: transform 0.3s; color: var(--md-sys-color-on-surface-variant);">expand_more</span>
+                                    </div>
+                                    <div class="todo-accordion-content" style="max-height: 0; overflow: hidden; transition: max-height 0.3s ease;">
+                                        <div style="padding: 20px;">
+                                            ${renderMarkdownToHTML(markdown)}
+                                        </div>
+                                    </div>
+                                </div>
+                            `;
+                        }
+                    } catch (error) {
+                        console.error(`Failed to load ${file.path}:`, error);
+                    }
+                }
+
+                container.innerHTML = html;
+            } catch (error) {
+                console.error('Failed to load TODO:', error);
+                container.innerHTML = '<div class="error-message">Ошибка загрузки TODO</div>';
+            }
+        }
+
+        // Toggle TODO accordion
+        function toggleTodoAccordion(header) {
+            const content = header.nextElementSibling;
+            const icon = header.querySelector('.material-icons');
+
+            if (content.style.maxHeight && content.style.maxHeight !== '0px') {
+                content.style.maxHeight = '0';
+                icon.style.transform = 'rotate(0deg)';
+            } else {
+                content.style.maxHeight = content.scrollHeight + 'px';
+                icon.style.transform = 'rotate(180deg)';
+            }
+        }
+
+        // Simple markdown renderer
+        function renderMarkdownToHTML(markdown) {
+            let html = markdown;
+
+            // Headers
+            html = html.replace(/^### (.*$)/gim, '<h3 style="color: var(--md-sys-color-on-surface); margin: 24px 0 12px 0; font-size: 18px; font-weight: 500;">$1</h3>');
+            html = html.replace(/^## (.*$)/gim, '<h2 style="color: var(--md-sys-color-on-surface); margin: 32px 0 16px 0; font-size: 24px; font-weight: 500; border-bottom: 2px solid var(--md-sys-color-outline); padding-bottom: 8px;">$1</h2>');
+            html = html.replace(/^# (.*$)/gim, '<h1 style="color: var(--md-sys-color-on-surface); margin: 40px 0 20px 0; font-size: 32px; font-weight: 600;">$1</h1>');
+
+            // Bold and italic
+            html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+            html = html.replace(/\*(.*?)\*/g, '<em>$1</em>');
+
+            // Code blocks
+            html = html.replace(/```([\s\S]*?)```/g, '<pre style="background: var(--md-sys-color-surface-variant); padding: 16px; border-radius: 8px; overflow-x: auto; margin: 16px 0;"><code>$1</code></pre>');
+            html = html.replace(/`([^`]+)`/g, '<code style="background: var(--md-sys-color-surface-variant); padding: 2px 6px; border-radius: 4px; font-family: monospace; font-size: 13px;">$1</code>');
+
+            // Links
+            html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" style="color: var(--md-sys-color-primary); text-decoration: none;" target="_blank">$1</a>');
+
+            // Checkboxes
+            html = html.replace(/- \[x\] (.*)/gi, '<div style="margin: 4px 0;"><span class="material-icons" style="color: #4CAF50; font-size: 18px; vertical-align: middle; margin-right: 8px;">check_box</span><span style="text-decoration: line-through; color: var(--md-sys-color-on-surface-variant);">$1</span></div>');
+            html = html.replace(/- \[ \] (.*)/gi, '<div style="margin: 4px 0;"><span class="material-icons" style="color: var(--md-sys-color-outline); font-size: 18px; vertical-align: middle; margin-right: 8px;">check_box_outline_blank</span><span>$1</span></div>');
+
+            // Lists
+            html = html.replace(/^- (.*)$/gim, '<li style="margin: 6px 0; margin-left: 20px;">$1</li>');
+            html = html.replace(/(<li.*<\/li>)/s, '<ul style="padding-left: 20px; margin: 12px 0;">$1</ul>');
+
+            // Horizontal rules
+            html = html.replace(/^---$/gim, '<hr style="border: none; border-top: 1px solid var(--md-sys-color-outline); margin: 24px 0;">');
+
+            // Paragraphs
+            html = html.split('\n\n').map(para => {
+                if (para.trim() && !para.startsWith('<')) {
+                    return `<p style="margin: 12px 0; line-height: 1.6; color: var(--md-sys-color-on-surface);">${para}</p>`;
+                }
+                return para;
+            }).join('\n');
+
+            return html;
+        }
     </script>
 </body>
 </html>
