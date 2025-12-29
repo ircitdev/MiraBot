@@ -753,25 +753,39 @@
         }
 
         .top-user-avatar {
-            width: 56px;
-            height: 56px;
+            width: 80px;
+            height: 80px;
             border-radius: 50%;
             object-fit: cover;
             margin-bottom: 8px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .top-user-avatar:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
         }
 
         .top-user-avatar-placeholder {
-            width: 56px;
-            height: 56px;
+            width: 80px;
+            height: 80px;
             border-radius: 50%;
             background: var(--md-sys-color-primary);
             color: var(--md-sys-color-on-primary);
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 22px;
+            font-size: 32px;
             font-weight: 500;
             margin-bottom: 8px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .top-user-avatar-placeholder:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
         }
 
         .top-user-name {
@@ -7305,7 +7319,7 @@
 
                 const response = await fetch(`/api/admin-logs/?${params}`, {
                     headers: {
-                        'Authorization': `tma ${adminToken}`
+                        'Authorization': `Bearer ${adminToken}`
                     }
                 });
 
@@ -7313,11 +7327,13 @@
                     const data = await response.json();
                     renderOverviewLogs(data.logs || []);
                 } else {
-                    container.innerHTML = '<div class="error-message">Ошибка загрузки логов</div>';
+                    const errorText = await response.text();
+                    console.error('Failed to load overview logs:', response.status, errorText);
+                    container.innerHTML = `<div class="error-message">Ошибка загрузки логов (${response.status})</div>`;
                 }
             } catch (error) {
                 console.error('Failed to load overview logs:', error);
-                container.innerHTML = '<div class="error-message">Ошибка загрузки логов</div>';
+                container.innerHTML = `<div class="error-message">Ошибка загрузки логов: ${error.message}</div>`;
             }
         }
 
@@ -7600,8 +7616,8 @@
                     const initial = name[0].toUpperCase();
                     const avatarColor = getAvatarColor(user.telegram_id);
                     const avatarHtml = user.avatar_url
-                        ? `<img src="${user.avatar_url}" class="top-user-avatar" alt="" onerror="this.outerHTML='<span class=\\'top-user-avatar-placeholder\\' style=\\'background: ${avatarColor}\\'>${initial}</span>'">`
-                        : `<span class="top-user-avatar-placeholder" style="background: ${avatarColor}">${initial}</span>`;
+                        ? `<img src="${user.avatar_url}" class="top-user-avatar" alt="" onclick="event.stopPropagation(); openUserProfile(${user.telegram_id})" onerror="this.outerHTML='<span class=\\'top-user-avatar-placeholder\\' style=\\'background: ${avatarColor}\\' onclick=\\'event.stopPropagation(); openUserProfile(${user.telegram_id})\\'>${initial}</span>'">`
+                        : `<span class="top-user-avatar-placeholder" style="background: ${avatarColor}" onclick="event.stopPropagation(); openUserProfile(${user.telegram_id})">${initial}</span>`;
                     const premiumStar = user.is_premium ? '<span class="premium-star">⭐</span>' : '';
 
                     return `
