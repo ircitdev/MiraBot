@@ -356,27 +356,6 @@ class ScheduledMessage(Base):
         return f"<ScheduledMessage(id={self.id}, type={self.type}, status={self.status})>"
 
 
-class AdminUser(Base):
-    """Модель администратора."""
-    
-    __tablename__ = "admin_users"
-    
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    email: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
-    password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
-    
-    name: Mapped[Optional[str]] = mapped_column(String(100))
-    role: Mapped[str] = mapped_column(String(20), default="admin")  # admin, superadmin
-    
-    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
-    
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=func.now())
-    last_login_at: Mapped[Optional[datetime]] = mapped_column(DateTime)
-    
-    def __repr__(self) -> str:
-        return f"<AdminUser(id={self.id}, email={self.email}, role={self.role})>"
-
-
 class MoodEntry(Base):
     """Модель записи настроения пользователя."""
 
@@ -408,27 +387,6 @@ class MoodEntry(Base):
 
     def __repr__(self) -> str:
         return f"<MoodEntry(id={self.id}, user_id={self.user_id}, mood={self.mood_score}, emotion={self.primary_emotion})>"
-
-
-class AdminLog(Base):
-    """Лог действий администраторов."""
-
-    __tablename__ = "admin_logs"
-
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    admin_id: Mapped[int] = mapped_column(BigInteger, nullable=False)  # Telegram ID админа
-
-    action: Mapped[str] = mapped_column(String(100), nullable=False)
-    target_user_id: Mapped[Optional[int]] = mapped_column(BigInteger)
-    details: Mapped[Optional[dict]] = mapped_column(JSONB)
-
-    ip_address: Mapped[Optional[str]] = mapped_column(String(50))
-    user_agent: Mapped[Optional[str]] = mapped_column(String(500))
-
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=func.now())
-
-    def __repr__(self) -> str:
-        return f"<AdminLog(id={self.id}, admin_id={self.admin_id}, action={self.action})>"
 
 
 class PromoCode(Base):
