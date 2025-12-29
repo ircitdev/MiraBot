@@ -70,10 +70,11 @@ async def get_current_user(
     authorization: Optional[str] = Header(None),
 ) -> dict:
     """Dependency для получения текущего пользователя."""
-    # Попробовать Basic Auth для админов
+    # Попробовать Bearer токен для админов (JWT)
     if authorization and authorization.startswith("Bearer "):
         token = authorization.replace("Bearer ", "")
-        # Проверить админский токен
+
+        # Проверить старый ADMIN_TOKEN из настроек
         if hasattr(settings, 'ADMIN_TOKEN') and token == settings.ADMIN_TOKEN:
             # Вернуть данные для админа
             return {
@@ -81,6 +82,23 @@ async def get_current_user(
                 "username": "admin",
                 "first_name": "Admin",
             }
+
+        # Проверить JWT токен из админ-панели
+        try:
+            import jwt
+            payload = jwt.decode(token, settings.ADMIN_SECRET_KEY, algorithms=["HS256"])
+            # JWT токен содержит telegram_id админа
+            return {
+                "user_id": payload.get("telegram_id"),
+                "username": payload.get("username"),
+                "first_name": payload.get("first_name", "Admin"),
+            }
+        except jwt.InvalidTokenError:
+            # Токен невалидный, продолжаем проверку других методов
+            pass
+        except Exception:
+            # Любая другая ошибка - игнорируем
+            pass
 
     if not x_telegram_init_data:
         raise HTTPException(status_code=401, detail="Not authorized")
