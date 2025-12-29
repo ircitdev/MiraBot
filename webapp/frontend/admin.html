@@ -3815,6 +3815,14 @@
                 <span class="material-icons">add_circle</span>
                 Свои настройки
             </button>
+            <button class="sub-nav-item" data-section="config-changelog" onclick="switchConfigSection('config-changelog')">
+                <span class="material-icons">update</span>
+                Changelog
+            </button>
+            <button class="sub-nav-item" data-section="config-todo" onclick="switchConfigSection('config-todo')">
+                <span class="material-icons">checklist</span>
+                TODO
+            </button>
         </div>
     </nav>
 
@@ -5265,14 +5273,6 @@
                         <span class="material-icons">history</span>
                         Лог операций
                     </button>
-                    <button class="md-button md-button-outlined config-tab-btn" onclick="switchConfigTab('changelog')" id="config-tab-changelog">
-                        <span class="material-icons">update</span>
-                        Changelog
-                    </button>
-                    <button class="md-button md-button-outlined config-tab-btn" onclick="switchConfigTab('todo')" id="config-tab-todo">
-                        <span class="material-icons">checklist</span>
-                        TODO
-                    </button>
                 </div>
 
                 <!-- Settings Tab Content -->
@@ -5629,6 +5629,26 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- Config Changelog Section -->
+                <div id="config-section-changelog" class="config-section" style="display: none;">
+                    <div id="changelog-container" style="max-width: 900px; margin: 0 auto;">
+                        <div class="loading">
+                            <div class="spinner"></div>
+                            <div>Загрузка changelog...</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Config TODO Section -->
+                <div id="config-section-todo" class="config-section" style="display: none;">
+                    <div id="todo-container" style="max-width: 900px; margin: 0 auto;">
+                        <div class="loading">
+                            <div class="spinner"></div>
+                            <div>Загрузка TODO...</div>
+                        </div>
+                    </div>
+                </div>
                 </div><!-- END Settings Tab Content -->
 
                 <!-- Logs Tab Content -->
@@ -5691,26 +5711,6 @@
                         </div>
                     </div>
                 </div><!-- END Logs Tab Content -->
-
-                <!-- Changelog Tab Content -->
-                <div id="config-content-changelog" class="config-tab-content" style="display: none;">
-                    <div id="changelog-container" style="max-width: 900px; margin: 0 auto;">
-                        <div class="loading">
-                            <div class="spinner"></div>
-                            <div>Загрузка changelog...</div>
-                        </div>
-                    </div>
-                </div><!-- END Changelog Tab Content -->
-
-                <!-- TODO Tab Content -->
-                <div id="config-content-todo" class="config-tab-content" style="display: none;">
-                    <div id="todo-container" style="max-width: 900px; margin: 0 auto;">
-                        <div class="loading">
-                            <div class="spinner"></div>
-                            <div>Загрузка TODO...</div>
-                        </div>
-                    </div>
-                </div><!-- END TODO Tab Content -->
 
             </div>
         </div><!-- END TAB: Config -->
@@ -7116,10 +7116,6 @@
             if (tabName === 'logs') {
                 loadAllAdminLogs();
                 loadAdminUsersForFilter();
-            } else if (tabName === 'changelog') {
-                loadChangelog();
-            } else if (tabName === 'todo') {
-                loadTODO();
             }
         }
 
@@ -10897,9 +10893,13 @@
                 targetSection.style.display = 'block';
             }
 
-            // Загружаем настройки при первом открытии
+            // Загружаем данные при первом открытии
             if (sectionName === 'config-custom') {
                 loadCustomSettings();
+            } else if (sectionName === 'config-changelog') {
+                loadChangelog();
+            } else if (sectionName === 'config-todo') {
+                loadTODO();
             }
         }
 
