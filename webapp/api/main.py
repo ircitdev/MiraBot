@@ -45,13 +45,59 @@ app.mount("/static", StaticFiles(directory=str(webapp_dir / "frontend")), name="
 @app.get("/")
 async def index():
     """Главная страница WebApp."""
-    return FileResponse(webapp_dir / "frontend" / "index.html")
+    return FileResponse(
+        webapp_dir / "frontend" / "index.html",
+        headers={
+            "Cache-Control": "no-cache, no-store, must-revalidate",
+            "Pragma": "no-cache",
+            "Expires": "0"
+        }
+    )
 
 
 @app.get("/admin")
 async def admin_panel():
     """Админ-панель."""
-    return FileResponse(webapp_dir / "frontend" / "admin.html")
+    return FileResponse(
+        webapp_dir / "frontend" / "admin.html",
+        headers={
+            "Cache-Control": "no-cache, no-store, must-revalidate",
+            "Pragma": "no-cache",
+            "Expires": "0"
+        }
+    )
+
+
+@app.get("/CHANGELOG.md")
+async def changelog():
+    """CHANGELOG файл."""
+    changelog_path = Path(__file__).parent.parent.parent / "CHANGELOG.md"
+    return FileResponse(
+        changelog_path,
+        media_type="text/markdown",
+        headers={
+            "Cache-Control": "no-cache, no-store, must-revalidate",
+            "Pragma": "no-cache",
+            "Expires": "0"
+        }
+    )
+
+
+@app.get("/docs/{date}/{filename}")
+async def docs_file(date: str, filename: str):
+    """TODO и другие документы."""
+    docs_path = Path(__file__).parent.parent.parent / "docs" / date / filename
+    if docs_path.exists() and docs_path.is_file():
+        return FileResponse(
+            docs_path,
+            media_type="text/markdown",
+            headers={
+                "Cache-Control": "no-cache, no-store, must-revalidate",
+                "Pragma": "no-cache",
+                "Expires": "0"
+            }
+        )
+    return {"error": "File not found"}
 
 
 @app.get("/health")
