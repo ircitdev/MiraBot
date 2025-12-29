@@ -2590,12 +2590,18 @@ async def get_user_referrals(
         referrals_list = []
         for ref, referred_user in referrals_data:
             if referred_user:
+                # Получаем статистику сообщений для проверки активности
+                from database.repositories.conversation import ConversationRepository
+                conv_repo = ConversationRepository(session)
+                stats = await conv_repo.get_user_message_stats(referred_user.id)
+                total_messages = stats.get("total", 0)
+
                 referrals_list.append({
                     "name": referred_user.first_name or referred_user.username or "Пользователь",
                     "joined_at": referred_user.created_at.isoformat() if referred_user.created_at else None,
-                    "is_active": referred_user.total_messages and referred_user.total_messages > 0
+                    "is_active": total_messages > 0
                 })
-                if referred_user.total_messages and referred_user.total_messages > 0:
+                if total_messages > 0:
                     active_count += 1
 
     return {
