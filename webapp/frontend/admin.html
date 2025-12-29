@@ -8632,7 +8632,10 @@
                     userName: currentChatUserName,
                     date: new Date(report.created_at).toLocaleDateString('ru-RU'),
                     content: report.content,
-                    created_by: report.created_by
+                    created_by: report.created_by,
+                    creator_name: report.creator_name,
+                    tokens_used: report.tokens_used,
+                    cost_usd: report.cost_usd
                 }));
 
                 renderReports();
@@ -8657,25 +8660,51 @@
                 return;
             }
 
-            container.innerHTML = chatReports.map((report, index) => `
-                <div class="report-card" data-report-id="${report.id}">
-                    <div class="report-card-header">
-                        <div class="report-card-title">
-                            <span class="material-icons">assessment</span>
-                            Отчёт (${report.date})
+            container.innerHTML = chatReports.map((report, index) => {
+                // Формируем информацию о создателе
+                let creatorInfo = '';
+                if (report.creator_name) {
+                    creatorInfo = `<div style="font-size: 12px; color: var(--md-sys-color-on-surface-variant); margin-top: 4px;">
+                        <span class="material-icons" style="font-size: 14px; vertical-align: middle;">person</span>
+                        ${report.creator_name}
+                    </div>`;
+                }
+
+                // Формируем информацию о токенах
+                let tokensInfo = '';
+                if (report.tokens_used || report.cost_usd) {
+                    const tokensText = report.tokens_used ? `${report.tokens_used.toLocaleString()} токенов` : '';
+                    const costText = report.cost_usd ? `$${report.cost_usd.toFixed(4)}` : '';
+                    const fullText = tokensText && costText ? `${tokensText} (${costText})` : (tokensText || costText);
+
+                    tokensInfo = `<div style="font-size: 12px; color: var(--md-sys-color-on-surface-variant); margin-top: 4px;">
+                        <span class="material-icons" style="font-size: 14px; vertical-align: middle;">data_usage</span>
+                        ${fullText}
+                    </div>`;
+                }
+
+                return `
+                    <div class="report-card" data-report-id="${report.id}">
+                        <div class="report-card-header">
+                            <div class="report-card-title">
+                                <span class="material-icons">assessment</span>
+                                Отчёт (${report.date})
+                            </div>
+                            <div class="report-card-actions">
+                                <button class="icon-button" onclick="copyReport('${report.id}')" title="Копировать">
+                                    <span class="material-icons">content_copy</span>
+                                </button>
+                                <button class="icon-button" onclick="deleteReport('${report.id}')" title="Удалить" style="color: var(--md-sys-color-error);">
+                                    <span class="material-icons">delete</span>
+                                </button>
+                            </div>
                         </div>
-                        <div class="report-card-actions">
-                            <button class="icon-button" onclick="copyReport('${report.id}')" title="Копировать">
-                                <span class="material-icons">content_copy</span>
-                            </button>
-                            <button class="icon-button" onclick="deleteReport('${report.id}')" title="Удалить" style="color: var(--md-sys-color-error);">
-                                <span class="material-icons">delete</span>
-                            </button>
-                        </div>
+                        ${creatorInfo}
+                        ${tokensInfo}
+                        <div class="report-card-body">${escapeHtml(report.content)}</div>
                     </div>
-                    <div class="report-card-body">${escapeHtml(report.content)}</div>
-                </div>
-            `).join('');
+                `;
+            }).join('');
 
             updateReportsCount();
         }
@@ -8716,7 +8745,9 @@
                 const savedReport = await apiRequest(`/reports/${currentChatTelegramId}`, {
                     method: 'POST',
                     body: JSON.stringify({
-                        content: aiResponse.summary
+                        content: aiResponse.summary,
+                        tokens_used: aiResponse.tokens_used,
+                        cost_usd: aiResponse.cost_usd
                     })
                 });
 
@@ -8727,7 +8758,10 @@
                     userName: currentChatUserName,
                     date: new Date(savedReport.created_at).toLocaleDateString('ru-RU'),
                     content: savedReport.content,
-                    created_by: savedReport.created_by
+                    created_by: savedReport.created_by,
+                    creator_name: savedReport.creator_name,
+                    tokens_used: savedReport.tokens_used,
+                    cost_usd: savedReport.cost_usd
                 });
 
                 renderReports();

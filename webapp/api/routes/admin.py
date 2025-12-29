@@ -2023,6 +2023,8 @@ class ReportResponse(BaseModel):
     total_messages: int
     first_message_date: Optional[datetime]
     last_message_date: Optional[datetime]
+    tokens_used: Optional[int] = None
+    cost_usd: Optional[float] = None
 
 
 @router.post("/users/{telegram_id}/report", response_model=ReportResponse)
@@ -2114,6 +2116,15 @@ async def generate_user_report(
 
         summary = response.content[0].text
 
+        # Извлекаем информацию о токенах
+        tokens_used = response.usage.input_tokens + response.usage.output_tokens
+
+        # Рассчитываем стоимость для claude-sonnet-4-20250514
+        # Input: $3 per million tokens, Output: $15 per million tokens
+        input_cost = (response.usage.input_tokens / 1_000_000) * 3.0
+        output_cost = (response.usage.output_tokens / 1_000_000) * 15.0
+        cost_usd = round(input_cost + output_cost, 6)
+
     except Exception as e:
         logger.error(f"Failed to generate report: {e}")
         raise HTTPException(
@@ -2131,6 +2142,8 @@ async def generate_user_report(
         "total_messages": total,
         "first_message_date": first_msg.created_at if first_msg else None,
         "last_message_date": last_msg.created_at if last_msg else None,
+        "tokens_used": tokens_used,
+        "cost_usd": cost_usd,
     }
 
 

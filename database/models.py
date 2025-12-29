@@ -1068,6 +1068,8 @@ class UserReport(Base):
     telegram_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("users.telegram_id"), index=True, nullable=False)
     content: Mapped[str] = mapped_column(Text, nullable=False)  # Текст AI-сводки
     created_by: Mapped[Optional[int]] = mapped_column(BigInteger, ForeignKey("admin_users.telegram_id"), nullable=True)  # Кто создал
+    tokens_used: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)  # Количество токенов
+    cost_usd: Mapped[Optional[float]] = mapped_column(Float, nullable=True)  # Стоимость в USD
     created_at: Mapped[datetime] = mapped_column(DateTime, default=func.now(), nullable=False)
 
     # Связи

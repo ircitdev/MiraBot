@@ -20,6 +20,8 @@ class UserReportRepository:
         telegram_id: int,
         content: str,
         created_by: Optional[int] = None,
+        tokens_used: Optional[int] = None,
+        cost_usd: Optional[float] = None,
     ) -> UserReport:
         """
         Создать новый отчёт.
@@ -28,6 +30,8 @@ class UserReportRepository:
             telegram_id: Telegram ID пользователя
             content: Текст AI-сводки
             created_by: Telegram ID создателя (администратора)
+            tokens_used: Количество использованных токенов
+            cost_usd: Стоимость в USD
 
         Returns:
             Созданный UserReport
@@ -37,6 +41,8 @@ class UserReportRepository:
                 telegram_id=telegram_id,
                 content=content,
                 created_by=created_by,
+                tokens_used=tokens_used,
+                cost_usd=cost_usd,
             )
 
             session.add(report)
