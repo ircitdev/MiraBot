@@ -2603,7 +2603,7 @@ async def get_user_referrals(
             if referred_user:
                 # Получаем статистику сообщений для проверки активности
                 from database.repositories.conversation import ConversationRepository
-                conv_repo = ConversationRepository(session)
+                conv_repo = ConversationRepository()
                 stats = await conv_repo.get_user_message_stats(referred_user.id)
                 total_messages = stats.get("total", 0)
 
