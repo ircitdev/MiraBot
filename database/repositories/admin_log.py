@@ -9,7 +9,7 @@ from sqlalchemy import select, func, and_, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from database.session import get_session_context
-from database.models import AdminLog
+from database.models import AdminLog, AdminUser
 
 
 class AdminLogRepository:
@@ -254,3 +254,116 @@ class AdminLogRepository:
             from_date=from_date,
             limit=limit
         )
+
+    async def list_logs_by_admin_role(
+        self,
+        admin_role: str,
+        action: Optional[str] = None,
+        resource_type: Optional[str] = None,
+        resource_id: Optional[int] = None,
+        success: Optional[bool] = None,
+        from_date: Optional[datetime] = None,
+        to_date: Optional[datetime] = None,
+        limit: int = 100,
+        offset: int = 0,
+    ) -> List[AdminLog]:
+        """
+        Получить логи действий администраторов с определенной ролью.
+
+        Args:
+            admin_role: Роль администратора ('admin' или 'moderator')
+            action: Фильтр по действию
+            resource_type: Фильтр по типу ресурса
+            resource_id: Фильтр по ID ресурса
+            success: Фильтр по успешности
+            from_date: Начало периода
+            to_date: Конец периода
+            limit: Максимальное количество
+            offset: Смещение
+
+        Returns:
+            Список AdminLog
+        """
+        async with get_session_context() as session:
+            # JOIN с таблицей admin_users для фильтрации по роли
+            query = select(AdminLog).join(
+                AdminUser, AdminLog.admin_user_id == AdminUser.id
+            ).where(AdminUser.role == admin_role)
+
+            # Применяем дополнительные фильтры
+            if action is not None:
+                query = query.where(AdminLog.action == action)
+
+            if resource_type is not None:
+                query = query.where(AdminLog.resource_type == resource_type)
+
+            if resource_id is not None:
+                query = query.where(AdminLog.resource_id == resource_id)
+
+            if success is not None:
+                query = query.where(AdminLog.success == success)
+
+            if from_date is not None:
+                query = query.where(AdminLog.created_at >= from_date)
+
+            if to_date is not None:
+                query = query.where(AdminLog.created_at <= to_date)
+
+            # Сортировка и пагинация
+            query = query.order_by(AdminLog.created_at.desc())
+            query = query.limit(limit).offset(offset)
+
+            result = await session.execute(query)
+            return list(result.scalars().all())
+
+    async def count_logs_by_admin_role(
+        self,
+        admin_role: str,
+        action: Optional[str] = None,
+        resource_type: Optional[str] = None,
+        success: Optional[bool] = None,
+        from_date: Optional[datetime] = None,
+        to_date: Optional[datetime] = None,
+    ) -> int:
+        """
+        Подсчитать количество логов администраторов с определенной ролью.
+
+        Args:
+            admin_role: Роль администратора ('admin' или 'moderator')
+            action: Фильтр по действию
+            resource_type: Фильтр по типу ресурса
+            success: Фильтр по успешности
+            from_date: Начало периода
+            to_date: Конец периода
+
+        Returns:
+            Количество логов
+        """
+        async with get_session_context() as session:
+            query = select(func.count(AdminLog.id)).join(
+                AdminUser, AdminLog.admin_user_id == AdminUser.id
+            ).where(AdminUser.role == admin_role)
+
+            # Применяем фильтры
+            conditions = []
+
+            if action is not None:
+                conditions.append(AdminLog.action == action)
+
+            if resource_type is not None:
+                conditions.append(AdminLog.resource_type == resource_type)
+
+            if success is not None:
+                conditions.append(AdminLog.success == success)
+
+            if from_date is not None:
+                conditions.append(AdminLog.created_at >= from_date)
+
+            if to_date is not None:
+                conditions.append(AdminLog.created_at <= to_date)
+
+            if conditions:
+                query = query.where(and_(*conditions))
+
+            result = await session.execute(query)
+            return result.scalar() or 0

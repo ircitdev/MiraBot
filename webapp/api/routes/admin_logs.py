@@ -60,8 +60,8 @@ async def list_logs(
     """
     Получить список логов с фильтрацией.
 
-    Модераторы видят только свои логи.
-    Администраторы видят все логи.
+    Модераторы видят только действия других модераторов.
+    Администраторы видят все логи (и модераторов, и админов).
 
     Query params:
         - admin_user_id: Фильтр по ID админа
@@ -75,10 +75,6 @@ async def list_logs(
         - offset: Смещение для пагинации
     """
     repo = AdminLogRepository()
-
-    # Модераторы видят только свои логи
-    if admin_data["role"] == "moderator":
-        admin_user_id = admin_data["admin_id"]
 
     # Парсим даты
     from_datetime = None
@@ -96,28 +92,48 @@ async def list_logs(
         except ValueError:
             raise HTTPException(status_code=400, detail="Неверный формат to_date")
 
-    # Получаем логи
-    logs = await repo.list_logs(
-        admin_user_id=admin_user_id,
-        action=action,
-        resource_type=resource_type,
-        resource_id=resource_id,
-        success=success,
-        from_date=from_datetime,
-        to_date=to_datetime,
-        limit=limit,
-        offset=offset,
-    )
-
-    # Получаем общее количество
-    total = await repo.count_logs(
-        admin_user_id=admin_user_id,
-        action=action,
-        resource_type=resource_type,
-        success=success,
-        from_date=from_datetime,
-        to_date=to_datetime,
-    )
+    # Модераторы видят только действия модераторов (не админов)
+    if admin_data["role"] == "moderator":
+        logs = await repo.list_logs_by_admin_role(
+            admin_role="moderator",
+            action=action,
+            resource_type=resource_type,
+            resource_id=resource_id,
+            success=success,
+            from_date=from_datetime,
+            to_date=to_datetime,
+            limit=limit,
+            offset=offset,
+        )
+        total = await repo.count_logs_by_admin_role(
+            admin_role="moderator",
+            action=action,
+            resource_type=resource_type,
+            success=success,
+            from_date=from_datetime,
+            to_date=to_datetime,
+        )
+    else:
+        # Админы видят все логи
+        logs = await repo.list_logs(
+            admin_user_id=admin_user_id,
+            action=action,
+            resource_type=resource_type,
+            resource_id=resource_id,
+            success=success,
+            from_date=from_datetime,
+            to_date=to_datetime,
+            limit=limit,
+            offset=offset,
+        )
+        total = await repo.count_logs(
+            admin_user_id=admin_user_id,
+            action=action,
+            resource_type=resource_type,
+            success=success,
+            from_date=from_datetime,
+            to_date=to_datetime,
+        )
 
     return LogsListResponse(
         logs=[

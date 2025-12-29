@@ -3823,6 +3823,10 @@
                 <span class="material-icons">checklist</span>
                 TODO
             </button>
+            <button class="sub-nav-item" data-section="config-logs" onclick="switchConfigSection('config-logs')">
+                <span class="material-icons">history</span>
+                Лог операций
+            </button>
         </div>
     </nav>
 
@@ -3904,6 +3908,26 @@
                 <div class="loading" style="width: 100%; text-align: center;">
                     <div class="spinner"></div>
                     <div>Загрузка...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Overview Logs Section -->
+        <div class="top-users-section" style="margin-top: 30px;">
+            <h2>
+                <span class="material-icons">history</span>
+                Лог операций
+            </h2>
+            <div class="analytics-controls" style="margin-bottom: 20px;">
+                <button class="md-button md-button-outlined" onclick="loadOverviewLogs()">
+                    <span class="material-icons">refresh</span>
+                    Обновить
+                </button>
+            </div>
+            <div id="overview-logs-container">
+                <div class="loading" style="width: 100%; text-align: center;">
+                    <div class="spinner"></div>
+                    <div>Загрузка логов...</div>
                 </div>
             </div>
         </div>
@@ -5269,10 +5293,6 @@
                         <span class="material-icons">settings</span>
                         Настройки
                     </button>
-                    <button class="md-button md-button-outlined config-tab-btn" onclick="switchConfigTab('logs')" id="config-tab-logs">
-                        <span class="material-icons">history</span>
-                        Лог операций
-                    </button>
                 </div>
 
                 <!-- Settings Tab Content -->
@@ -5649,10 +5669,9 @@
                         </div>
                     </div>
                 </div>
-                </div><!-- END Settings Tab Content -->
 
-                <!-- Logs Tab Content -->
-                <div id="config-content-logs" class="config-tab-content" style="display: none;">
+                <!-- Config Logs Section -->
+                <div id="config-section-logs" class="config-section" style="display: none;">
                     <div class="analytics-controls" style="margin-bottom: 20px;">
                         <button class="md-button md-button-outlined" onclick="loadAllAdminLogs()">
                             <span class="material-icons">refresh</span>
@@ -5710,7 +5729,9 @@
                             <div>Загрузка логов...</div>
                         </div>
                     </div>
-                </div><!-- END Logs Tab Content -->
+                </div><!-- END Config Logs Section -->
+
+                </div><!-- END Settings Tab Content -->
 
             </div>
         </div><!-- END TAB: Config -->
@@ -6881,7 +6902,9 @@
             localStorage.setItem('admin_active_tab', tabName);
 
             // Load data for specific tabs
-            if (tabName === 'promo') {
+            if (tabName === 'overview') {
+                loadOverviewLogs();
+            } else if (tabName === 'promo') {
                 loadPromoCodes();
                 loadPromoUsageHistory();
             } else if (tabName === 'payments') {
@@ -7290,6 +7313,84 @@
                                     ${log.details ? JSON.stringify(log.details).substring(0, 60) + '...' : '—'}
                                 </td>
                                 <td style="font-family: monospace; font-size: 11px;">${log.ip_address || '—'}</td>
+                                <td style="text-align: center;">
+                                    ${log.success
+                                        ? '<span class="material-icons" style="color: #4CAF50; font-size: 18px;">check_circle</span>'
+                                        : '<span class="material-icons" style="color: #F44336; font-size: 18px;">error</span>'}
+                                </td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+
+            container.innerHTML = tableHTML;
+        }
+
+        // Overview Logs Functions
+        async function loadOverviewLogs() {
+            const container = document.getElementById('overview-logs-container');
+            container.innerHTML = '<div class="loading"><div class="spinner"></div><div>Загрузка логов...</div></div>';
+
+            try {
+                // Для модераторов показываем только логи модераторов (backend фильтрует автоматически)
+                // Для админов показываем все логи
+                const params = new URLSearchParams({ limit: '20' });
+
+                const response = await fetch(`/api/admin-logs/?${params}`, {
+                    headers: {
+                        'Authorization': `tma ${adminToken}`
+                    }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    renderOverviewLogs(data.logs || []);
+                } else {
+                    container.innerHTML = '<div class="error-message">Ошибка загрузки логов</div>';
+                }
+            } catch (error) {
+                console.error('Failed to load overview logs:', error);
+                container.innerHTML = '<div class="error-message">Ошибка загрузки логов</div>';
+            }
+        }
+
+        function renderOverviewLogs(logs) {
+            const container = document.getElementById('overview-logs-container');
+
+            if (!logs || logs.length === 0) {
+                container.innerHTML = '<div style="text-align: center; padding: 40px; color: var(--md-sys-color-on-surface-variant);">Нет записей</div>';
+                return;
+            }
+
+            const tableHTML = `
+                <table class="data-table" style="width: 100%;">
+                    <thead>
+                        <tr>
+                            <th style="width: 12%;">Время</th>
+                            <th style="width: 18%;">Администратор</th>
+                            <th style="width: 25%;">Действие</th>
+                            <th style="width: 15%;">Ресурс</th>
+                            <th style="width: 25%;">Детали</th>
+                            <th style="width: 5%;">Статус</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${logs.map(log => `
+                            <tr class="${log.success ? '' : 'error-row'}">
+                                <td style="font-size: 12px;">${new Date(log.created_at).toLocaleString('ru-RU', {
+                                    day: '2-digit',
+                                    month: '2-digit',
+                                    year: '2-digit',
+                                    hour: '2-digit',
+                                    minute: '2-digit'
+                                })}</td>
+                                <td style="font-size: 13px;">ID ${log.admin_user_id}</td>
+                                <td style="font-size: 13px;">${ACTION_NAMES[log.action] || log.action}</td>
+                                <td style="font-size: 12px;">${log.resource_type || '—'} ${log.resource_id ? '#' + log.resource_id : ''}</td>
+                                <td style="font-size: 11px; color: var(--md-sys-color-on-surface-variant);">
+                                    ${log.details ? JSON.stringify(log.details).substring(0, 50) + '...' : '—'}
+                                </td>
                                 <td style="text-align: center;">
                                     ${log.success
                                         ? '<span class="material-icons" style="color: #4CAF50; font-size: 18px;">check_circle</span>'
@@ -10900,6 +11001,9 @@
                 loadChangelog();
             } else if (sectionName === 'config-todo') {
                 loadTODO();
+            } else if (sectionName === 'config-logs') {
+                loadAllAdminLogs();
+                loadAdminUsersForFilter();
             }
         }
 
