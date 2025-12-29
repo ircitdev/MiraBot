@@ -9,7 +9,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from pathlib import Path
 
-from webapp.api.routes import settings, stats, referral, export, admin, programs, promo
+from webapp.api.routes import settings, stats, referral, export, admin, programs, promo, moderators, admin_logs
 
 app = FastAPI(title="Mira Bot WebApp")
 
@@ -34,6 +34,8 @@ app.include_router(export.router, prefix="/api/export", tags=["export"])
 app.include_router(admin.router, prefix="/api/admin", tags=["admin"])
 app.include_router(programs.router, prefix="/api/programs", tags=["programs"])
 app.include_router(promo.router, prefix="/api/promo", tags=["promo"])
+app.include_router(moderators.router, prefix="/api", tags=["moderators"])
+app.include_router(admin_logs.router, prefix="/api", tags=["admin-logs"])
 
 # Static files
 webapp_dir = Path(__file__).parent.parent
