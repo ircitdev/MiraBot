@@ -138,7 +138,12 @@ class User(Base):
         back_populates="user",
         lazy="selectin"
     )
-    
+    reports: Mapped[List["UserReport"]] = relationship(
+        "UserReport",
+        back_populates="user",
+        lazy="selectin"
+    )
+
     def __repr__(self) -> str:
         return f"<User(id={self.id}, telegram_id={self.telegram_id}, name={self.display_name})>"
 
@@ -1050,3 +1055,30 @@ class AdminLog(Base):
 
     def __repr__(self) -> str:
         return f"<AdminLog(id={self.id}, action={self.action}, admin_user_id={self.admin_user_id})>"
+
+
+class UserReport(Base):
+    """
+    AI-отчёты о переписке с пользователем.
+    Генерируются администраторами для анализа общения.
+    """
+    __tablename__ = "user_reports"
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    telegram_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("users.telegram_id"), index=True, nullable=False)
+    content: Mapped[str] = mapped_column(Text, nullable=False)  # Текст AI-сводки
+    created_by: Mapped[Optional[int]] = mapped_column(BigInteger, ForeignKey("admin_users.telegram_id"), nullable=True)  # Кто создал
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=func.now(), nullable=False)
+
+    # Связи
+    user: Mapped["User"] = relationship("User", back_populates="reports")
+    creator: Mapped[Optional["AdminUser"]] = relationship("AdminUser", foreign_keys=[created_by])
+
+    # Индексы
+    __table_args__ = (
+        Index("idx_report_telegram_id", "telegram_id"),
+        Index("idx_report_created_at", "created_at"),
+    )
+
+    def __repr__(self) -> str:
+        return f"<UserReport(id={self.id}, telegram_id={self.telegram_id}, created_at={self.created_at})>"

@@ -8261,7 +8261,7 @@
 
         let currentChatTelegramId = null;
         let currentChatUserName = null;
-        let chatReports = []; // Локальное хранилище отчётов (в памяти)
+        let chatReports = []; // Список отчётов текущего пользователя
 
         function switchChatTab(tabName) {
             // Убираем active с вкладок
@@ -8619,11 +8619,34 @@
             }
         }
 
+        async function loadUserReports() {
+            if (!currentChatTelegramId) return;
+
+            try {
+                const response = await apiRequest(`/reports/${currentChatTelegramId}`);
+
+                // Преобразуем отчёты из БД в формат для отображения
+                chatReports = response.map(report => ({
+                    id: report.id,
+                    telegramId: report.telegram_id,
+                    userName: currentChatUserName,
+                    date: new Date(report.created_at).toLocaleDateString('ru-RU'),
+                    content: report.content,
+                    created_by: report.created_by
+                }));
+
+                renderReports();
+            } catch (error) {
+                console.error('Failed to load reports:', error);
+                chatReports = [];
+                renderReports();
+            }
+        }
+
         function renderReports() {
             const container = document.getElementById('reports-list');
-            const userReports = chatReports.filter(r => r.telegramId === currentChatTelegramId);
 
-            if (userReports.length === 0) {
+            if (chatReports.length === 0) {
                 container.innerHTML = `
                     <div class="no-reports">
                         <span class="material-icons" style="font-size: 48px; opacity: 0.3;">description</span>
@@ -8634,7 +8657,7 @@
                 return;
             }
 
-            container.innerHTML = userReports.map((report, index) => `
+            container.innerHTML = chatReports.map((report, index) => `
                 <div class="report-card" data-report-id="${report.id}">
                     <div class="report-card-header">
                         <div class="report-card-title">
@@ -8681,25 +8704,33 @@
                     <div class="spinner"></div>
                     <div>AI анализирует переписку... Это может занять до минуты.</div>
                 </div>
-            ` + (chatReports.filter(r => r.telegramId === currentChatTelegramId).length > 0 ? existingReports : '');
+            ` + (chatReports.length > 0 ? existingReports : '');
 
             try {
-                const response = await apiRequest(`/users/${currentChatTelegramId}/report`, {
+                // Генерируем отчёт через старый эндпоинт
+                const aiResponse = await apiRequest(`/users/${currentChatTelegramId}/report`, {
                     method: 'POST'
                 });
 
-                // Создаём отчёт
-                const report = {
-                    id: Date.now().toString(),
-                    telegramId: currentChatTelegramId,
+                // Сохраняем отчёт в БД через новый эндпоинт
+                const savedReport = await apiRequest(`/reports/${currentChatTelegramId}`, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        content: aiResponse.summary
+                    })
+                });
+
+                // Добавляем отчёт в начало списка
+                chatReports.unshift({
+                    id: savedReport.id,
+                    telegramId: savedReport.telegram_id,
                     userName: currentChatUserName,
-                    date: new Date().toLocaleDateString('ru-RU'),
-                    content: response.summary
-                };
+                    date: new Date(savedReport.created_at).toLocaleDateString('ru-RU'),
+                    content: savedReport.content,
+                    created_by: savedReport.created_by
+                });
 
-                chatReports.unshift(report);
                 renderReports();
-
                 showToast('Отчёт успешно создан', 'success');
 
                 // Переключаемся на вкладку отчётов
@@ -8715,12 +8746,23 @@
             }
         }
 
-        function deleteReport(reportId) {
-            const index = chatReports.findIndex(r => r.id === reportId);
-            if (index !== -1) {
-                chatReports.splice(index, 1);
-                renderReports();
+        async function deleteReport(reportId) {
+            try {
+                await apiRequest(`/reports/${reportId}`, {
+                    method: 'DELETE'
+                });
+
+                // Удаляем из локального массива
+                const index = chatReports.findIndex(r => r.id === reportId);
+                if (index !== -1) {
+                    chatReports.splice(index, 1);
+                    renderReports();
+                }
+
                 showToast('Отчёт удалён', 'success');
+            } catch (error) {
+                console.error('Failed to delete report:', error);
+                showToast('Ошибка удаления отчёта', 'error');
             }
         }
 
@@ -9068,6 +9110,10 @@
 
             // Сбрасываем на вкладку "Переписка"
             switchChatTab('messages');
+
+            // Загружаем отчёты из БД
+            await loadUserReports();
+
             // Обновляем счётчик отчётов
             updateReportsCount();
 
