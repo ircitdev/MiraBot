@@ -6,7 +6,7 @@ from typing import List, Optional, Dict, Tuple
 from datetime import datetime, timedelta
 from sqlalchemy import select, func, and_, desc
 from database.models import ApiCost, User
-from database.connection import get_session_context
+from database.session import get_session_context
 
 
 class ApiCostRepository:
