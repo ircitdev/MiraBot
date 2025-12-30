@@ -37,7 +37,7 @@ app.include_router(promo.router, prefix="/api/promo", tags=["promo"])
 app.include_router(moderators.router, prefix="/api", tags=["moderators"])
 app.include_router(admin_logs.router, prefix="/api", tags=["admin-logs"])
 app.include_router(reports.router, prefix="/api/admin", tags=["reports"])
-app.include_router(api_costs.router, prefix="/api", tags=["api-costs"])
+app.include_router(api_costs.router, tags=["api-costs"])
 
 # Static files
 webapp_dir = Path(__file__).parent.parent
