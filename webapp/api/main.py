@@ -106,6 +106,23 @@ async def docs_file(date: str, filename: str):
     return {"error": "File not found"}
 
 
+@app.get("/docs/todo_plan/{filename}")
+async def todo_plan_file(filename: str):
+    """TODO roadmap файлы."""
+    docs_path = Path(__file__).parent.parent.parent / "docs" / "todo_plan" / filename
+    if docs_path.exists() and docs_path.is_file():
+        return FileResponse(
+            docs_path,
+            media_type="text/markdown",
+            headers={
+                "Cache-Control": "no-cache, no-store, must-revalidate",
+                "Pragma": "no-cache",
+                "Expires": "0"
+            }
+        )
+    return {"error": "File not found"}
+
+
 @app.get("/health")
 async def health():
     """Health check."""
