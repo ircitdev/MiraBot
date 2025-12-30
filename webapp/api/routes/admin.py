@@ -235,10 +235,6 @@ async def update_user_subscription(
         raise HTTPException(status_code=404, detail="User not found")
 
     # Создать или обновить подписку
-    from services.subscription import SubscriptionService
-
-    sub_service = SubscriptionService()
-
     expires_at = datetime.now() + timedelta(days=data.days)
 
     # Получить активную подписку
