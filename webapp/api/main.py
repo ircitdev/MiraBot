@@ -9,7 +9,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from pathlib import Path
 
-from webapp.api.routes import settings, stats, referral, export, admin, programs, promo, moderators, admin_logs, reports, api_costs
+from webapp.api.routes import settings, stats, referral, export, admin, programs, promo, moderators, admin_logs, reports, api_costs, system_prompt
 
 app = FastAPI(title="Mira Bot WebApp")
 
@@ -38,6 +38,7 @@ app.include_router(moderators.router, prefix="/api", tags=["moderators"])
 app.include_router(admin_logs.router, prefix="/api", tags=["admin-logs"])
 app.include_router(reports.router, prefix="/api/admin", tags=["reports"])
 app.include_router(api_costs.router, prefix="/api/admin", tags=["api-costs"])
+app.include_router(system_prompt.router, prefix="/api/admin", tags=["system-prompt"])
 
 # Static files
 webapp_dir = Path(__file__).parent.parent
@@ -60,12 +61,15 @@ async def index():
 @app.get("/admin")
 async def admin_panel():
     """Админ-панель."""
+    import time
     return FileResponse(
         webapp_dir / "frontend" / "admin.html",
         headers={
-            "Cache-Control": "no-cache, no-store, must-revalidate",
+            "Cache-Control": "no-cache, no-store, must-revalidate, max-age=0",
             "Pragma": "no-cache",
-            "Expires": "0"
+            "Expires": "0",
+            "X-Content-Type-Options": "nosniff",
+            "ETag": f'"{int(time.time())}"'
         }
     )
 

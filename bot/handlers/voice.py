@@ -13,6 +13,7 @@ from ai.claude_client import ClaudeClient
 from database.repositories.user import UserRepository
 from database.repositories.subscription import SubscriptionRepository
 from database.repositories.conversation import ConversationRepository
+from database.repositories.api_cost import ApiCostRepository
 from bot.keyboards.inline import get_premium_keyboard, get_crisis_keyboard
 from services.storage.file_storage import file_storage_service
 from services.tts_yandex import send_voice_message
@@ -23,6 +24,7 @@ claude = ClaudeClient()
 user_repo = UserRepository()
 subscription_repo = SubscriptionRepository()
 conversation_repo = ConversationRepository()
+api_cost_repo = ApiCostRepository()
 
 
 async def handle_voice(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -104,11 +106,31 @@ async def handle_voice(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         # 8. Транскрибируем
         await status_message.edit_text("✍️ Расшифровываю...")
 
-        transcribed_text = await whisper_client.transcribe_bytes(
+        transcribed_text, whisper_cost_info = await whisper_client.transcribe_bytes(
             bytes(voice_bytes),
             file_extension="ogg",
             language="ru",
+            audio_duration_seconds=voice.duration,
         )
+
+        # 8.1. Сохраняем расходы на транскрибацию
+        if whisper_cost_info['cost_usd'] > 0:
+            try:
+                await api_cost_repo.create(
+                    user_id=user.id,
+                    provider='openai',
+                    operation='speech_to_text',
+                    cost_usd=whisper_cost_info['cost_usd'],
+                    audio_seconds=whisper_cost_info['audio_seconds'],
+                    model=whisper_cost_info['model'],
+                )
+                logger.info(
+                    f"Logged Whisper API cost for user {user.id}: "
+                    f"${whisper_cost_info['cost_usd']:.6f} "
+                    f"({whisper_cost_info['audio_seconds']}s)"
+                )
+            except Exception as e:
+                logger.error(f"Failed to log Whisper API cost: {e}")
 
         if not transcribed_text:
             await status_message.edit_text(

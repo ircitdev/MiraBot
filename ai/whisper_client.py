@@ -6,7 +6,7 @@ OpenAI Whisper Client.
 import os
 import tempfile
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Dict, Tuple
 
 from openai import AsyncOpenAI
 from loguru import logger
@@ -57,7 +57,8 @@ class WhisperClient:
         audio_bytes: bytes,
         file_extension: str = "ogg",
         language: str = "ru",
-    ) -> Optional[str]:
+        audio_duration_seconds: Optional[int] = None,
+    ) -> Tuple[Optional[str], Dict]:
         """
         Транскрибирует аудио из байтов.
 
@@ -65,11 +66,24 @@ class WhisperClient:
             audio_bytes: Байты аудиофайла
             file_extension: Расширение файла (ogg, mp3, wav и т.д.)
             language: Язык аудио
+            audio_duration_seconds: Длительность аудио в секундах (для расчёта стоимости)
 
         Returns:
-            Транскрибированный текст или None при ошибке
+            Tuple[text, cost_info]:
+                - text: Транскрибированный текст или None при ошибке
+                - cost_info: Dict с информацией о расходах {
+                    'audio_seconds': int,
+                    'cost_usd': float,
+                    'model': str
+                }
         """
         temp_file = None
+        cost_info = {
+            'audio_seconds': audio_duration_seconds or 0,
+            'cost_usd': 0.0,
+            'model': self.model
+        }
+
         try:
             # Создаём временный файл
             temp_file = tempfile.NamedTemporaryFile(
@@ -81,11 +95,17 @@ class WhisperClient:
 
             # Транскрибируем
             result = await self.transcribe(temp_file.name, language)
-            return result
+
+            # Рассчитываем стоимость
+            # Whisper API: $0.006 per minute = $0.0001 per second
+            if audio_duration_seconds:
+                cost_info['cost_usd'] = audio_duration_seconds * 0.0001
+
+            return result, cost_info
 
         except Exception as e:
             logger.error(f"Whisper transcription from bytes error: {e}")
-            return None
+            return None, cost_info
 
         finally:
             # Удаляем временный файл

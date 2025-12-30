@@ -197,7 +197,7 @@ class ApiCostRepository:
 
             return [
                 {
-                    'date': row.date.isoformat() if row.date else None,
+                    'date': str(row.date) if row.date else None,
                     'provider': row.provider,
                     'total_cost': float(row.total_cost),
                     'total_tokens': int(row.total_tokens) if row.total_tokens else 0
@@ -313,6 +313,8 @@ class ApiCostRepository:
                 User.id,
                 User.telegram_id,
                 User.display_name,
+                User.first_name,
+                ApiCost.provider,
                 func.sum(ApiCost.cost_usd).label('total_cost'),
                 func.sum(ApiCost.total_tokens).label('total_tokens')
             ).join(ApiCost, User.id == ApiCost.user_id)
@@ -327,7 +329,7 @@ class ApiCostRepository:
                 query = query.where(and_(*conditions))
 
             query = query.group_by(
-                User.id, User.telegram_id, User.display_name
+                User.id, User.telegram_id, User.display_name, User.first_name, ApiCost.provider
             ).order_by(desc(func.sum(ApiCost.cost_usd))).limit(limit)
 
             result = await session.execute(query)
@@ -337,8 +339,86 @@ class ApiCostRepository:
                     'user_id': row.id,
                     'telegram_id': row.telegram_id,
                     'display_name': row.display_name,
+                    'first_name': row.first_name,
+                    'provider': row.provider,
                     'total_cost': float(row.total_cost),
                     'total_tokens': int(row.total_tokens) if row.total_tokens else 0
+                }
+                for row in result
+            ]
+
+    async def get_costs_list(
+        self,
+        from_date: Optional[datetime] = None,
+        to_date: Optional[datetime] = None,
+        telegram_id: Optional[int] = None,
+        provider: Optional[str] = None,
+        limit: int = 50,
+        offset: int = 0
+    ) -> List[Dict]:
+        """
+        Получить список всех расходов с деталями.
+
+        Args:
+            from_date: Начало периода (опционально)
+            to_date: Конец периода (опционально)
+            telegram_id: Фильтр по telegram_id пользователя (опционально)
+            provider: Фильтр по провайдеру (опционально)
+            limit: Количество записей
+            offset: Смещение для пагинации
+
+        Returns:
+            Список [{id, telegram_id, user, provider, model_name, input_tokens, output_tokens, total_tokens, cost_usd, created_at}, ...]
+        """
+        async with get_session_context() as session:
+            query = select(
+                ApiCost.id,
+                ApiCost.user_id,
+                ApiCost.provider,
+                ApiCost.model.label('model_name'),
+                ApiCost.input_tokens,
+                ApiCost.output_tokens,
+                ApiCost.total_tokens,
+                ApiCost.cost_usd,
+                ApiCost.created_at,
+                User.telegram_id,
+                User.display_name,
+                User.first_name
+            ).join(User, User.id == ApiCost.user_id)
+
+            conditions = []
+            if from_date:
+                conditions.append(ApiCost.created_at >= from_date)
+            if to_date:
+                conditions.append(ApiCost.created_at <= to_date)
+            if telegram_id:
+                conditions.append(User.telegram_id == telegram_id)
+            if provider:
+                conditions.append(ApiCost.provider == provider)
+
+            if conditions:
+                query = query.where(and_(*conditions))
+
+            query = query.order_by(desc(ApiCost.created_at)).limit(limit).offset(offset)
+
+            result = await session.execute(query)
+
+            return [
+                {
+                    'id': row.id,
+                    'telegram_id': row.telegram_id,
+                    'provider': row.provider,
+                    'model_name': row.model_name,
+                    'input_tokens': row.input_tokens,
+                    'output_tokens': row.output_tokens,
+                    'total_tokens': row.total_tokens or 0,
+                    'cost_usd': float(row.cost_usd),
+                    'created_at': row.created_at.isoformat() if row.created_at else None,
+                    'user': {
+                        'telegram_id': row.telegram_id,
+                        'display_name': row.display_name,
+                        'first_name': row.first_name
+                    }
                 }
                 for row in result
             ]

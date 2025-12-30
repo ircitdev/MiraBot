@@ -128,9 +128,11 @@ async def get_api_costs_stats(
     to_datetime = None
 
     if from_date:
-        from_datetime = datetime.fromisoformat(from_date)
+        # Убираем 'Z' если есть (ISO format с timezone)
+        from_datetime = datetime.fromisoformat(from_date.replace('Z', '+00:00'))
     if to_date:
-        to_datetime = datetime.fromisoformat(to_date)
+        # Убираем 'Z' если есть (ISO format с timezone)
+        to_datetime = datetime.fromisoformat(to_date.replace('Z', '+00:00'))
 
     stats = await repo.get_stats_summary(
         from_date=from_datetime,
@@ -174,10 +176,12 @@ async def get_api_costs_by_date(
     if not from_date:
         from_datetime = datetime.now() - timedelta(days=30)
     else:
-        from_datetime = datetime.fromisoformat(from_date)
+        # Убираем 'Z' если есть (ISO format с timezone)
+        from_datetime = datetime.fromisoformat(from_date.replace('Z', '+00:00'))
 
     if to_date:
-        to_datetime = datetime.fromisoformat(to_date)
+        # Убираем 'Z' если есть (ISO format с timezone)
+        to_datetime = datetime.fromisoformat(to_date.replace('Z', '+00:00'))
 
     costs = await repo.get_costs_by_date(
         from_date=from_datetime,
@@ -221,9 +225,11 @@ async def get_top_users_by_api_costs(
     to_datetime = None
 
     if from_date:
-        from_datetime = datetime.fromisoformat(from_date)
+        # Убираем 'Z' если есть (ISO format с timezone)
+        from_datetime = datetime.fromisoformat(from_date.replace('Z', '+00:00'))
     if to_date:
-        to_datetime = datetime.fromisoformat(to_date)
+        # Убираем 'Z' если есть (ISO format с timezone)
+        to_datetime = datetime.fromisoformat(to_date.replace('Z', '+00:00'))
 
     top_users = await repo.get_top_users_by_cost(
         limit=limit,
@@ -232,3 +238,51 @@ async def get_top_users_by_api_costs(
     )
 
     return top_users
+
+
+@router.get("/")
+async def get_api_costs_list(
+    from_date: Optional[str] = Query(None, description="Начало периода (ISO format YYYY-MM-DD)"),
+    to_date: Optional[str] = Query(None, description="Конец периода (ISO format YYYY-MM-DD)"),
+    telegram_id: Optional[int] = Query(None, description="Фильтр по telegram_id пользователя"),
+    provider: Optional[str] = Query(None, description="Фильтр по провайдеру (claude, yandex_tts, etc.)"),
+    limit: int = Query(50, ge=1, le=500, description="Количество записей"),
+    offset: int = Query(0, ge=0, description="Смещение для пагинации"),
+    admin_data: dict = Depends(get_current_admin)
+) -> List[dict]:
+    """
+    Получить список всех расходов на API с деталями.
+
+    Query params:
+        - from_date: Начало периода (опционально, формат YYYY-MM-DD)
+        - to_date: Конец периода (опционально, формат YYYY-MM-DD)
+        - telegram_id: Фильтр по пользователю (опционально)
+        - provider: Фильтр по провайдеру (опционально)
+        - limit: Количество записей (по умолчанию 50, макс 500)
+        - offset: Смещение для пагинации (по умолчанию 0)
+
+    Returns:
+        Список записей расходов с деталями
+    """
+    repo = ApiCostRepository()
+
+    from_datetime = None
+    to_datetime = None
+
+    if from_date:
+        # Убираем 'Z' если есть (ISO format с timezone)
+        from_datetime = datetime.fromisoformat(from_date.replace('Z', '+00:00'))
+    if to_date:
+        # Убираем 'Z' если есть (ISO format с timezone)
+        to_datetime = datetime.fromisoformat(to_date.replace('Z', '+00:00'))
+
+    costs = await repo.get_costs_list(
+        from_date=from_datetime,
+        to_date=to_datetime,
+        telegram_id=telegram_id,
+        provider=provider,
+        limit=limit,
+        offset=offset
+    )
+
+    return costs

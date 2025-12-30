@@ -3725,6 +3725,10 @@
                 <span class="material-icons">person</span>
                 Легенда
             </button>
+            <button class="sub-nav-item" data-section="system-prompt" onclick="switchContextSection('system-prompt')">
+                <span class="material-icons">code</span>
+                SYSTEM PROMPT
+            </button>
         </div>
         <!-- Подменю для Платежей -->
         <div class="sub-nav-section" data-parent="payments">
@@ -3751,9 +3755,29 @@
         </div>
         <!-- Подменю для Аналитики -->
         <div class="sub-nav-section" data-parent="analytics">
-            <button class="sub-nav-item active" data-section="overview" onclick="switchAnalyticsSection('overview')">
-                <span class="material-icons">bar_chart</span>
-                Обзор
+            <button class="sub-nav-item active" onclick="switchAnalyticsTab('activity')">
+                <span class="material-icons">show_chart</span>
+                Активность
+            </button>
+            <button class="sub-nav-item" onclick="switchAnalyticsTab('subscriptions')">
+                <span class="material-icons">card_membership</span>
+                Подписки
+            </button>
+            <button class="sub-nav-item" onclick="switchAnalyticsTab('api-costs')">
+                <span class="material-icons">attach_money</span>
+                Расходы API
+            </button>
+            <button class="sub-nav-item" onclick="switchAnalyticsTab('mood')">
+                <span class="material-icons">mood</span>
+                Настроение
+            </button>
+            <button class="sub-nav-item" onclick="switchAnalyticsTab('emotions')">
+                <span class="material-icons">favorite</span>
+                Эмоции
+            </button>
+            <button class="sub-nav-item" onclick="switchAnalyticsTab('tags')">
+                <span class="material-icons">sell</span>
+                Топ-теги
             </button>
         </div>
         <!-- Подменю для Конфига -->
@@ -3835,10 +3859,20 @@
 
             <!-- API расходы -->
             <div class="stat-card">
-                <div class="stat-value" id="api-cost-today">$-</div>
-                <div class="stat-label">API расходы</div>
-                <div class="stat-hint" style="margin-top: 8px; font-size: 13px;">
-                    <span id="api-cost-week">$0</span> за неделю • <span id="api-cost-month">$0</span> за месяц
+                <div class="stat-label" style="margin-bottom: 12px;">API расходы</div>
+                <div style="display: flex; flex-direction: column; gap: 8px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span style="font-size: 14px; color: var(--md-sys-color-on-surface-variant);">За день:</span>
+                        <span id="api-cost-today" style="font-size: 18px; font-weight: 600; color: var(--md-sys-color-primary);">$-</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span style="font-size: 14px; color: var(--md-sys-color-on-surface-variant);">За неделю:</span>
+                        <span id="api-cost-week" style="font-size: 18px; font-weight: 600; color: var(--md-sys-color-primary);">$-</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span style="font-size: 14px; color: var(--md-sys-color-on-surface-variant);">За месяц:</span>
+                        <span id="api-cost-month" style="font-size: 18px; font-weight: 600; color: var(--md-sys-color-primary);">$-</span>
+                    </div>
                 </div>
             </div>
         </div>
@@ -3924,31 +3958,35 @@
                     <span class="material-icons">analytics</span>
                     Аналитика
                 </h2>
-                <div class="analytics-controls">
-                    <button class="analytics-tab-button active" onclick="switchAnalyticsTab('activity')">
-                        Активность
-                    </button>
-                    <button class="analytics-tab-button" onclick="switchAnalyticsTab('subscriptions')">
-                        Подписки
-                    </button>
-                    <button class="analytics-tab-button" onclick="switchAnalyticsTab('api-costs')">
-                        Расходы API
-                    </button>
-                    <button class="analytics-tab-button" onclick="switchAnalyticsTab('mood')">
-                        Настроение
-                    </button>
-                    <button class="analytics-tab-button" onclick="switchAnalyticsTab('emotions')">
-                        Эмоции
-                    </button>
-                    <button class="analytics-tab-button" onclick="switchAnalyticsTab('tags')">
-                        Топ-теги
-                    </button>
-                </div>
             </div>
 
             <div class="analytics-content">
                 <!-- Activity Chart -->
                 <div class="analytics-tab" id="analytics-activity">
+                    <!-- Ключевые метрики активности -->
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px;">
+                        <div style="background: var(--md-sys-color-surface-variant); padding: 16px; border-radius: 12px;">
+                            <div style="font-size: 12px; color: var(--md-sys-color-on-surface-variant); margin-bottom: 4px;">Сегодня</div>
+                            <div id="activity-today" style="font-size: 24px; font-weight: 600; color: var(--md-sys-color-primary);">-</div>
+                            <div style="font-size: 11px; color: var(--md-sys-color-on-surface-variant); margin-top: 4px;">пользователей активны</div>
+                        </div>
+                        <div style="background: var(--md-sys-color-surface-variant); padding: 16px; border-radius: 12px;">
+                            <div style="font-size: 12px; color: var(--md-sys-color-on-surface-variant); margin-bottom: 4px;">За неделю</div>
+                            <div id="activity-week" style="font-size: 24px; font-weight: 600; color: var(--md-sys-color-secondary);">-</div>
+                            <div style="font-size: 11px; color: var(--md-sys-color-on-surface-variant); margin-top: 4px;">пользователей активны</div>
+                        </div>
+                        <div style="background: var(--md-sys-color-surface-variant); padding: 16px; border-radius: 12px;">
+                            <div style="font-size: 12px; color: var(--md-sys-color-on-surface-variant); margin-bottom: 4px;">За месяц</div>
+                            <div id="activity-month" style="font-size: 24px; font-weight: 600; color: var(--md-sys-color-tertiary);">-</div>
+                            <div style="font-size: 11px; color: var(--md-sys-color-on-surface-variant); margin-top: 4px;">пользователей активны</div>
+                        </div>
+                        <div style="background: var(--md-sys-color-surface-variant); padding: 16px; border-radius: 12px;">
+                            <div style="font-size: 12px; color: var(--md-sys-color-on-surface-variant); margin-bottom: 4px;">Всего сообщений</div>
+                            <div id="activity-messages" style="font-size: 24px; font-weight: 600; color: #8B5CF6;">-</div>
+                            <div style="font-size: 11px; color: var(--md-sys-color-on-surface-variant); margin-top: 4px;">за выбранный период</div>
+                        </div>
+                    </div>
+
                     <div class="chart-controls">
                         <button class="chart-period-button active" onclick="changeActivityPeriod(7)">
                             7 дней
@@ -3956,9 +3994,87 @@
                         <button class="chart-period-button" onclick="changeActivityPeriod(30)">
                             30 дней
                         </button>
+                        <button class="chart-period-button" onclick="changeActivityPeriod(90)">
+                            90 дней
+                        </button>
                     </div>
                     <div class="chart-container">
                         <canvas id="activity-chart"></canvas>
+                    </div>
+
+                    <!-- Детальная статистика активности -->
+                    <div style="margin-top: 24px;">
+                        <h3 style="display: flex; align-items: center; gap: 8px; margin-bottom: 16px;">
+                            <span class="material-icons">insights</span>
+                            Детальная статистика
+                        </h3>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 16px;">
+                            <!-- Тип активности -->
+                            <div style="background: var(--md-sys-color-surface); padding: 16px; border-radius: 12px; border: 1px solid var(--md-sys-color-outline-variant);">
+                                <div style="font-weight: 500; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+                                    <span class="material-icons" style="color: var(--md-sys-color-primary);">message</span>
+                                    По типу активности
+                                </div>
+                                <div style="display: flex; flex-direction: column; gap: 8px;">
+                                    <div style="display: flex; justify-content: space-between;">
+                                        <span style="font-size: 13px;">Текстовые сообщения:</span>
+                                        <span id="activity-text-count" style="font-weight: 600;">-</span>
+                                    </div>
+                                    <div style="display: flex; justify-content: space-between;">
+                                        <span style="font-size: 13px;">Голосовые сообщения:</span>
+                                        <span id="activity-voice-count" style="font-weight: 600;">-</span>
+                                    </div>
+                                    <div style="display: flex; justify-content: space-between;">
+                                        <span style="font-size: 13px;">С эмоциями:</span>
+                                        <span id="activity-emotion-count" style="font-weight: 600;">-</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Средняя активность -->
+                            <div style="background: var(--md-sys-color-surface); padding: 16px; border-radius: 12px; border: 1px solid var(--md-sys-color-outline-variant);">
+                                <div style="font-weight: 500; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+                                    <span class="material-icons" style="color: var(--md-sys-color-secondary);">trending_up</span>
+                                    Средние показатели
+                                </div>
+                                <div style="display: flex; flex-direction: column; gap: 8px;">
+                                    <div style="display: flex; justify-content: space-between;">
+                                        <span style="font-size: 13px;">Сообщений в день:</span>
+                                        <span id="activity-avg-daily" style="font-weight: 600;">-</span>
+                                    </div>
+                                    <div style="display: flex; justify-content: space-between;">
+                                        <span style="font-size: 13px;">На пользователя:</span>
+                                        <span id="activity-avg-per-user" style="font-weight: 600;">-</span>
+                                    </div>
+                                    <div style="display: flex; justify-content: space-between;">
+                                        <span style="font-size: 13px;">Время ответа:</span>
+                                        <span id="activity-avg-response" style="font-weight: 600;">-</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Пиковая активность -->
+                            <div style="background: var(--md-sys-color-surface); padding: 16px; border-radius: 12px; border: 1px solid var(--md-sys-color-outline-variant);">
+                                <div style="font-weight: 500; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+                                    <span class="material-icons" style="color: var(--md-sys-color-tertiary);">schedule</span>
+                                    Пиковая активность
+                                </div>
+                                <div style="display: flex; flex-direction: column; gap: 8px;">
+                                    <div style="display: flex; justify-content: space-between;">
+                                        <span style="font-size: 13px;">Самый активный день:</span>
+                                        <span id="activity-peak-day" style="font-weight: 600;">-</span>
+                                    </div>
+                                    <div style="display: flex; justify-content: space-between;">
+                                        <span style="font-size: 13px;">Сообщений:</span>
+                                        <span id="activity-peak-count" style="font-weight: 600;">-</span>
+                                    </div>
+                                    <div style="display: flex; justify-content: space-between;">
+                                        <span style="font-size: 13px;">Рост к среднему:</span>
+                                        <span id="activity-peak-growth" style="font-weight: 600; color: var(--md-sys-color-tertiary);">-</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -3975,7 +4091,7 @@
                     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px;">
                         <div style="background: var(--md-sys-color-surface-variant); padding: 16px; border-radius: 12px;">
                             <div style="font-size: 12px; color: var(--md-sys-color-on-surface-variant); margin-bottom: 4px;">Всего потрачено</div>
-                            <div id="api-total-cost" style="font-size: 24px; font-weight: 600; color: var(--md-sys-color-primary);">$0.0000</div>
+                            <div id="api-total-cost" style="font-size: 24px; font-weight: 600; color: var(--md-sys-color-primary);">$0.00</div>
                         </div>
                         <div style="background: var(--md-sys-color-surface-variant); padding: 16px; border-radius: 12px;">
                             <div style="font-size: 12px; color: var(--md-sys-color-on-surface-variant); margin-bottom: 4px;">Всего токенов</div>
@@ -3984,6 +4100,14 @@
                         <div style="background: var(--md-sys-color-surface-variant); padding: 16px; border-radius: 12px;">
                             <div style="font-size: 12px; color: var(--md-sys-color-on-surface-variant); margin-bottom: 4px;">Пользователей</div>
                             <div id="api-unique-users" style="font-size: 24px; font-weight: 600; color: var(--md-sys-color-tertiary);">0</div>
+                        </div>
+                        <div style="background: var(--md-sys-color-surface-variant); padding: 16px; border-radius: 12px;">
+                            <div style="font-size: 12px; color: var(--md-sys-color-on-surface-variant); margin-bottom: 4px;">Claude API</div>
+                            <div id="api-claude-cost" style="font-size: 24px; font-weight: 600; color: #8B5CF6;">$0.00</div>
+                        </div>
+                        <div style="background: var(--md-sys-color-surface-variant); padding: 16px; border-radius: 12px;">
+                            <div style="font-size: 12px; color: var(--md-sys-color-on-surface-variant); margin-bottom: 4px;">Yandex TTS</div>
+                            <div id="api-yandex-cost" style="font-size: 24px; font-weight: 600; color: #EF4444;">$0.00</div>
                         </div>
                     </div>
 
@@ -3998,8 +4122,41 @@
                             90 дней
                         </button>
                     </div>
-                    <div class="chart-container">
-                        <canvas id="api-costs-chart"></canvas>
+
+                    <!-- Графики в две колонки -->
+                    <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 24px; margin-bottom: 24px;">
+                        <!-- График расходов по дням -->
+                        <div class="chart-container">
+                            <h3 style="margin: 0 0 16px 0; font-size: 16px; font-weight: 500;">Динамика расходов</h3>
+                            <canvas id="api-costs-chart"></canvas>
+                        </div>
+                        <!-- График по провайдерам -->
+                        <div class="chart-container" style="max-width: 400px;">
+                            <h3 style="margin: 0 0 16px 0; font-size: 16px; font-weight: 500;">По провайдерам</h3>
+                            <canvas id="api-providers-chart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Топ пользователей -->
+                    <div style="margin-bottom: 24px;">
+                        <h3 style="margin: 0 0 16px 0; font-size: 16px; font-weight: 500;">Топ-10 пользователей по расходам</h3>
+                        <div id="api-top-users-container">
+                            <div class="loading"><div class="spinner"></div><div>Загрузка...</div></div>
+                        </div>
+                    </div>
+
+                    <!-- Детальная таблица -->
+                    <div>
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                            <h3 style="margin: 0; font-size: 16px; font-weight: 500;">Детальная статистика</h3>
+                            <button class="md-button md-button-outlined" onclick="loadApiCostsDetails()">
+                                <span class="material-icons">refresh</span>
+                                Обновить
+                            </button>
+                        </div>
+                        <div id="api-costs-details-container">
+                            <div class="loading"><div class="spinner"></div><div>Загрузка...</div></div>
+                        </div>
                     </div>
                 </div>
 
@@ -5297,7 +5454,74 @@
                     </div>
                 </div>
 
-            </div>
+            </div><!-- END context-legend -->
+
+            <!-- Раздел: SYSTEM PROMPT -->
+            <div id="context-system-prompt" class="context-section">
+                <div class="system-prompt-container">
+                    <div class="analytics-header" style="margin-bottom: 24px;">
+                        <h2>
+                            <span class="material-icons">code</span>
+                            SYSTEM PROMPT
+                        </h2>
+                        <button class="md-button md-button-outlined" onclick="loadSystemPrompt()">
+                            <span class="material-icons">refresh</span>
+                            Обновить
+                        </button>
+                        <button class="md-button md-button-filled" onclick="uploadNewPrompt()" style="margin-left: 12px;">
+                            <span class="material-icons">upload_file</span>
+                            Загрузить новый PROMPT
+                        </button>
+                    </div>
+
+                    <!-- Текущая версия -->
+                    <div class="config-card" style="margin-bottom: 24px;">
+                        <div class="config-card-header" style="display: flex; justify-content: space-between; align-items: center;">
+                            <h3>
+                                <span class="material-icons">check_circle</span>
+                                Текущая версия
+                            </h3>
+                            <div style="display: flex; gap: 8px;">
+                                <span id="current-version-badge" class="status-badge" style="background: #4CAF50; color: white; padding: 4px 12px; border-radius: 12px; font-size: 12px;">v1.0</span>
+                                <button class="md-button md-button-outlined" onclick="downloadSystemPrompt('current')" style="padding: 6px 12px;">
+                                    <span class="material-icons" style="font-size: 18px;">download</span>
+                                    Скачать
+                                </button>
+                            </div>
+                        </div>
+                        <div style="margin-top: 16px;">
+                            <div style="display: flex; gap: 12px; margin-bottom: 12px; font-size: 13px; color: var(--md-sys-color-on-surface-variant);">
+                                <span><strong>Дата:</strong> <span id="current-version-date">—</span></span>
+                                <span><strong>Размер:</strong> <span id="current-version-size">—</span> символов</span>
+                            </div>
+                            <div style="position: relative;">
+                                <pre id="current-prompt-content" style="background: var(--md-sys-color-surface-variant); padding: 16px; border-radius: 8px; max-height: 400px; overflow-y: auto; font-size: 12px; line-height: 1.6; white-space: pre-wrap; word-wrap: break-word;">Загрузка...</pre>
+                                <button onclick="copyToClipboard('current-prompt-content')" class="md-button md-button-outlined" style="position: absolute; top: 8px; right: 8px; padding: 6px 12px;">
+                                    <span class="material-icons" style="font-size: 18px;">content_copy</span>
+                                    Копировать
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- История версий -->
+                    <div class="config-card">
+                        <div class="config-card-header">
+                            <h3>
+                                <span class="material-icons">history</span>
+                                История версий
+                            </h3>
+                        </div>
+                        <div id="prompt-history-container" style="margin-top: 16px;">
+                            <div class="loading">
+                                <div class="spinner"></div>
+                                <div>Загрузка истории версий...</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div><!-- END context-system-prompt -->
+
         </div><!-- END TAB: Context -->
 
         <!-- TAB: Config -->
@@ -5312,6 +5536,9 @@
 
                 <!-- Settings Tab Content -->
                 <div id="config-content-settings" class="config-tab-content active">
+
+                <!-- Config API Section -->
+                <div id="config-section-api" class="config-section active">
                     <div class="analytics-controls" style="margin-bottom: 20px;">
                         <button class="md-button md-button-outlined" onclick="loadAllSettings()">
                             <span class="material-icons">refresh</span>
@@ -5322,9 +5549,6 @@
                             Сохранить все
                         </button>
                     </div>
-
-                <!-- Config API Section -->
-                <div id="config-section-api" class="config-section active">
                     <h3 style="margin-bottom: 16px; color: var(--md-sys-color-on-surface);">
                         <span class="material-icons" style="vertical-align: middle; margin-right: 8px;">vpn_key</span>
                         API ключи и токены
@@ -6499,6 +6723,11 @@
                 if (sectionName === 'legend') {
                     loadLegendPhotos();
                 }
+
+                // Load system prompt when system-prompt section is opened
+                if (sectionName === 'system-prompt') {
+                    loadSystemPrompt();
+                }
             } else {
                 console.error('Section not found: context-' + sectionName);
             }
@@ -6906,6 +7135,207 @@
             return div.innerHTML;
         }
 
+        // System Prompt Functions
+        async function loadSystemPrompt() {
+            try {
+                const data = await apiRequest('system-prompt/current');
+
+                // Update current version with null safety
+                document.getElementById('current-version-badge').textContent = data.version || '1.0';
+                document.getElementById('current-version-date').textContent = data.updated_at ? new Date(data.updated_at).toLocaleString('ru-RU') : '—';
+                document.getElementById('current-version-size').textContent = (data.content?.length || 0).toLocaleString('ru-RU');
+                document.getElementById('current-prompt-content').textContent = data.content || 'Промпт не найден';
+
+                // Load history
+                await loadSystemPromptHistory();
+            } catch (error) {
+                console.error('Failed to load system prompt:', error);
+                showToast('Ошибка загрузки системного промпта', 'error');
+            }
+        }
+
+        async function loadSystemPromptHistory() {
+            const container = document.getElementById('prompt-history-container');
+
+            try {
+                const data = await apiRequest('system-prompt/history');
+                renderSystemPromptHistory(data.history || []);
+            } catch (error) {
+                console.error('Failed to load system prompt history:', error);
+                container.innerHTML = '<p class="error-message">Ошибка загрузки истории версий</p>';
+            }
+        }
+
+        function renderSystemPromptHistory(history) {
+            const container = document.getElementById('prompt-history-container');
+
+            if (history.length === 0) {
+                container.innerHTML = '<p style="text-align: center; color: var(--md-sys-color-on-surface-variant);">Нет истории версий</p>';
+                return;
+            }
+
+            container.innerHTML = `
+                <table class="data-table" style="width: 100%;">
+                    <thead>
+                        <tr>
+                            <th style="width: 10%;">Версия</th>
+                            <th style="width: 20%;">Дата</th>
+                            <th style="width: 15%;">Размер</th>
+                            <th style="width: 40%;">Описание</th>
+                            <th style="width: 15%;">Действия</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${history.map(version => `
+                            <tr>
+                                <td><strong>${escapeHtml(version.version)}</strong></td>
+                                <td style="font-size: 12px;">${new Date(version.created_at).toLocaleString('ru-RU')}</td>
+                                <td>${version.content.length.toLocaleString('ru-RU')} символов</td>
+                                <td style="font-size: 13px; color: var(--md-sys-color-on-surface-variant);">
+                                    ${escapeHtml(version.description || '—')}
+                                </td>
+                                <td>
+                                    <button class="md-button md-button-outlined" onclick="viewSystemPromptVersion('${version.version}')" style="padding: 4px 8px; font-size: 12px;">
+                                        <span class="material-icons" style="font-size: 16px;">visibility</span>
+                                        Просмотр
+                                    </button>
+                                    <button class="md-button md-button-outlined" onclick="downloadSystemPrompt('${version.version}')" style="padding: 4px 8px; font-size: 12px;">
+                                        <span class="material-icons" style="font-size: 16px;">download</span>
+                                    </button>
+                                </td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+        }
+
+        async function viewSystemPromptVersion(version) {
+            try {
+                const data = await apiRequest(`system-prompt/version/${version}`);
+
+                // Show in modal
+                const modal = document.createElement('div');
+                modal.className = 'modal-overlay';
+                modal.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 10000;';
+                modal.innerHTML = `
+                    <div class="config-card" style="max-width: 900px; max-height: 80vh; overflow-y: auto; margin: 20px;">
+                        <div class="config-card-header" style="display: flex; justify-content: space-between; align-items: center;">
+                            <h3>System Prompt - ${escapeHtml(version)}</h3>
+                            <button class="md-button md-button-outlined" onclick="this.closest('.modal-overlay').remove()">
+                                <span class="material-icons">close</span>
+                                Закрыть
+                            </button>
+                        </div>
+                        <div style="margin-top: 16px;">
+                            <div style="display: flex; gap: 12px; margin-bottom: 12px; font-size: 13px; color: var(--md-sys-color-on-surface-variant);">
+                                <span><strong>Дата:</strong> ${new Date(data.created_at).toLocaleString('ru-RU')}</span>
+                                <span><strong>Размер:</strong> ${data.content.length.toLocaleString('ru-RU')} символов</span>
+                            </div>
+                            <pre style="background: var(--md-sys-color-surface-variant); padding: 16px; border-radius: 8px; max-height: 500px; overflow-y: auto; font-size: 12px; line-height: 1.6; white-space: pre-wrap; word-wrap: break-word;">${escapeHtml(data.content)}</pre>
+                        </div>
+                    </div>
+                `;
+                document.body.appendChild(modal);
+            } catch (error) {
+                console.error('Failed to view system prompt version:', error);
+                showToast('Ошибка загрузки версии', 'error');
+            }
+        }
+
+        async function downloadSystemPrompt(version) {
+            try {
+                const endpoint = version === 'current' ? 'system-prompt/current' : `system-prompt/version/${version}`;
+                const data = await apiRequest(endpoint);
+
+                // Create download
+                const blob = new Blob([data.content], { type: 'text/plain;charset=utf-8' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `system_prompt_${data.version}.txt`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+
+                showToast('Файл скачан', 'success');
+            } catch (error) {
+                console.error('Failed to download system prompt:', error);
+                showToast('Ошибка скачивания', 'error');
+            }
+        }
+
+        async function uploadNewPrompt() {
+            // Create file input
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.txt,.md';
+
+            input.onchange = async (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+
+                try {
+                    // Read file content
+                    const content = await file.text();
+
+                    if (!content || content.trim().length === 0) {
+                        showToast('Файл пустой', 'error');
+                        return;
+                    }
+
+                    // Confirm upload
+                    if (!confirm(`Загрузить новый системный промпт?\n\nРазмер: ${content.length.toLocaleString('ru-RU')} символов\nФайл: ${file.name}\n\nТекущая версия будет сохранена в истории.`)) {
+                        return;
+                    }
+
+                    // Upload to server
+                    const response = await apiRequest('system-prompt/update', {
+                        method: 'POST',
+                        body: JSON.stringify({ content })
+                    });
+
+                    showToast('Системный промпт обновлён', 'success');
+
+                    // Reload the prompt
+                    await loadSystemPrompt();
+
+                } catch (error) {
+                    console.error('Failed to upload system prompt:', error);
+                    showToast('Ошибка загрузки файла', 'error');
+                }
+            };
+
+            // Trigger file selection
+            input.click();
+        }
+
+        async function copyToClipboard(elementId) {
+            const element = document.getElementById(elementId);
+            if (!element) return;
+
+            try {
+                await navigator.clipboard.writeText(element.textContent);
+                showToast('Скопировано в буфер обмена', 'success');
+            } catch (error) {
+                // Fallback for older browsers
+                const textArea = document.createElement('textarea');
+                textArea.value = element.textContent;
+                textArea.style.position = 'fixed';
+                textArea.style.opacity = '0';
+                document.body.appendChild(textArea);
+                textArea.select();
+                try {
+                    document.execCommand('copy');
+                    showToast('Скопировано в буфер обмена', 'success');
+                } catch (err) {
+                    showToast('Ошибка копирования', 'error');
+                }
+                document.body.removeChild(textArea);
+            }
+        }
+
         // Payments Section Navigation
         function switchPaymentsSection(sectionName) {
             // Update sub-nav buttons
@@ -7056,7 +7486,7 @@
             try {
                 const response = await fetch('/api/moderators/me', {
                     headers: {
-                        'Authorization': `tma ${adminToken}`
+                        'Authorization': `Bearer ${adminToken}`
                     }
                 });
 
@@ -7158,7 +7588,7 @@
                 const response = await fetch('/api/moderators/me/accent-color', {
                     method: 'PUT',
                     headers: {
-                        'Authorization': `tma ${adminToken}`,
+                        'Authorization': `Bearer ${adminToken}`,
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({ accent_color: newColor })
@@ -7284,7 +7714,7 @@
             try {
                 const response = await fetch('/api/moderators/', {
                     headers: {
-                        'Authorization': `tma ${adminToken}`
+                        'Authorization': `Bearer ${adminToken}`
                     }
                 });
 
@@ -7328,7 +7758,7 @@
 
                 const response = await fetch(`/api/admin-logs/?${params}`, {
                     headers: {
-                        'Authorization': `tma ${adminToken}`
+                        'Authorization': `Bearer ${adminToken}`
                     }
                 });
 
@@ -7380,9 +7810,9 @@
                                 })}</td>
                                 <td style="font-size: 13px;">ID ${log.admin_user_id}</td>
                                 <td style="font-size: 13px;">${ACTION_NAMES[log.action] || log.action}</td>
-                                <td style="font-size: 12px;">${log.resource_type || '—'} ${log.resource_id ? '#' + log.resource_id : ''}</td>
+                                <td style="font-size: 12px;">${log.resource_type || '—'}</td>
                                 <td style="font-size: 11px; color: var(--md-sys-color-on-surface-variant);">
-                                    ${log.details ? JSON.stringify(log.details).substring(0, 60) + '...' : '—'}
+                                    ${formatLogDetails(log)}
                                 </td>
                                 <td style="font-family: monospace; font-size: 11px;">${log.ip_address || '—'}</td>
                                 <td style="text-align: center;">
@@ -7397,6 +7827,9 @@
             `;
 
             container.innerHTML = tableHTML;
+
+            // Имена администраторов и пользователей загружаются на сервере
+            // TODO: добавить enrichment логов на бэкенде
         }
 
         // Overview Logs Functions
@@ -7490,7 +7923,89 @@
             'moderator_update': 'Обновление модератора',
             'moderator_activate': 'Активация модератора',
             'moderator_deactivate': 'Деактивация модератора',
+            'report_create': 'Создание отчёта',
         };
+
+        // Кеш имён администраторов
+        const adminNamesCache = {};
+
+        // Функция для получения имени администратора
+        async function getAdminName(adminUserId) {
+            if (adminNamesCache[adminUserId]) {
+                return adminNamesCache[adminUserId];
+            }
+
+            try {
+                // Используем эндпоинт списка модераторов
+                const response = await apiRequest(`moderators`);
+                if (response && response.moderators) {
+                    const moderator = response.moderators.find(m => m.id === adminUserId);
+                    if (moderator) {
+                        const name = `${moderator.first_name || ''} ${moderator.last_name || ''}`.trim();
+                        adminNamesCache[adminUserId] = name || `ID ${adminUserId}`;
+                        return adminNamesCache[adminUserId];
+                    }
+                }
+            } catch (error) {
+                console.error(`Failed to load admin name for ${adminUserId}:`, error);
+            }
+
+            adminNamesCache[adminUserId] = `ID ${adminUserId}`;
+            return adminNamesCache[adminUserId];
+        }
+
+        // Кеш имён пользователей
+        const userNamesCache = {};
+
+        // Функция для получения имени пользователя по telegram_id
+        async function getUserName(telegramId) {
+            if (userNamesCache[telegramId]) {
+                return userNamesCache[telegramId];
+            }
+
+            try {
+                // Ищем пользователя в загруженном списке
+                const response = await apiRequest(`users?telegram_id=${telegramId}&limit=1`);
+                if (response && response.users && response.users.length > 0) {
+                    const user = response.users[0];
+                    const name = user.display_name || user.first_name || `ID ${telegramId}`;
+                    userNamesCache[telegramId] = name;
+                    return name;
+                }
+            } catch (error) {
+                console.error(`Failed to load user name for ${telegramId}:`, error);
+            }
+
+            userNamesCache[telegramId] = `ID ${telegramId}`;
+            return userNamesCache[telegramId];
+        }
+
+        // Функция для форматирования деталей лога
+        function formatLogDetails(log) {
+            if (!log.details || !log.details.params) {
+                return '—';
+            }
+
+            const params = log.details.params;
+
+            // Для создания отчёта
+            if (log.action === 'report_create' && params.telegram_id) {
+                return `Для пользователя (id ${params.telegram_id})`;
+            }
+
+            // Для блокировки/разблокировки
+            if ((log.action === 'user_block' || log.action === 'user_unblock') && params.telegram_id) {
+                return `Пользователь (id ${params.telegram_id})`;
+            }
+
+            // Для подписок
+            if (log.action === 'subscription_grant' && params.telegram_id) {
+                return `Пользователь (id ${params.telegram_id})`;
+            }
+
+            // По умолчанию показываем первые 60 символов JSON
+            return JSON.stringify(log.details).substring(0, 60) + '...';
+        }
 
         async function loadMyLogs() {
             const container = document.getElementById('my-logs-container');
@@ -7505,7 +8020,7 @@
 
                 const response = await fetch(`/api/admin-logs/me?${params}`, {
                     headers: {
-                        'Authorization': `tma ${adminToken}`
+                        'Authorization': `Bearer ${adminToken}`
                     }
                 });
 
@@ -7641,7 +8156,9 @@
                 headers['X-Telegram-Init-Data'] = tg.initData;
             }
 
-            const response = await fetch(`${API_BASE}${endpoint}`, {
+            // Ensure proper URL construction without double slashes
+            const url = `${API_BASE}/${endpoint}`.replace(/([^:]\/)\/+/g, '$1');
+            const response = await fetch(url, {
                 ...options,
                 headers: {
                     ...headers,
@@ -7712,9 +8229,9 @@
                 });
 
                 // Обновляем UI
-                document.getElementById('api-cost-today').textContent = `$${costToday.toFixed(4)}`;
-                document.getElementById('api-cost-week').textContent = `$${costWeek.toFixed(4)}`;
-                document.getElementById('api-cost-month').textContent = `$${costMonth.toFixed(4)}`;
+                document.getElementById('api-cost-today').textContent = `$${costToday.toFixed(2)}`;
+                document.getElementById('api-cost-week').textContent = `$${costWeek.toFixed(2)}`;
+                document.getElementById('api-cost-month').textContent = `$${costMonth.toFixed(2)}`;
             } catch (error) {
                 console.error('Failed to load API costs:', error);
                 document.getElementById('api-cost-today').textContent = '$-';
@@ -7853,8 +8370,8 @@
                     // Расходы API
                     const apiCost = apiCostsCache[user.telegram_id] || 0;
                     const apiCostHtml = apiCost > 0
-                        ? `<span style="color: var(--md-sys-color-primary); font-weight: 500;">$${apiCost.toFixed(4)}</span>`
-                        : '<span style="color: var(--md-sys-color-outline);">$0.0000</span>';
+                        ? `<span style="color: var(--md-sys-color-primary); font-weight: 500;">$${apiCost.toFixed(2)}</span>`
+                        : '<span style="color: var(--md-sys-color-outline);">$0.00</span>';
 
                     row.innerHTML = `
                         <td>
@@ -7995,7 +8512,7 @@
             try {
                 const apiCosts = await apiRequest(`api-costs/users/${user.telegram_id}`);
                 if (apiCosts && apiCosts.total_cost > 0) {
-                    apiCostHtml = `<span style="color: var(--md-sys-color-primary); font-weight: 500;">$${apiCosts.total_cost.toFixed(4)}</span>`;
+                    apiCostHtml = `<span style="color: var(--md-sys-color-primary); font-weight: 500;">$${apiCosts.total_cost.toFixed(2)}</span>`;
                     // Подсчитываем общее количество токенов (примерно, на основе стоимости)
                     const estimatedTokens = Math.round((apiCosts.total_cost / 0.000015) * 1000);
                     apiTokensHtml = `<span style="color: var(--md-sys-color-secondary);">${estimatedTokens.toLocaleString()}</span>`;
@@ -8003,12 +8520,12 @@
                     // Добавляем разбивку по провайдерам если есть
                     if (apiCosts.by_provider && Object.keys(apiCosts.by_provider).length > 0) {
                         const providerBreakdown = Object.entries(apiCosts.by_provider)
-                            .map(([provider, cost]) => `${provider}: $${cost.toFixed(4)}`)
+                            .map(([provider, cost]) => `${provider}: $${cost.toFixed(2)}`)
                             .join(', ');
                         apiCostHtml += `<br><small style="color: var(--md-sys-color-on-surface-variant);">${providerBreakdown}</small>`;
                     }
                 } else {
-                    apiCostHtml = '<span style="color: var(--md-sys-color-outline);">$0.0000</span>';
+                    apiCostHtml = '<span style="color: var(--md-sys-color-outline);">$0.00</span>';
                     apiTokensHtml = '<span style="color: var(--md-sys-color-outline);">0</span>';
                 }
             } catch (error) {
@@ -8927,7 +9444,7 @@
                 let tokensInfo = '';
                 if (report.tokens_used || report.cost_usd) {
                     const tokensText = report.tokens_used ? `${report.tokens_used.toLocaleString()} токенов` : '';
-                    const costText = report.cost_usd ? `$${report.cost_usd.toFixed(4)}` : '';
+                    const costText = report.cost_usd ? `$${report.cost_usd.toFixed(2)}` : '';
                     const fullText = tokensText && costText ? `${tokensText} (${costText})` : (tokensText || costText);
 
                     tokensInfo = `<div style="font-size: 12px; color: var(--md-sys-color-on-surface-variant); margin-top: 4px;">
@@ -9876,11 +10393,13 @@
 
         // Switch analytics tab
         function switchAnalyticsTab(tab) {
-            // Update buttons
-            document.querySelectorAll('.analytics-tab-button').forEach(btn => {
+            // Update sub-nav buttons
+            document.querySelectorAll('[data-parent="analytics"] .sub-nav-item').forEach(btn => {
                 btn.classList.remove('active');
             });
-            event.target.classList.add('active');
+            if (event && event.target) {
+                event.target.closest('.sub-nav-item').classList.add('active');
+            }
 
             // Update tabs
             document.getElementById('analytics-activity').style.display = tab === 'activity' ? 'block' : 'none';
@@ -9899,6 +10418,9 @@
                 loadTagsChart(currentTagsPeriod);
             } else if (tab === 'api-costs' && !apiCostsChart) {
                 loadApiCostsChart(currentApiCostsPeriod);
+                loadApiProvidersChart(currentApiCostsPeriod);
+                loadApiTopUsers(currentApiCostsPeriod);
+                loadApiCostsDetails(1);
             }
         }
 
@@ -9921,6 +10443,32 @@
             try {
                 const data = await apiRequest(`/analytics/activity?days=${days}`);
 
+                // Обновляем ключевые метрики
+                document.getElementById('activity-today').textContent = data.today_active + ' польз.';
+                document.getElementById('activity-week').textContent = data.week_active + ' польз.';
+                document.getElementById('activity-month').textContent = data.month_active + ' польз.';
+                document.getElementById('activity-messages').textContent = data.total_messages.toLocaleString();
+
+                // Обновляем детальную статистику: типы активности
+                document.getElementById('activity-text-count').textContent = data.text_messages.toLocaleString();
+                document.getElementById('activity-voice-count').textContent = data.voice_messages.toLocaleString();
+                document.getElementById('activity-emotion-count').textContent = data.emotion_messages.toLocaleString();
+
+                // Обновляем средние показатели
+                document.getElementById('activity-avg-daily').textContent = data.avg_daily_messages.toLocaleString() + ' сообщ./день';
+                document.getElementById('activity-avg-per-user').textContent = data.avg_messages_per_user.toLocaleString() + ' сообщ./польз.';
+                document.getElementById('activity-avg-response').textContent = '< 1 сек'; // TODO: добавить реальные данные
+
+                // Обновляем пиковую активность
+                document.getElementById('activity-peak-day').textContent = data.peak_day;
+                document.getElementById('activity-peak-count').textContent = data.peak_count.toLocaleString() + ' сообщ.';
+
+                // Рассчитываем рост (по сравнению с средним)
+                const avgCount = data.avg_daily_messages;
+                const growthPercent = avgCount > 0 ? ((data.peak_count - avgCount) / avgCount * 100).toFixed(0) : 0;
+                document.getElementById('activity-peak-growth').textContent = '+' + growthPercent + '%';
+
+                // Рисуем график
                 const ctx = document.getElementById('activity-chart').getContext('2d');
 
                 if (activityChart) {
@@ -10240,19 +10788,6 @@
             }
         }
 
-        // Change API costs period
-        function changeApiCostsPeriod(days) {
-            currentApiCostsPeriod = days;
-
-            // Update buttons
-            document.querySelectorAll('#analytics-api-costs .chart-period-button').forEach(btn => {
-                btn.classList.remove('active');
-            });
-            event.target.classList.add('active');
-
-            // Reload chart
-            loadApiCostsChart(days);
-        }
 
         // Load API costs chart
         async function loadApiCostsChart(days = 30) {
@@ -10265,7 +10800,7 @@
                 const statsData = await apiRequest(`api-costs/stats?from_date=${fromDate.toISOString().split('T')[0]}&to_date=${toDate.toISOString().split('T')[0]}`);
 
                 // Обновляем статистику сверху
-                document.getElementById('api-total-cost').textContent = `$${statsData.total_cost.toFixed(4)}`;
+                document.getElementById('api-total-cost').textContent = `$${statsData.total_cost.toFixed(2)}`;
                 document.getElementById('api-total-tokens').textContent = statsData.total_tokens.toLocaleString();
                 document.getElementById('api-unique-users').textContent = statsData.unique_users.toLocaleString();
 
@@ -10300,8 +10835,11 @@
                 const datasets = providers.map(provider => ({
                     label: providerNames[provider],
                     data: dates.map(date => dateMap[date][provider] || 0),
-                    backgroundColor: providerColors[provider],
-                    borderWidth: 0,
+                    borderColor: providerColors[provider],
+                    backgroundColor: providerColors[provider] + '20', // 20 = прозрачность
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.4, // Smooth curves
                 })).filter(dataset => dataset.data.some(val => val > 0)); // Показываем только используемые провайдеры
 
                 const ctx = document.getElementById('api-costs-chart').getContext('2d');
@@ -10311,7 +10849,7 @@
                 }
 
                 apiCostsChart = new Chart(ctx, {
-                    type: 'bar',
+                    type: 'line',
                     data: {
                         labels: dates.map(date => new Date(date).toLocaleDateString('ru-RU', { month: 'short', day: 'numeric' })),
                         datasets: datasets
@@ -10325,8 +10863,7 @@
                                 position: 'top',
                             },
                             title: {
-                                display: true,
-                                text: `Расходы на API за ${days} дней (по провайдерам)`
+                                display: false
                             },
                             tooltip: {
                                 callbacks: {
@@ -10338,14 +10875,12 @@
                         },
                         scales: {
                             x: {
-                                stacked: true,
                                 title: {
                                     display: true,
                                     text: 'Дата'
                                 }
                             },
                             y: {
-                                stacked: true,
                                 beginAtZero: true,
                                 title: {
                                     display: true,
@@ -10353,7 +10888,7 @@
                                 },
                                 ticks: {
                                     callback: function(value) {
-                                        return '$' + value.toFixed(4);
+                                        return '$' + value.toFixed(2);
                                     }
                                 }
                             }
@@ -10364,6 +10899,279 @@
                 console.error('Failed to load API costs chart:', error);
                 showToast('Ошибка загрузки графика расходов API', 'error');
             }
+        }
+
+        // Load API providers pie chart
+        let apiProvidersChart = null;
+        async function loadApiProvidersChart(days = 30) {
+            try {
+                const toDate = new Date();
+                const fromDate = new Date();
+                fromDate.setDate(fromDate.getDate() - days);
+
+                const statsData = await apiRequest(`api-costs/stats?from_date=${fromDate.toISOString().split('T')[0]}&to_date=${toDate.toISOString().split('T')[0]}`);
+
+                // Обновляем карточки для провайдеров
+                const costsData = await apiRequest(`api-costs/by-date?from_date=${fromDate.toISOString().split('T')[0]}&to_date=${toDate.toISOString().split('T')[0]}`);
+
+                const providerTotals = {};
+                costsData.forEach(item => {
+                    if (!providerTotals[item.provider]) {
+                        providerTotals[item.provider] = 0;
+                    }
+                    providerTotals[item.provider] += item.total_cost;
+                });
+
+                // Обновляем карточки
+                document.getElementById('api-claude-cost').textContent = `$${(providerTotals['claude'] || 0).toFixed(2)}`;
+                document.getElementById('api-yandex-cost').textContent = `$${((providerTotals['yandex_tts'] || 0) + (providerTotals['yandex_stt'] || 0)).toFixed(2)}`;
+
+                // Формируем данные для pie chart
+                const providerNames = {
+                    'claude': 'Claude',
+                    'yandex_tts': 'Yandex TTS',
+                    'yandex_stt': 'Yandex STT',
+                    'openai': 'OpenAI'
+                };
+                const providerColors = {
+                    'claude': '#8B5CF6',
+                    'yandex_tts': '#EF4444',
+                    'yandex_stt': '#F97316',
+                    'openai': '#3B82F6'
+                };
+
+                const labels = [];
+                const data = [];
+                const colors = [];
+
+                Object.entries(providerTotals).forEach(([provider, cost]) => {
+                    if (cost > 0) {
+                        labels.push(providerNames[provider] || provider);
+                        data.push(cost);
+                        colors.push(providerColors[provider] || '#6B7280');
+                    }
+                });
+
+                const ctx = document.getElementById('api-providers-chart').getContext('2d');
+
+                if (apiProvidersChart) {
+                    apiProvidersChart.destroy();
+                }
+
+                apiProvidersChart = new Chart(ctx, {
+                    type: 'pie',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            data: data,
+                            backgroundColor: colors,
+                            borderWidth: 2,
+                            borderColor: '#1E1E1E'
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: true,
+                        plugins: {
+                            legend: {
+                                display: true,
+                                position: 'bottom',
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                        const percentage = ((context.parsed / total) * 100).toFixed(1);
+                                        return `${context.label}: $${context.parsed.toFixed(2)} (${percentage}%)`;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            } catch (error) {
+                console.error('Failed to load API providers chart:', error);
+                showToast('Ошибка загрузки графика провайдеров', 'error');
+            }
+        }
+
+        // Load top users by API costs
+        async function loadApiTopUsers(days = 30) {
+            try {
+                const toDate = new Date();
+                const fromDate = new Date();
+                fromDate.setDate(fromDate.getDate() - days);
+
+                const topUsersData = await apiRequest(`api-costs/top-users?from_date=${fromDate.toISOString().split('T')[0]}&to_date=${toDate.toISOString().split('T')[0]}&limit=10`);
+
+                const container = document.getElementById('api-top-users-container');
+
+                if (!topUsersData || topUsersData.length === 0) {
+                    container.innerHTML = '<p style="text-align: center; color: var(--md-sys-color-on-surface-variant); padding: 20px;">Нет данных</p>';
+                    return;
+                }
+
+                let html = `
+                    <h3 style="margin-bottom: 16px;">Топ-10 пользователей по расходам</h3>
+                    <div style="overflow-x: auto;">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Пользователь</th>
+                                    <th>Telegram ID</th>
+                                    <th>Провайдер</th>
+                                    <th>Токены</th>
+                                    <th>Стоимость</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                `;
+
+                topUsersData.forEach((user, index) => {
+                    console.log('User data:', user); // Debug
+                    const providerBadge = user.provider === 'claude' ?
+                        '<span style="background: #8B5CF6; color: white; padding: 2px 8px; border-radius: 4px; font-size: 11px;">Claude</span>' :
+                        user.provider === 'yandex_tts' ?
+                        '<span style="background: #EF4444; color: white; padding: 2px 8px; border-radius: 4px; font-size: 11px;">Yandex TTS</span>' :
+                        user.provider === 'yandex_stt' ?
+                        '<span style="background: #F97316; color: white; padding: 2px 8px; border-radius: 4px; font-size: 11px;">Yandex STT</span>' :
+                        user.provider === 'openai' ?
+                        '<span style="background: #3B82F6; color: white; padding: 2px 8px; border-radius: 4px; font-size: 11px;">OpenAI</span>' :
+                        `<span style="background: #6B7280; color: white; padding: 2px 8px; border-radius: 4px; font-size: 11px;">${user.provider || 'undefined'}</span>`;
+
+                    html += `
+                        <tr>
+                            <td>${index + 1}</td>
+                            <td>${user.display_name || user.first_name || 'Неизвестно'}</td>
+                            <td>${user.telegram_id}</td>
+                            <td>${providerBadge}</td>
+                            <td>${user.total_tokens.toLocaleString()}</td>
+                            <td style="font-weight: 600;">$${user.total_cost.toFixed(4)}</td>
+                        </tr>
+                    `;
+                });
+
+                html += `
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+
+                container.innerHTML = html;
+            } catch (error) {
+                console.error('Failed to load top users:', error);
+                showToast('Ошибка загрузки топа пользователей', 'error');
+            }
+        }
+
+        // Load detailed API costs
+        let currentApiCostsDetailsPage = 1;
+        let currentApiCostsDetailsLimit = 50;
+        async function loadApiCostsDetails(page = 1) {
+            try {
+                currentApiCostsDetailsPage = page;
+                const offset = (page - 1) * currentApiCostsDetailsLimit;
+
+                const toDate = new Date();
+                const fromDate = new Date();
+                fromDate.setDate(fromDate.getDate() - currentApiCostsPeriod);
+
+                const detailsData = await apiRequest(`api-costs?from_date=${fromDate.toISOString().split('T')[0]}&to_date=${toDate.toISOString().split('T')[0]}&limit=${currentApiCostsDetailsLimit}&offset=${offset}`);
+
+                const container = document.getElementById('api-costs-details-container');
+
+                if (!detailsData || detailsData.length === 0) {
+                    container.innerHTML = '<p style="text-align: center; color: var(--md-sys-color-on-surface-variant); padding: 20px;">Нет данных</p>';
+                    return;
+                }
+
+                let html = `
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                        <h3>Детальная статистика</h3>
+                        <button class="md-button md-button-outlined" onclick="loadApiCostsDetails(${page})">
+                            <span class="material-icons">refresh</span>
+                            Обновить
+                        </button>
+                    </div>
+                    <div style="overflow-x: auto;">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Дата</th>
+                                    <th>Пользователь</th>
+                                    <th>Провайдер</th>
+                                    <th>Модель</th>
+                                    <th>Токены вход</th>
+                                    <th>Токены выход</th>
+                                    <th>Всего токенов</th>
+                                    <th>Стоимость</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                `;
+
+                detailsData.forEach(cost => {
+                    const date = new Date(cost.created_at).toLocaleString('ru-RU', {
+                        day: '2-digit',
+                        month: '2-digit',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    });
+
+                    const providerBadge = cost.provider === 'claude' ?
+                        '<span style="background: #8B5CF6; color: white; padding: 2px 8px; border-radius: 4px; font-size: 11px;">Claude</span>' :
+                        cost.provider === 'yandex_tts' ?
+                        '<span style="background: #EF4444; color: white; padding: 2px 8px; border-radius: 4px; font-size: 11px;">Yandex TTS</span>' :
+                        `<span style="background: #6B7280; color: white; padding: 2px 8px; border-radius: 4px; font-size: 11px;">${cost.provider}</span>`;
+
+                    html += `
+                        <tr>
+                            <td>${date}</td>
+                            <td>${cost.user?.display_name || cost.user?.first_name || 'ID ' + cost.telegram_id}</td>
+                            <td>${providerBadge}</td>
+                            <td style="font-family: monospace; font-size: 12px;">${cost.model_name || '-'}</td>
+                            <td>${(cost.input_tokens || 0).toLocaleString()}</td>
+                            <td>${(cost.output_tokens || 0).toLocaleString()}</td>
+                            <td style="font-weight: 500;">${cost.total_tokens.toLocaleString()}</td>
+                            <td style="font-weight: 600; color: #8B5CF6;">$${cost.cost_usd.toFixed(4)}</td>
+                        </tr>
+                    `;
+                });
+
+                html += `
+                            </tbody>
+                        </table>
+                    </div>
+                    <div style="margin-top: 16px; text-align: center;">
+                        ${page > 1 ? `<button class="md-button md-button-text" onclick="loadApiCostsDetails(${page - 1})">← Предыдущая</button>` : ''}
+                        <span style="margin: 0 16px;">Страница ${page}</span>
+                        ${detailsData.length === currentApiCostsDetailsLimit ? `<button class="md-button md-button-text" onclick="loadApiCostsDetails(${page + 1})">Следующая →</button>` : ''}
+                    </div>
+                `;
+
+                container.innerHTML = html;
+            } catch (error) {
+                console.error('Failed to load API costs details:', error);
+                showToast('Ошибка загрузки детальной статистики', 'error');
+            }
+        }
+
+        // Update changeApiCostsPeriod to reload all charts
+        function changeApiCostsPeriod(days) {
+            currentApiCostsPeriod = days;
+
+            // Update buttons
+            document.querySelectorAll('#analytics-api-costs .chart-period-button').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+
+            // Reload all charts and data
+            loadApiCostsChart(days);
+            loadApiProvidersChart(days);
+            loadApiTopUsers(days);
+            loadApiCostsDetails(1);
         }
 
         // ========== Broadcast Functions ==========
