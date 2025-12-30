@@ -7616,7 +7616,7 @@
                 const monthStart = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
 
                 // Получаем данные по датам
-                const data = await apiRequest(`/api-costs/by-date?from_date=${weekStart.toISOString()}&to_date=${now.toISOString()}`);
+                const data = await apiRequest(`api-costs/by-date?from_date=${weekStart.toISOString()}&to_date=${now.toISOString()}`);
 
                 // Считаем суммы
                 let costToday = 0, costWeek = 0, costMonth = 0;
@@ -7713,7 +7713,7 @@
 
                     // Загружаем расходы API для всех пользователей
                     try {
-                        const apiCostsSummary = await apiRequest('/api-costs/users/summary');
+                        const apiCostsSummary = await apiRequest('api-costs/users/summary');
                         apiCostsCache = {};
                         apiCostsSummary.forEach(cost => {
                             apiCostsCache[cost.telegram_id] = cost.total_cost;
@@ -7912,7 +7912,7 @@
             let apiTokensHtml = '<span style="color: var(--md-sys-color-outline);">—</span>';
 
             try {
-                const apiCosts = await apiRequest(`/api-costs/users/${user.telegram_id}`);
+                const apiCosts = await apiRequest(`api-costs/users/${user.telegram_id}`);
                 if (apiCosts && apiCosts.total_cost > 0) {
                     apiCostHtml = `<span style="color: var(--md-sys-color-primary); font-weight: 500;">$${apiCosts.total_cost.toFixed(4)}</span>`;
                     // Подсчитываем общее количество токенов (примерно, на основе стоимости)
@@ -10181,7 +10181,7 @@
                 const fromDate = new Date();
                 fromDate.setDate(fromDate.getDate() - days);
 
-                const statsData = await apiRequest(`/api-costs/stats?from_date=${fromDate.toISOString().split('T')[0]}&to_date=${toDate.toISOString().split('T')[0]}`);
+                const statsData = await apiRequest(`api-costs/stats?from_date=${fromDate.toISOString().split('T')[0]}&to_date=${toDate.toISOString().split('T')[0]}`);
 
                 // Обновляем статистику сверху
                 document.getElementById('api-total-cost').textContent = `$${statsData.total_cost.toFixed(4)}`;
@@ -10189,7 +10189,7 @@
                 document.getElementById('api-unique-users').textContent = statsData.unique_users.toLocaleString();
 
                 // Загружаем данные по датам
-                const costsData = await apiRequest(`/api-costs/by-date?from_date=${fromDate.toISOString().split('T')[0]}&to_date=${toDate.toISOString().split('T')[0]}`);
+                const costsData = await apiRequest(`api-costs/by-date?from_date=${fromDate.toISOString().split('T')[0]}&to_date=${toDate.toISOString().split('T')[0]}`);
 
                 // Группируем по датам и провайдерам
                 const dateMap = {};
