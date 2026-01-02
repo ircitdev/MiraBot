@@ -22,6 +22,7 @@ from database.repositories.conversation import ConversationRepository
 from database.repositories.mood import MoodRepository
 from database.repositories.admin_log import AdminLogRepository
 from services.referral import ReferralService
+from utils.system_logger import system_logger
 from bot.keyboards.inline import get_premium_keyboard, get_crisis_keyboard, get_hints_keyboard
 from bot.handlers.photos import send_photos
 from bot.handlers.music import (
@@ -743,19 +744,20 @@ async def _handle_onboarding(
                 from database.repositories.referral import ReferralRepository
                 referral_repo = ReferralRepository()
                 referral = await referral_repo.get_by_referred_id(user.id)
-                referrer_id = referral.referrer.telegram_id if referral and referral.referrer else None
 
-                await admin_log_repo.create(
-                    admin_user_id=None,  # Системное действие
-                    action="user_onboarding_completed",
-                    resource_type="user",
-                    resource_id=user.telegram_id,
-                    details={
-                        "display_name": user.display_name,
-                        "referrer_telegram_id": referrer_id,
-                        "partner_skipped": True
-                    },
-                    success=True
+                referrer_telegram_id = None
+                referrer_username = None
+                if referral and referral.referrer:
+                    referrer_telegram_id = referral.referrer.telegram_id
+                    referrer_username = referral.referrer.username
+
+                await system_logger.log_user_onboarding_completed(
+                    user_id=user.id,
+                    telegram_id=user.telegram_id,
+                    username=user.username,
+                    first_name=user.first_name or "Unknown",
+                    referrer_telegram_id=referrer_telegram_id,
+                    referrer_username=referrer_username,
                 )
             except Exception as e:
                 logger.warning(f"Failed to log onboarding completion for user {user.telegram_id}: {e}")
@@ -811,21 +813,20 @@ async def _handle_onboarding(
             from database.repositories.referral import ReferralRepository
             referral_repo = ReferralRepository()
             referral = await referral_repo.get_by_referred_id(user.id)
-            referrer_id = referral.referrer.telegram_id if referral and referral.referrer else None
 
-            await admin_log_repo.create(
-                admin_user_id=None,  # Системное действие
-                action="user_onboarding_completed",
-                resource_type="user",
-                resource_id=user.telegram_id,
-                details={
-                    "display_name": user.display_name,
-                    "referrer_telegram_id": referrer_id,
-                    "partner_name": partner_name,
-                    "partner_gender": partner_gender,
-                    "partner_skipped": False
-                },
-                success=True
+            referrer_telegram_id = None
+            referrer_username = None
+            if referral and referral.referrer:
+                referrer_telegram_id = referral.referrer.telegram_id
+                referrer_username = referral.referrer.username
+
+            await system_logger.log_user_onboarding_completed(
+                user_id=user.id,
+                telegram_id=user.telegram_id,
+                username=user.username,
+                first_name=user.first_name or "Unknown",
+                referrer_telegram_id=referrer_telegram_id,
+                referrer_username=referrer_username,
             )
         except Exception as e:
             logger.warning(f"Failed to log onboarding completion for user {user.telegram_id}: {e}")
