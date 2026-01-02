@@ -809,6 +809,19 @@ class ActivityDataResponse(BaseModel):
     labels: List[str]
     active_users: List[int]
     messages: List[int]
+    # Ключевые метрики
+    today_active: int
+    week_active: int
+    month_active: int
+    total_messages: int
+    # Детальная статистика
+    text_messages: int
+    voice_messages: int
+    emotion_messages: int
+    avg_daily_messages: float
+    avg_messages_per_user: float
+    peak_day: str
+    peak_count: int
 
 
 class SubscriptionsDataResponse(BaseModel):
@@ -832,7 +845,13 @@ async def get_activity_analytics(
     active_users = []
     messages_counts = []
 
+    # Периоды для ключевых метрик
+    today_start = datetime.combine(date.today(), datetime.min.time())
+    week_start = today_start - timedelta(days=7)
+    month_start = today_start - timedelta(days=30)
+
     async with get_session_context() as session:
+        # График по дням
         for i in range(days - 1, -1, -1):
             day = date.today() - timedelta(days=i)
             day_start = datetime.combine(day, datetime.min.time())
@@ -866,10 +885,88 @@ async def get_activity_analytics(
             active_users.append(active_count)
             messages_counts.append(messages_count)
 
+        # Ключевые метрики
+        # Сегодня активных пользователей
+        today_active_result = await session.execute(
+            select(func.count(User.id.distinct())).where(
+                User.last_active_at >= today_start
+            )
+        )
+        today_active = today_active_result.scalar() or 0
+
+        # За неделю активных пользователей
+        week_active_result = await session.execute(
+            select(func.count(User.id.distinct())).where(
+                User.last_active_at >= week_start
+            )
+        )
+        week_active = week_active_result.scalar() or 0
+
+        # За месяц активных пользователей
+        month_active_result = await session.execute(
+            select(func.count(User.id.distinct())).where(
+                User.last_active_at >= month_start
+            )
+        )
+        month_active = month_active_result.scalar() or 0
+
+        # Всего сообщений
+        total_messages_result = await session.execute(
+            select(func.count(Message.id))
+        )
+        total_messages = total_messages_result.scalar() or 0
+
+        # Детальная статистика: типы сообщений
+        text_messages_result = await session.execute(
+            select(func.count(Message.id)).where(
+                Message.message_type == 'text'
+            )
+        )
+        text_messages = text_messages_result.scalar() or 0
+
+        voice_messages_result = await session.execute(
+            select(func.count(Message.id)).where(
+                Message.message_type == 'voice'
+            )
+        )
+        voice_messages = voice_messages_result.scalar() or 0
+
+        # Импортируем MoodEntry для подсчёта эмоций
+        from database.models import MoodEntry
+        emotion_messages_result = await session.execute(
+            select(func.count(MoodEntry.id))
+        )
+        emotion_messages = emotion_messages_result.scalar() or 0
+
+        # Средние показатели
+        avg_daily_messages = total_messages / max(days, 1)
+
+        total_users_result = await session.execute(
+            select(func.count(User.id))
+        )
+        total_users = total_users_result.scalar() or 1
+        avg_messages_per_user = total_messages / max(total_users, 1)
+
+        # Пиковая активность
+        peak_index = messages_counts.index(max(messages_counts)) if messages_counts else 0
+        peak_day = labels[peak_index] if labels else ""
+        peak_count = max(messages_counts) if messages_counts else 0
+
     return {
         "labels": labels,
         "active_users": active_users,
         "messages": messages_counts,
+        "today_active": today_active,
+        "week_active": week_active,
+        "month_active": month_active,
+        "total_messages": total_messages,
+        "text_messages": text_messages,
+        "voice_messages": voice_messages,
+        "emotion_messages": emotion_messages,
+        "avg_daily_messages": round(avg_daily_messages, 1),
+        "avg_messages_per_user": round(avg_messages_per_user, 1),
+        "peak_day": peak_day,
+        "peak_count": peak_count,
     }
 
 
@@ -1050,34 +1147,33 @@ async def get_top_tags(
     from database.models import Message
     from sqlalchemy import select, func, and_
 
-    async with get_session_context() as session:
-        cutoff = datetime.now() - timedelta(days=days)
+    cutoff = datetime.now() - timedelta(days=days)
 
+    async with get_session_context() as session:
         # Получить все сообщения за период
         result = await session.execute(
             select(Message.tags).where(
                 and_(
                     Message.created_at >= cutoff,
-                    Message.tags.isnot(None),
-                    func.array_length(Message.tags, 1) > 0
+                    Message.tags.isnot(None)
                 )
             )
         )
+        # Получаем все результаты сразу, пока сессия активна
+        messages = list(result.scalars())
 
-        messages = result.scalars().all()
+    # Подсчитываем теги (вне контекста сессии)
+    tag_counts = {}
+    for tags_array in messages:
+        if tags_array:
+            for tag in tags_array:
+                tag_counts[tag] = tag_counts.get(tag, 0) + 1
 
-        # Подсчитываем теги
-        tag_counts = {}
-        for tags_array in messages:
-            if tags_array:
-                for tag in tags_array:
-                    tag_counts[tag] = tag_counts.get(tag, 0) + 1
+    # Сортируем и берём топ-5
+    top_tags = sorted(tag_counts.items(), key=lambda x: x[1], reverse=True)[:5]
 
-        # Сортируем и берём топ-5
-        top_tags = sorted(tag_counts.items(), key=lambda x: x[1], reverse=True)[:5]
-
-        labels = [tag for tag, _ in top_tags]
-        values = [count for _, count in top_tags]
+    labels = [tag for tag, _ in top_tags]
+    values = [count for _, count in top_tags]
 
     return {
         "labels": labels,
@@ -2974,3 +3070,119 @@ async def _save_photo_descriptions(photo_descriptions: dict):
         await f.write(new_content)
 
     logger.info(f"Saved {len(photo_descriptions)} photo descriptions to {file_path}")
+
+
+@router.get("/todo-plans")
+async def get_todo_plans(
+    _admin: dict = Depends(require_admin)
+):
+    """
+    Получить список всех TODO планов.
+
+    Возвращает список файлов с детализированными планами разработки.
+    """
+    import os
+    from pathlib import Path
+
+    plans_dir = Path(__file__).parent.parent.parent.parent / "docs" / "todo_plan"
+
+    if not plans_dir.exists():
+        return {"plans": []}
+
+    plans = []
+
+    # Список файлов планов
+    plan_files = [
+        {
+            "id": "roadmap",
+            "name": "TODO Roadmap (Общий)",
+            "file": "TODO_ROADMAP.md",
+            "description": "Общий план с категориями и приоритетами"
+        },
+        {
+            "id": "detailed_part1",
+            "name": "Детализация Часть 1 (P0-P1.1)",
+            "file": "TODO_ROADMAP_DETAILED.md",
+            "description": "P0: Критичные задачи, P1.1: Mood Analyzer"
+        },
+        {
+            "id": "detailed_part2",
+            "name": "Детализация Часть 2 (P1.2-P1.5.3)",
+            "file": "TODO_ROADMAP_DETAILED_PART2.md",
+            "description": "Vision AI, Memory, Identity, Emotional Flags, Философские приоритеты"
+        },
+        {
+            "id": "detailed_part3",
+            "name": "Детализация Часть 3 (P1.5.4-P1.5.7)",
+            "file": "TODO_ROADMAP_DETAILED_PART3.md",
+            "description": "Medical Disclaimer, Loving Toughness, Permission to Grieve, Proactive Support"
+        }
+    ]
+
+    for plan_info in plan_files:
+        file_path = plans_dir / plan_info["file"]
+
+        if file_path.exists():
+            stat = file_path.stat()
+
+            plans.append({
+                "id": plan_info["id"],
+                "name": plan_info["name"],
+                "description": plan_info["description"],
+                "file_name": plan_info["file"],
+                "size_kb": round(stat.st_size / 1024, 2),
+                "modified_at": datetime.fromtimestamp(stat.st_mtime).isoformat(),
+                "exists": True
+            })
+        else:
+            plans.append({
+                "id": plan_info["id"],
+                "name": plan_info["name"],
+                "description": plan_info["description"],
+                "file_name": plan_info["file"],
+                "exists": False
+            })
+
+    return {"plans": plans}
+
+
+@router.get("/todo-plans/{plan_id}")
+async def get_todo_plan_content(
+    plan_id: str,
+    _admin: dict = Depends(require_admin)
+):
+    """
+    Получить содержимое конкретного TODO плана.
+
+    Args:
+        plan_id: ID плана (roadmap, detailed_part1, detailed_part2, detailed_part3)
+    """
+    from pathlib import Path
+
+    # Маппинг ID → имя файла
+    plan_files = {
+        "roadmap": "TODO_ROADMAP.md",
+        "detailed_part1": "TODO_ROADMAP_DETAILED.md",
+        "detailed_part2": "TODO_ROADMAP_DETAILED_PART2.md",
+        "detailed_part3": "TODO_ROADMAP_DETAILED_PART3.md"
+    }
+
+    if plan_id not in plan_files:
+        raise HTTPException(status_code=404, detail="Plan not found")
+
+    plans_dir = Path(__file__).parent.parent.parent.parent / "docs" / "todo_plan"
+    file_path = plans_dir / plan_files[plan_id]
+
+    if not file_path.exists():
+        raise HTTPException(status_code=404, detail="Plan file not found")
+
+    # Читаем содержимое
+    with open(file_path, 'r', encoding='utf-8') as f:
+        content = f.read()
+
+    return {
+        "id": plan_id,
+        "file_name": plan_files[plan_id],
+        "content": content,
+        "size_kb": round(len(content.encode('utf-8')) / 1024, 2)
+    }

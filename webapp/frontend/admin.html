@@ -12657,48 +12657,118 @@
         // Load TODO
         async function loadTODO() {
             const container = document.getElementById('todo-container');
-            container.innerHTML = '<div class="loading"><div class="spinner"></div><div>Загрузка TODO...</div></div>';
+            container.innerHTML = '<div class="loading"><div class="spinner"></div><div>Загрузка TODO планов...</div></div>';
 
             try {
-                // Load all TODO files
-                const todoFiles = [
-                    { name: 'TODO_ROADMAP_DETAILED.md', path: '/docs/todo_plan/TODO_ROADMAP_DETAILED.md', title: 'План работ: Система модераторского доступа' },
-                    { name: 'TODO_MODERATOR_ACCESS.md', path: '/docs/23.12.25/TODO_MODERATOR_ACCESS.md', title: 'Система модераторского доступа' }
-                ];
+                // Загружаем список планов через API
+                const response = await apiRequest('admin/todo-plans');
 
-                let html = '<div style="margin-bottom: 20px; color: var(--md-sys-color-on-surface-variant);">TODO списки проекта</div>';
+                if (!response || !response.plans) {
+                    throw new Error('Failed to load plans list');
+                }
 
-                for (const file of todoFiles) {
-                    try {
-                        const response = await fetch(file.path);
-                        if (response.ok) {
-                            const markdown = await response.text();
-                            html += `
-                                <div class="todo-accordion" style="margin-bottom: 16px; border: 1px solid var(--md-sys-color-outline); border-radius: 12px; overflow: hidden;">
-                                    <div class="todo-accordion-header" onclick="toggleTodoAccordion(this)" style="padding: 16px 20px; background: var(--md-sys-color-surface-variant); cursor: pointer; display: flex; justify-content: space-between; align-items: center;">
-                                        <div>
-                                            <strong style="font-size: 16px; color: var(--md-sys-color-on-surface);">${file.title}</strong>
-                                            <div style="font-size: 13px; color: var(--md-sys-color-on-surface-variant); margin-top: 4px;">${file.name}</div>
-                                        </div>
-                                        <span class="material-icons" style="transition: transform 0.3s; color: var(--md-sys-color-on-surface-variant);">expand_more</span>
+                const plans = response.plans;
+
+                let html = `
+                    <div style="margin-bottom: 24px;">
+                        <div style="font-size: 24px; font-weight: 500; color: var(--md-sys-color-on-surface); margin-bottom: 8px;">
+                            📋 TODO Roadmap: Планы разработки
+                        </div>
+                        <div style="color: var(--md-sys-color-on-surface-variant); font-size: 14px;">
+                            Детализированные планы доработки бота по категориям и приоритетам
+                        </div>
+                    </div>
+                `;
+
+                // Отображаем каждый план
+                for (const plan of plans) {
+                    if (!plan.exists) {
+                        continue; // Пропускаем несуществующие файлы
+                    }
+
+                    // Кнопка загрузки
+                    const loadButton = `
+                        <button
+                            onclick="loadTodoPlanContent('${plan.id}')"
+                            style="padding: 6px 12px; background: var(--md-sys-color-primary); color: var(--md-sys-color-on-primary); border: none; border-radius: 8px; cursor: pointer; font-size: 13px; margin-left: 12px;"
+                        >
+                            <span class="material-icons" style="font-size: 16px; vertical-align: middle; margin-right: 4px;">visibility</span>
+                            Открыть
+                        </button>
+                    `;
+
+                    html += `
+                        <div class="todo-accordion" style="margin-bottom: 16px; border: 1px solid var(--md-sys-color-outline); border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+                            <div class="todo-accordion-header" onclick="toggleTodoAccordion(this)" style="padding: 16px 20px; background: var(--md-sys-color-surface-variant); cursor: pointer; display: flex; justify-content: space-between; align-items: center;">
+                                <div style="flex: 1;">
+                                    <strong style="font-size: 16px; color: var(--md-sys-color-on-surface);">${plan.name}</strong>
+                                    <div style="font-size: 13px; color: var(--md-sys-color-on-surface-variant); margin-top: 4px;">
+                                        ${plan.description}
                                     </div>
-                                    <div class="todo-accordion-content" style="max-height: 0; overflow: hidden; transition: max-height 0.3s ease;">
-                                        <div style="padding: 20px;">
-                                            ${renderMarkdownToHTML(markdown)}
-                                        </div>
+                                    <div style="font-size: 12px; color: var(--md-sys-color-outline); margin-top: 6px;">
+                                        <span class="material-icons" style="font-size: 14px; vertical-align: middle;">insert_drive_file</span>
+                                        ${plan.file_name} • ${plan.size_kb} KB • Изменён: ${new Date(plan.modified_at).toLocaleDateString('ru-RU')}
                                     </div>
                                 </div>
-                            `;
-                        }
-                    } catch (error) {
-                        console.error(`Failed to load ${file.path}:`, error);
-                    }
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    ${loadButton}
+                                    <span class="material-icons" style="transition: transform 0.3s; color: var(--md-sys-color-on-surface-variant);">expand_more</span>
+                                </div>
+                            </div>
+                            <div class="todo-accordion-content" id="todo-content-${plan.id}" style="max-height: 0; overflow: hidden; transition: max-height 0.3s ease;">
+                                <div style="padding: 20px; color: var(--md-sys-color-on-surface-variant); text-align: center;">
+                                    Нажмите "Открыть" для загрузки содержимого
+                                </div>
+                            </div>
+                        </div>
+                    `;
                 }
 
                 container.innerHTML = html;
             } catch (error) {
-                console.error('Failed to load TODO:', error);
-                container.innerHTML = '<div class="error-message">Ошибка загрузки TODO</div>';
+                console.error('Failed to load TODO plans:', error);
+                container.innerHTML = `
+                    <div class="error-message" style="padding: 20px; background: var(--md-sys-color-error-container); color: var(--md-sys-color-on-error-container); border-radius: 12px;">
+                        <span class="material-icons" style="vertical-align: middle; margin-right: 8px;">error</span>
+                        Ошибка загрузки TODO планов
+                    </div>
+                `;
+            }
+        }
+
+        // Загрузить содержимое конкретного плана
+        async function loadTodoPlanContent(planId) {
+            const contentDiv = document.getElementById(`todo-content-${planId}`);
+
+            if (!contentDiv) return;
+
+            // Показываем загрузку
+            contentDiv.innerHTML = `
+                <div style="padding: 40px; text-align: center;">
+                    <div class="spinner" style="margin: 0 auto 16px;"></div>
+                    <div style="color: var(--md-sys-color-on-surface-variant);">Загрузка плана...</div>
+                </div>
+            `;
+
+            try {
+                const data = await apiRequest(`admin/todo-plans/${planId}`);
+
+                if (!data || !data.content) {
+                    throw new Error('Failed to load plan content');
+                }
+
+                // Рендерим markdown
+                const html = renderMarkdownToHTML(data.content);
+
+                contentDiv.innerHTML = `<div style="padding: 20px;">${html}</div>`;
+            } catch (error) {
+                console.error(`Failed to load plan ${planId}:`, error);
+                contentDiv.innerHTML = `
+                    <div style="padding: 20px; color: var(--md-sys-color-error); text-align: center;">
+                        <span class="material-icons" style="font-size: 48px; opacity: 0.5;">error_outline</span>
+                        <div style="margin-top: 12px;">Ошибка загрузки содержимого</div>
+                    </div>
+                `;
             }
         }
 
@@ -12741,9 +12811,11 @@
             // Priority badges
             html = html.replace(/🔴 КРИТИЧНЫЙ/g, '<span style="background: #f44336; color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 500;">🔴 КРИТИЧНЫЙ</span>');
             html = html.replace(/🟡 ВЫСОКИЙ/g, '<span style="background: #ff9800; color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 500;">🟡 ВЫСОКИЙ</span>');
+            html = html.replace(/⭐ ФИЛОСОФСКИЙ/g, '<span style="background: #9c27b0; color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 500;">⭐ ФИЛОСОФСКИЙ</span>');
             html = html.replace(/🟣 ФИЛОСОФСКИЙ/g, '<span style="background: #9c27b0; color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 500;">🟣 ФИЛОСОФСКИЙ</span>');
             html = html.replace(/🟠 СРЕДНИЙ/g, '<span style="background: #ff5722; color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 500;">🟠 СРЕДНИЙ</span>');
             html = html.replace(/🟠 НИЗКИЙ/g, '<span style="background: #795548; color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 500;">🟠 НИЗКИЙ</span>');
+            html = html.replace(/🔴 МОНЕТИЗАЦИЯ/g, '<span style="background: #4CAF50; color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 500;">💰 МОНЕТИЗАЦИЯ</span>');
 
             // Checkboxes
             html = html.replace(/- ✅ (.*)/gi, '<div style="margin: 6px 0; padding: 8px; background: rgba(76, 175, 80, 0.1); border-radius: 6px;"><span style="color: #4CAF50; font-size: 16px; margin-right: 8px;">✅</span><span>$1</span></div>');
