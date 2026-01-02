@@ -17,6 +17,7 @@ from database.repositories.api_cost import ApiCostRepository
 from bot.keyboards.inline import get_premium_keyboard, get_crisis_keyboard
 from services.storage.file_storage import file_storage_service
 from services.tts_yandex import send_voice_message
+from utils.event_tracker import event_tracker
 
 
 # Инициализируем сервисы
@@ -183,6 +184,12 @@ async def handle_voice(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         # 16. Проверяем это первое голосовое — отвечаем голосом!
         voice_count = await conversation_repo.count_by_user_and_type(user.id, "voice")
         if voice_count <= 1:
+            # Логируем первое голосовое сообщение
+            try:
+                await event_tracker.track_first_voice_message(user, duration=voice.duration)
+            except Exception as e:
+                logger.warning(f"Failed to track first voice message: {e}")
+
             # Это первое голосовое сообщение — отвечаем голосом
             try:
                 voice_response = (
@@ -199,6 +206,14 @@ async def handle_voice(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
                 logger.info(f"Sent first voice response to user {user_tg.id}")
             except Exception as e:
                 logger.warning(f"Failed to send voice response: {e}")
+
+        # 17. Проверяем вехи по количеству сообщений
+        try:
+            milestone = await event_tracker.track_message_milestone(user)
+            if milestone:
+                logger.info(f"User {user_tg.id} reached milestone: {milestone} messages")
+        except Exception as e:
+            logger.warning(f"Failed to track message milestone: {e}")
 
         logger.info(
             f"Voice message processed for user {user_tg.id}, "

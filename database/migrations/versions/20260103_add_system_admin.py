@@ -13,7 +13,7 @@ from datetime import datetime
 
 # revision identifiers, used by Alembic.
 revision = '20260103_add_system_admin'
-down_revision = '20251229_add_admin_users_and_logs'
+down_revision = '20251229_add_api_costs'
 branch_labels = None
 depends_on = None
 
@@ -25,7 +25,7 @@ def upgrade():
     # Создаём системного администратора
     op.execute("""
         INSERT INTO admin_users (telegram_id, username, first_name, role, is_active, created_at)
-        VALUES (0, 'system', 'System', 'admin', true, NOW())
+        VALUES (0, 'system', 'System', 'admin', 1, datetime('now'))
         ON CONFLICT (telegram_id) DO NOTHING;
     """)
 

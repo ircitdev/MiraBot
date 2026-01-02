@@ -23,6 +23,7 @@ from database.repositories.mood import MoodRepository
 from database.repositories.admin_log import AdminLogRepository
 from services.referral import ReferralService
 from utils.system_logger import system_logger
+from utils.event_tracker import event_tracker
 from bot.keyboards.inline import get_premium_keyboard, get_crisis_keyboard, get_hints_keyboard
 from bot.handlers.photos import send_photos
 from bot.handlers.music import (
@@ -372,6 +373,14 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
             tags=result["tags"],
             tokens_used=result["tokens_used"],
         )
+
+        # 8.3. Трекаем вехи по количеству сообщений
+        try:
+            milestone = await event_tracker.track_message_milestone(user)
+            if milestone:
+                logger.info(f"User {user_tg.id} reached milestone: {milestone} messages")
+        except Exception as e:
+            logger.warning(f"Failed to track message milestone: {e}")
 
         # 8.5. Mood tracking — анализируем и сохраняем настроение
         mood_entry = await _save_mood_entry(
@@ -1099,6 +1108,21 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
             tags=result.get("tags", ["photo"]),
             tokens_used=result.get("tokens_used", 0),
         )
+
+        # 12. Трекаем первое фото и вехи по сообщениям
+        try:
+            # Проверяем это первое фото
+            await event_tracker.track_first_photo_message(user)
+        except Exception as e:
+            logger.warning(f"Failed to track first photo message: {e}")
+
+        try:
+            # Проверяем вехи по количеству сообщений
+            milestone = await event_tracker.track_message_milestone(user)
+            if milestone:
+                logger.info(f"User {user_tg.id} reached milestone: {milestone} messages")
+        except Exception as e:
+            logger.warning(f"Failed to track message milestone: {e}")
 
         logger.info(
             f"Photo processed for user {user_tg.id}, "
