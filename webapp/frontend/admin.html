@@ -12849,14 +12849,24 @@
                         continue; // Пропускаем несуществующие файлы
                     }
 
-                    // Кнопка загрузки
+                    // Кнопки для каждого плана
                     const loadButton = `
                         <button
                             onclick="loadTodoPlanContent('${plan.id}')"
-                            style="padding: 6px 12px; background: var(--md-sys-color-primary); color: var(--md-sys-color-on-primary); border: none; border-radius: 8px; cursor: pointer; font-size: 13px; margin-left: 12px;"
+                            style="padding: 6px 12px; background: var(--md-sys-color-primary); color: var(--md-sys-color-on-primary); border: none; border-radius: 8px; cursor: pointer; font-size: 13px;"
                         >
                             <span class="material-icons" style="font-size: 16px; vertical-align: middle; margin-right: 4px;">visibility</span>
                             Открыть
+                        </button>
+                    `;
+
+                    const downloadButton = `
+                        <button
+                            onclick="downloadTodoPlan('${plan.id}', '${plan.file_name}')"
+                            style="padding: 6px 12px; background: var(--md-sys-color-secondary); color: var(--md-sys-color-on-secondary); border: none; border-radius: 8px; cursor: pointer; font-size: 13px;"
+                        >
+                            <span class="material-icons" style="font-size: 16px; vertical-align: middle; margin-right: 4px;">download</span>
+                            Скачать
                         </button>
                     `;
 
@@ -12875,6 +12885,7 @@
                                 </div>
                                 <div style="display: flex; align-items: center; gap: 8px;">
                                     ${loadButton}
+                                    ${downloadButton}
                                     <span class="material-icons" style="transition: transform 0.3s; color: var(--md-sys-color-on-surface-variant);">expand_more</span>
                                 </div>
                             </div>
@@ -12913,6 +12924,12 @@
                 </div>
             `;
 
+            // Открываем аккордеон если закрыт
+            if (contentDiv.style.maxHeight === '0px' || !contentDiv.style.maxHeight) {
+                const header = contentDiv.previousElementSibling;
+                toggleTodoAccordion(header);
+            }
+
             try {
                 const data = await apiRequest(`todo-plans/${planId}`);
 
@@ -12924,6 +12941,13 @@
                 const html = renderMarkdownToHTML(data.content);
 
                 contentDiv.innerHTML = `<div style="padding: 20px;">${html}</div>`;
+
+                // Пересчитываем высоту аккордеона после загрузки контента
+                setTimeout(() => {
+                    if (contentDiv.style.maxHeight !== '0px') {
+                        contentDiv.style.maxHeight = contentDiv.scrollHeight + 'px';
+                    }
+                }, 50);
             } catch (error) {
                 console.error(`Failed to load plan ${planId}:`, error);
                 contentDiv.innerHTML = `
@@ -12932,20 +12956,63 @@
                         <div style="margin-top: 12px;">Ошибка загрузки содержимого</div>
                     </div>
                 `;
+
+                // Пересчитываем высоту даже для ошибки
+                setTimeout(() => {
+                    if (contentDiv.style.maxHeight !== '0px') {
+                        contentDiv.style.maxHeight = contentDiv.scrollHeight + 'px';
+                    }
+                }, 50);
             }
         }
 
         // Toggle TODO accordion
         function toggleTodoAccordion(header) {
             const content = header.nextElementSibling;
-            const icon = header.querySelector('.material-icons');
+            const icon = header.querySelector('.material-icons:last-child');
 
             if (content.style.maxHeight && content.style.maxHeight !== '0px') {
+                // Закрываем
                 content.style.maxHeight = '0';
                 icon.style.transform = 'rotate(0deg)';
             } else {
+                // Открываем - используем scrollHeight для правильного расчёта высоты
                 content.style.maxHeight = content.scrollHeight + 'px';
                 icon.style.transform = 'rotate(180deg)';
+
+                // Пересчитываем высоту после небольшой задержки (для динамического контента)
+                setTimeout(() => {
+                    if (content.style.maxHeight !== '0px') {
+                        content.style.maxHeight = content.scrollHeight + 'px';
+                    }
+                }, 100);
+            }
+        }
+
+        // Скачать TODO план
+        async function downloadTodoPlan(planId, fileName) {
+            try {
+                const data = await apiRequest(`todo-plans/${planId}`);
+
+                if (!data || !data.content) {
+                    throw new Error('Failed to load plan content');
+                }
+
+                // Создаём blob и скачиваем файл
+                const blob = new Blob([data.content], { type: 'text/markdown;charset=utf-8' });
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = fileName;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+
+                showToast('Файл скачан', 'success');
+            } catch (error) {
+                console.error(`Failed to download plan ${planId}:`, error);
+                showToast('Ошибка скачивания файла', 'error');
             }
         }
 
