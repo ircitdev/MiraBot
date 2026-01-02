@@ -6697,7 +6697,7 @@
         }
 
         // Context Section Navigation
-        function switchContextSection(sectionName) {
+        function switchContextSection(sectionName, updateUrl = true) {
             console.log('switchContextSection called with:', sectionName);
 
             // Update sub-nav buttons
@@ -6718,6 +6718,11 @@
             if (section) {
                 section.classList.add('active');
                 console.log('Section activated:', section.id);
+
+                // Update URL
+                if (updateUrl) {
+                    updateUrlHash('context', sectionName);
+                }
 
                 // Load photos when legend section is opened
                 if (sectionName === 'legend') {
@@ -7337,7 +7342,7 @@
         }
 
         // Payments Section Navigation
-        function switchPaymentsSection(sectionName) {
+        function switchPaymentsSection(sectionName, updateUrl = true) {
             // Update sub-nav buttons
             document.querySelectorAll('.sub-nav-section[data-parent="payments"] .sub-nav-item').forEach(btn => {
                 btn.classList.remove('active');
@@ -7357,6 +7362,11 @@
                 section.style.display = 'block';
             }
 
+            // Update URL
+            if (updateUrl) {
+                updateUrlHash('payments', sectionName);
+            }
+
             // Load data if needed
             if (sectionName === 'payment-settings') {
                 loadPaymentSettings();
@@ -7373,7 +7383,7 @@
         }
 
         // Admin Tab Navigation
-        function switchAdminTab(tabName) {
+        function switchAdminTab(tabName, updateUrl = true) {
             // Update main nav items
             document.querySelectorAll('.main-nav-item').forEach(item => {
                 item.classList.remove('active');
@@ -7420,6 +7430,11 @@
                 }
             }
 
+            // Update URL
+            if (updateUrl) {
+                updateUrlHash(tabName);
+            }
+
             // Save to localStorage
             localStorage.setItem('admin_active_tab', tabName);
 
@@ -7442,6 +7457,51 @@
                 loadMyLogs();
             }
         }
+
+        // Update URL hash
+        function updateUrlHash(section, subsection = null) {
+            let hash = '#' + section;
+            if (subsection) {
+                hash += '/' + subsection;
+            }
+            window.history.pushState(null, null, hash);
+        }
+
+        // Parse URL hash and navigate
+        function navigateFromUrl() {
+            const hash = window.location.hash.substring(1); // Remove #
+            if (!hash) {
+                return; // Use default tab
+            }
+
+            const parts = hash.split('/');
+            const section = parts[0];
+            const subsection = parts[1];
+
+            // Switch to main tab
+            if (section) {
+                switchAdminTab(section, false);
+            }
+
+            // Switch to subsection if exists
+            if (subsection) {
+                // Handle subsections for different tabs
+                if (section === 'analytics') {
+                    switchAnalyticsTab(subsection, false);
+                } else if (section === 'context') {
+                    switchContextSection(subsection, false);
+                } else if (section === 'config') {
+                    switchConfigTab(subsection, false);
+                } else if (section === 'payments') {
+                    switchPaymentsSection(subsection, false);
+                }
+            }
+        }
+
+        // Handle browser back/forward buttons
+        window.addEventListener('popstate', function() {
+            navigateFromUrl();
+        });
 
         // Theme management
         function toggleTheme() {
@@ -7615,7 +7675,7 @@
         }
 
         // Config Tab Switching
-        function switchConfigTab(tabName) {
+        function switchConfigTab(tabName, updateUrl = true) {
             // Update tab buttons
             document.querySelectorAll('.config-tab-btn').forEach(btn => {
                 btn.classList.remove('active');
@@ -7629,6 +7689,11 @@
             const tabContent = document.getElementById('config-content-' + tabName);
             if (tabContent) {
                 tabContent.style.display = 'block';
+            }
+
+            // Update URL
+            if (updateUrl) {
+                updateUrlHash('config', tabName);
             }
 
             // Check if moderator and show read-only notice for settings tab
@@ -10392,7 +10457,7 @@
         let currentTagsPeriod = 30;
 
         // Switch analytics tab
-        function switchAnalyticsTab(tab) {
+        function switchAnalyticsTab(tab, updateUrl = true) {
             // Update sub-nav buttons
             document.querySelectorAll('[data-parent="analytics"] .sub-nav-item').forEach(btn => {
                 btn.classList.remove('active');
@@ -10408,6 +10473,11 @@
             document.getElementById('analytics-mood').style.display = tab === 'mood' ? 'block' : 'none';
             document.getElementById('analytics-emotions').style.display = tab === 'emotions' ? 'block' : 'none';
             document.getElementById('analytics-tags').style.display = tab === 'tags' ? 'block' : 'none';
+
+            // Update URL
+            if (updateUrl) {
+                updateUrlHash('analytics', tab);
+            }
 
             // Load chart if needed
             if (tab === 'mood' && !moodChart) {
@@ -12945,6 +13015,14 @@
 
             return html;
         }
+
+        // Initialize URL routing on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            // Check if URL has hash and navigate to it
+            if (window.location.hash) {
+                navigateFromUrl();
+            }
+        });
     </script>
 
     <!-- Mobile Bottom Navigation (только на мобильных устройствах) -->
