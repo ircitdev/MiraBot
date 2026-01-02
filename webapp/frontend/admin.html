@@ -7491,7 +7491,7 @@
                 } else if (section === 'context') {
                     switchContextSection(subsection, false);
                 } else if (section === 'config') {
-                    switchConfigTab(subsection, false);
+                    switchConfigSection('config-' + subsection, false);
                 } else if (section === 'payments') {
                     switchPaymentsSection(subsection, false);
                 }
@@ -12248,7 +12248,7 @@
         let settingsCache = {};
 
         // Переключение секций конфига
-        function switchConfigSection(sectionName) {
+        function switchConfigSection(sectionName, updateUrl = true) {
             // Обновляем кнопки подменю
             document.querySelectorAll('.sub-nav-section[data-parent="config"] .sub-nav-item').forEach(item => {
                 item.classList.remove('active');
@@ -12267,6 +12267,12 @@
             if (targetSection) {
                 targetSection.classList.add('active');
                 targetSection.style.display = 'block';
+            }
+
+            // Обновляем URL
+            if (updateUrl) {
+                const subsection = sectionName.replace('config-', '');
+                updateUrlHash('config', subsection);
             }
 
             // Загружаем данные при первом открытии
@@ -12852,7 +12858,7 @@
                     // Кнопки для каждого плана
                     const loadButton = `
                         <button
-                            onclick="loadTodoPlanContent('${plan.id}')"
+                            onclick="event.stopPropagation(); loadTodoPlanContent('${plan.id}');"
                             style="padding: 6px 12px; background: var(--md-sys-color-primary); color: var(--md-sys-color-on-primary); border: none; border-radius: 8px; cursor: pointer; font-size: 13px;"
                         >
                             <span class="material-icons" style="font-size: 16px; vertical-align: middle; margin-right: 4px;">visibility</span>
@@ -12862,7 +12868,7 @@
 
                     const downloadButton = `
                         <button
-                            onclick="downloadTodoPlan('${plan.id}', '${plan.file_name}')"
+                            onclick="event.stopPropagation(); downloadTodoPlan('${plan.id}', '${plan.file_name}');"
                             style="padding: 6px 12px; background: var(--md-sys-color-secondary); color: var(--md-sys-color-on-secondary); border: none; border-radius: 8px; cursor: pointer; font-size: 13px;"
                         >
                             <span class="material-icons" style="font-size: 16px; vertical-align: middle; margin-right: 4px;">download</span>
@@ -12916,7 +12922,10 @@
 
             if (!contentDiv) return;
 
-            // Показываем загрузку
+            const header = contentDiv.previousElementSibling;
+            const isClosed = contentDiv.style.maxHeight === '0px' || !contentDiv.style.maxHeight;
+
+            // Сначала показываем загрузку
             contentDiv.innerHTML = `
                 <div style="padding: 40px; text-align: center;">
                     <div class="spinner" style="margin: 0 auto 16px;"></div>
@@ -12925,9 +12934,13 @@
             `;
 
             // Открываем аккордеон если закрыт
-            if (contentDiv.style.maxHeight === '0px' || !contentDiv.style.maxHeight) {
-                const header = contentDiv.previousElementSibling;
+            if (isClosed) {
                 toggleTodoAccordion(header);
+            } else {
+                // Если уже открыт, просто пересчитываем высоту после изменения контента
+                setTimeout(() => {
+                    contentDiv.style.maxHeight = contentDiv.scrollHeight + 'px';
+                }, 10);
             }
 
             try {
