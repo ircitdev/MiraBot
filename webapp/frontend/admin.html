@@ -12644,13 +12644,106 @@
                 const response = await fetch('/CHANGELOG.md');
                 if (response.ok) {
                     const markdown = await response.text();
-                    container.innerHTML = renderMarkdownToHTML(markdown);
+
+                    // Парсим changelog на версии
+                    const versions = parseChangelogVersions(markdown);
+
+                    let html = `
+                        <div style="margin-bottom: 24px;">
+                            <div style="font-size: 24px; font-weight: 500; color: var(--md-sys-color-on-surface); margin-bottom: 8px;">
+                                📝 Changelog
+                            </div>
+                            <div style="color: var(--md-sys-color-on-surface-variant); font-size: 14px;">
+                                История изменений и обновлений
+                            </div>
+                        </div>
+                    `;
+
+                    // Создаем аккордеон для каждой версии
+                    versions.forEach((version, index) => {
+                        const isFirst = index === 0;
+                        const contentHtml = renderMarkdownToHTML(version.content);
+
+                        html += `
+                            <div class="changelog-accordion" style="margin-bottom: 16px; border: 1px solid var(--md-sys-color-outline); border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+                                <div class="changelog-accordion-header" onclick="toggleChangelogAccordion(this)" style="padding: 16px 20px; background: var(--md-sys-color-surface-variant); cursor: pointer; display: flex; justify-content: space-between; align-items: center;">
+                                    <div style="flex: 1;">
+                                        <strong style="font-size: 18px; color: var(--md-sys-color-on-surface);">${version.title}</strong>
+                                        <div style="font-size: 13px; color: var(--md-sys-color-on-surface-variant); margin-top: 4px;">
+                                            ${version.date}
+                                        </div>
+                                    </div>
+                                    <span class="material-icons" style="transition: transform 0.3s; color: var(--md-sys-color-on-surface-variant); transform: rotate(${isFirst ? '180' : '0'}deg);">expand_more</span>
+                                </div>
+                                <div class="changelog-accordion-content" style="max-height: ${isFirst ? 'none' : '0'}; overflow: hidden; transition: max-height 0.3s ease;">
+                                    <div style="padding: 20px;">
+                                        ${contentHtml}
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    });
+
+                    container.innerHTML = html;
                 } else {
                     container.innerHTML = '<div class="error-message">Не удалось загрузить CHANGELOG.md</div>';
                 }
             } catch (error) {
                 console.error('Failed to load changelog:', error);
                 container.innerHTML = '<div class="error-message">Ошибка загрузки changelog</div>';
+            }
+        }
+
+        // Парсинг changelog на версии
+        function parseChangelogVersions(markdown) {
+            const versions = [];
+            const lines = markdown.split('\n');
+            let currentVersion = null;
+
+            for (let i = 0; i < lines.length; i++) {
+                const line = lines[i];
+
+                // Находим заголовок версии: ## [версия] - дата
+                const versionMatch = line.match(/^##\s+\[([^\]]+)\]\s+-\s+(.+)/);
+
+                if (versionMatch) {
+                    // Сохраняем предыдущую версию
+                    if (currentVersion) {
+                        versions.push(currentVersion);
+                    }
+
+                    // Начинаем новую версию
+                    currentVersion = {
+                        title: `[${versionMatch[1]}] - ${versionMatch[2]}`,
+                        date: versionMatch[2],
+                        version: versionMatch[1],
+                        content: ''
+                    };
+                } else if (currentVersion && !line.startsWith('# Changelog')) {
+                    // Добавляем содержимое к текущей версии
+                    currentVersion.content += line + '\n';
+                }
+            }
+
+            // Сохраняем последнюю версию
+            if (currentVersion) {
+                versions.push(currentVersion);
+            }
+
+            return versions;
+        }
+
+        // Toggle changelog accordion
+        function toggleChangelogAccordion(header) {
+            const content = header.nextElementSibling;
+            const icon = header.querySelector('.material-icons');
+
+            if (content.style.maxHeight && content.style.maxHeight !== '0px' && content.style.maxHeight !== 'none') {
+                content.style.maxHeight = '0';
+                icon.style.transform = 'rotate(0deg)';
+            } else {
+                content.style.maxHeight = content.scrollHeight + 'px';
+                icon.style.transform = 'rotate(180deg)';
             }
         }
 
