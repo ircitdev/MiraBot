@@ -12661,7 +12661,7 @@
 
             try {
                 // Загружаем список планов через API
-                const response = await apiRequest('admin/todo-plans');
+                const response = await apiRequest('todo-plans');
 
                 if (!response || !response.plans) {
                     throw new Error('Failed to load plans list');
@@ -12751,7 +12751,7 @@
             `;
 
             try {
-                const data = await apiRequest(`admin/todo-plans/${planId}`);
+                const data = await apiRequest(`todo-plans/${planId}`);
 
                 if (!data || !data.content) {
                     throw new Error('Failed to load plan content');
