@@ -4000,10 +4000,6 @@
                 <span class="material-icons">people</span>
                 <span class="nav-label">Пользователи</span>
             </button>
-            <button class="main-nav-item" data-tab="support" onclick="switchAdminTab('support')">
-                <span class="material-icons">support_agent</span>
-                <span class="nav-label">Поддержка</span>
-            </button>
             <button class="main-nav-item" data-tab="analytics" onclick="switchAdminTab('analytics')">
                 <span class="material-icons">analytics</span>
                 <span class="nav-label">Аналитика</span>
@@ -4023,6 +4019,10 @@
             <button class="main-nav-item" data-tab="config" onclick="switchAdminTab('config')">
                 <span class="material-icons">settings</span>
                 <span class="nav-label">Конфиг</span>
+            </button>
+            <button class="main-nav-item" data-tab="docs" onclick="switchAdminTab('docs')">
+                <span class="material-icons">description</span>
+                <span class="nav-label">Доки</span>
             </button>
         </nav>
         <div style="display: flex; align-items: center; gap: 12px;">
@@ -4057,13 +4057,17 @@
                 SYSTEM PROMPT
             </button>
         </div>
-        <!-- Подменю для Поддержка -->
-        <div class="sub-nav-section" data-parent="support">
-            <button class="sub-nav-item active" data-section="questions" onclick="switchSupportSection('questions')">
-                <span class="material-icons">question_answer</span>
-                Вопросы
+        <!-- Подменю для Пользователи -->
+        <div class="sub-nav-section" data-parent="users">
+            <button class="sub-nav-item active" data-section="all-users" onclick="switchUsersSection('all-users')">
+                <span class="material-icons">people</span>
+                Все пользователи
             </button>
-            <button class="sub-nav-item" data-section="reviews" onclick="switchSupportSection('reviews')">
+            <button class="sub-nav-item" data-section="support" onclick="switchUsersSection('support')">
+                <span class="material-icons">support_agent</span>
+                Поддержка
+            </button>
+            <button class="sub-nav-item" data-section="reviews" onclick="switchUsersSection('reviews')">
                 <span class="material-icons">rate_review</span>
                 Отзывы
             </button>
@@ -4148,17 +4152,24 @@
                 <span class="material-icons">add_circle</span>
                 Свои настройки
             </button>
-            <button class="sub-nav-item" data-section="config-changelog" onclick="switchConfigSection('config-changelog')">
-                <span class="material-icons">update</span>
-                Changelog
-            </button>
-            <button class="sub-nav-item" data-section="config-todo" onclick="switchConfigSection('config-todo')">
-                <span class="material-icons">checklist</span>
-                TODO
-            </button>
             <button class="sub-nav-item" data-section="config-logs" onclick="switchConfigSection('config-logs')">
                 <span class="material-icons">history</span>
                 Лог операций
+            </button>
+        </div>
+        <!-- Подменю для Доки -->
+        <div class="sub-nav-section" data-parent="docs">
+            <button class="sub-nav-item active" data-section="changelog" onclick="switchDocsSection('changelog')">
+                <span class="material-icons">update</span>
+                Changelog
+            </button>
+            <button class="sub-nav-item" data-section="todo" onclick="switchDocsSection('todo')">
+                <span class="material-icons">checklist</span>
+                TODO
+            </button>
+            <button class="sub-nav-item" data-section="documentation" onclick="switchDocsSection('documentation')">
+                <span class="material-icons">menu_book</span>
+                Документация
             </button>
         </div>
     </nav>
@@ -6443,26 +6454,6 @@
                     </div>
                 </div>
 
-                <!-- Config Changelog Section -->
-                <div id="config-section-changelog" class="config-section" style="display: none;">
-                    <div id="changelog-container" style="max-width: 900px; margin: 0 auto;">
-                        <div class="loading">
-                            <div class="spinner"></div>
-                            <div>Загрузка changelog...</div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Config TODO Section -->
-                <div id="config-section-todo" class="config-section" style="display: none;">
-                    <div id="todo-container" style="max-width: 900px; margin: 0 auto;">
-                        <div class="loading">
-                            <div class="spinner"></div>
-                            <div>Загрузка TODO...</div>
-                        </div>
-                    </div>
-                </div>
-
                 <!-- Config Logs Section -->
                 <div id="config-section-logs" class="config-section" style="display: none;">
                     <div class="analytics-controls" style="margin-bottom: 20px;">
@@ -6528,6 +6519,49 @@
 
             </div>
         </div><!-- END TAB: Config -->
+
+        <!-- TAB: Docs -->
+        <div id="tab-docs" class="tab-content">
+            <div class="analytics-section">
+                <div class="analytics-header">
+                    <h2>
+                        <span class="material-icons">description</span>
+                        Документация
+                    </h2>
+                </div>
+
+                <!-- Docs Changelog Section -->
+                <div id="docs-section-changelog" class="config-section active">
+                    <div id="changelog-container" style="max-width: 900px; margin: 0 auto;">
+                        <div class="loading">
+                            <div class="spinner"></div>
+                            <div>Загрузка changelog...</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Docs TODO Section -->
+                <div id="docs-section-todo" class="config-section" style="display: none;">
+                    <div id="todo-container" style="max-width: 900px; margin: 0 auto;">
+                        <div class="loading">
+                            <div class="spinner"></div>
+                            <div>Загрузка TODO...</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Docs Documentation Section -->
+                <div id="docs-section-documentation" class="config-section" style="display: none;">
+                    <div id="documentation-container" style="max-width: 900px; margin: 0 auto;">
+                        <div class="loading">
+                            <div class="spinner"></div>
+                            <div>Загрузка документации...</div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div><!-- END TAB: Docs -->
 
         <!-- TAB: Moderator Profile -->
         <div id="tab-moderator-profile" class="tab-content">
@@ -7934,15 +7968,15 @@
                 // Load only the first section (payment-settings) by default
                 switchPaymentsSection('payment-settings');
             } else if (tabName === 'users') {
-                loadUsers();
+                switchUsersSection('all-users');
             } else if (tabName === 'analytics') {
                 // Analytics data is loaded on page load
             } else if (tabName === 'moderator-profile') {
                 loadModeratorProfilePage();
             } else if (tabName === 'moderator-logs') {
                 loadMyLogs();
-            } else if (tabName === 'support') {
-                switchSupportSection('questions');
+            } else if (tabName === 'docs') {
+                switchDocsSection('changelog');
             }
         }
 
@@ -13585,6 +13619,41 @@
         const REVIEWS_PAGE_SIZE = 12;
 
         /**
+         * Переключение между подразделами "Пользователи"
+         */
+        function switchUsersSection(section) {
+            // Убрать active у всех кнопок подменю
+            document.querySelectorAll('[data-parent="users"] .sub-nav-item').forEach(btn => {
+                btn.classList.remove('active');
+            });
+
+            const buttonEl = document.querySelector(`[data-parent="users"][data-section="${section}"]`);
+            if (buttonEl) buttonEl.classList.add('active');
+
+            // Загрузить данные
+            if (section === 'all-users') {
+                loadUsers();
+            } else if (section === 'support') {
+                // Переключаемся на секцию поддержки (старый функционал)
+                switchSupportSection('questions');
+                // Показываем tab-support вместо tab-users
+                document.querySelectorAll('.tab-content').forEach(content => {
+                    content.classList.remove('active');
+                });
+                const supportTab = document.getElementById('tab-support');
+                if (supportTab) supportTab.classList.add('active');
+            } else if (section === 'reviews') {
+                // Показываем секцию отзывов
+                switchSupportSection('reviews');
+                document.querySelectorAll('.tab-content').forEach(content => {
+                    content.classList.remove('active');
+                });
+                const supportTab = document.getElementById('tab-support');
+                if (supportTab) supportTab.classList.add('active');
+            }
+        }
+
+        /**
          * Переключение между подразделами "Вопросы" и "Отзывы"
          */
         function switchSupportSection(section) {
@@ -13610,6 +13679,41 @@
                 loadSupportQuestions();
             } else if (section === 'reviews') {
                 loadSupportReviews();
+            }
+        }
+
+        /**
+         * Переключение между подразделами "Доки"
+         */
+        function switchDocsSection(section) {
+            // Убрать active у всех секций
+            document.querySelectorAll('#tab-docs .config-section').forEach(s => {
+                s.classList.remove('active');
+                s.style.display = 'none';
+            });
+
+            // Убрать active у всех кнопок подменю
+            document.querySelectorAll('[data-parent="docs"] .sub-nav-item').forEach(btn => {
+                btn.classList.remove('active');
+            });
+
+            const buttonEl = document.querySelector(`[data-parent="docs"][data-section="${section}"]`);
+            if (buttonEl) buttonEl.classList.add('active');
+
+            // Активировать выбранную секцию
+            const sectionEl = document.getElementById(`docs-section-${section}`);
+            if (sectionEl) {
+                sectionEl.classList.add('active');
+                sectionEl.style.display = 'block';
+            }
+
+            // Загрузить данные
+            if (section === 'changelog') {
+                loadChangelog();
+            } else if (section === 'todo') {
+                loadTodoPlans();
+            } else if (section === 'documentation') {
+                loadDocumentation();
             }
         }
 

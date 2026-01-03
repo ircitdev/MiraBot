@@ -3250,3 +3250,88 @@ async def get_changelog(
         "content": content,
         "size_kb": round(len(content.encode('utf-8')) / 1024, 2)
     }
+
+
+@router.get("/documentation")
+async def get_documentation(
+    _admin: dict = Depends(require_admin)
+):
+    """
+    Получить список всех файлов документации.
+
+    Returns:
+        Список документов в папке docs/
+    """
+    from pathlib import Path
+    import os
+
+    docs_dir = Path(__file__).parent.parent.parent.parent / "docs"
+
+    if not docs_dir.exists():
+        return {"documents": []}
+
+    documents = []
+
+    # Рекурсивно ищем все .md файлы в docs/
+    for root, dirs, files in os.walk(docs_dir):
+        # Пропускаем папки node_modules, .git и т.д.
+        dirs[:] = [d for d in dirs if not d.startswith('.')]
+
+        for file in files:
+            if file.endswith('.md') and file != 'CHANGELOG.md':  # CHANGELOG уже есть отдельно
+                file_path = Path(root) / file
+                rel_path = file_path.relative_to(docs_dir)
+                stat = file_path.stat()
+
+                documents.append({
+                    "name": file,
+                    "path": str(rel_path),
+                    "folder": str(rel_path.parent) if str(rel_path.parent) != '.' else 'root',
+                    "size_kb": round(stat.st_size / 1024, 2),
+                    "modified_at": datetime.fromtimestamp(stat.st_mtime).isoformat()
+                })
+
+    # Сортируем по папкам и имени
+    documents.sort(key=lambda x: (x['folder'], x['name']))
+
+    return {"documents": documents}
+
+
+@router.get("/documentation/{doc_path:path}")
+async def get_documentation_file(
+    doc_path: str,
+    _admin: dict = Depends(require_admin)
+):
+    """
+    Получить содержимое конкретного файла документации.
+
+    Args:
+        doc_path: Путь к файлу относительно docs/ (например: "onboarding/TODO_ONBOARDING.md")
+    """
+    from pathlib import Path
+
+    docs_dir = Path(__file__).parent.parent.parent.parent / "docs"
+    file_path = docs_dir / doc_path
+
+    # Проверка безопасности - файл должен быть внутри docs/
+    try:
+        file_path.resolve().relative_to(docs_dir.resolve())
+    except ValueError:
+        raise HTTPException(status_code=403, detail="Access denied")
+
+    if not file_path.exists():
+        raise HTTPException(status_code=404, detail="Document not found")
+
+    if not file_path.is_file():
+        raise HTTPException(status_code=400, detail="Path is not a file")
+
+    # Читаем содержимое
+    with open(file_path, 'r', encoding='utf-8') as f:
+        content = f.read()
+
+    return {
+        "path": doc_path,
+        "name": file_path.name,
+        "content": content,
+        "size_kb": round(len(content.encode('utf-8')) / 1024, 2)
+    }
