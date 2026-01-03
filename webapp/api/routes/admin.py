@@ -3131,6 +3131,24 @@ async def get_todo_plans(
             "name": "Детализация Часть 3 (P1.5.4-P1.5.7)",
             "file": "TODO_ROADMAP_DETAILED_PART3.md",
             "description": "Medical Disclaimer, Loving Toughness, Permission to Grieve, Proactive Support"
+        },
+        {
+            "id": "support_bot",
+            "name": "Бот поддержки",
+            "file": "TODO_SUPPORT_BOT.md",
+            "description": "План разработки бота технической поддержки (48 задач, 13-17 дней)"
+        },
+        {
+            "id": "onboarding",
+            "name": "Онбординг пользователей",
+            "file": "../onboarding/TODO_ONBOARDING.md",
+            "description": "План внедрения нового онбординга (26 задач, 4 недели)"
+        },
+        {
+            "id": "admin_improvements",
+            "name": "Улучшения админ-панели",
+            "file": "../TODO_ADMIN_IMPROVEMENTS.md",
+            "description": "План улучшений UX/UI админ-панели (12 фаз)"
         }
     ]
 
@@ -3179,7 +3197,10 @@ async def get_todo_plan_content(
         "roadmap": "TODO_ROADMAP.md",
         "detailed_part1": "TODO_ROADMAP_DETAILED.md",
         "detailed_part2": "TODO_ROADMAP_DETAILED_PART2.md",
-        "detailed_part3": "TODO_ROADMAP_DETAILED_PART3.md"
+        "detailed_part3": "TODO_ROADMAP_DETAILED_PART3.md",
+        "support_bot": "TODO_SUPPORT_BOT.md",
+        "onboarding": "../onboarding/TODO_ONBOARDING.md",
+        "admin_improvements": "../TODO_ADMIN_IMPROVEMENTS.md"
     }
 
     if plan_id not in plan_files:
