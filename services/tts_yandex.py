@@ -12,6 +12,7 @@ from loguru import logger
 from telegram import Bot
 
 from config.settings import settings
+from database.repositories.api_cost import ApiCostRepository
 
 
 class YandexTTS:
@@ -42,6 +43,43 @@ class YandexTTS:
         self.default_voice = getattr(settings, "TTS_VOICE", "alena")
         self.default_emotion = getattr(settings, "TTS_EMOTION", "good")
         self.default_speed = getattr(settings, "TTS_SPEED", 1.0)
+        self.api_cost_repo = ApiCostRepository()
+
+    async def _track_api_cost(
+        self,
+        user_id: int,
+        text: str,
+        operation: str = "text_to_speech",
+    ) -> None:
+        """
+        Трекает расходы на Yandex TTS API.
+
+        Args:
+            user_id: ID пользователя
+            text: Текст для синтеза
+            operation: Операция (text_to_speech)
+        """
+        try:
+            # Цена Yandex TTS: $0.12 за 1 миллион символов
+            # https://cloud.yandex.ru/docs/speechkit/pricing
+            characters = len(text)
+            cost_usd = (characters / 1_000_000) * 0.12
+
+            await self.api_cost_repo.create(
+                user_id=user_id,
+                provider='yandex_tts',
+                operation=operation,
+                cost_usd=cost_usd,
+                characters_count=characters,
+            )
+
+            logger.debug(
+                f"Tracked Yandex TTS cost for user {user_id}: "
+                f"${cost_usd:.6f} ({characters} chars)"
+            )
+        except Exception as e:
+            # Не падаем если не удалось сохранить стоимость
+            logger.warning(f"Failed to track Yandex TTS cost: {e}")
 
     async def synthesize(
         self,
@@ -51,6 +89,7 @@ class YandexTTS:
         emotion: str = "neutral",
         speed: float = 0.9,  # Чуть медленнее для медитаций
         format: str = "oggopus",  # Формат для Telegram voice
+        user_id: Optional[int] = None,  # Добавляем user_id для трекинга
     ) -> bool:
         """
         Синтезирует речь и сохраняет в файл.
@@ -245,6 +284,7 @@ async def text_to_voice_bytes(
     voice: str = None,
     emotion: str = None,
     speed: float = None,
+    user_id: Optional[int] = None,  # Добавляем user_id для трекинга
 ) -> Optional[bytes]:
     """
     Конвертирует текст в голосовое сообщение (байты OGG).
@@ -274,6 +314,14 @@ async def text_to_voice_bytes(
         speed=speed,
         format="oggopus",
     )
+
+    # Трекаем расходы API
+    if audio_data and user_id:
+        await yandex_tts._track_api_cost(
+            user_id=user_id,
+            text=text,
+            operation='text_to_speech',
+        )
 
     return audio_data
 
@@ -312,6 +360,7 @@ async def send_voice_message(
             voice=voice,
             emotion=emotion,
             speed=speed,
+            user_id=user_id,
         )
 
         if not audio_bytes:

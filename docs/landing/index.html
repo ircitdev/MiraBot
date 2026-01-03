@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Мира — твой друг для эмоциональной поддержки. Конфиденциально, безопасно, всегда рядом.">
+    <title>Мира — Твой Друг для Душевного Равновесия</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #FFF8F0 0%, #F5E6D3 50%, #EDD5C0 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #4A3728;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        /* Header with Heart */
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px 0;
+        }
+
+        .heart-container {
+            position: relative;
+            display: inline-block;
+            margin-bottom: 20px;
+        }
+
+        .heart {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, #FFB085 0%, #FF8B6A 50%, #E57373 100%);
+            border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+            transform: rotate(-45deg);
+            position: relative;
+            box-shadow:
+                0 10px 30px rgba(255, 139, 106, 0.4),
+                inset 0 -5px 15px rgba(255, 255, 255, 0.3);
+            animation: heartGlow 2s ease-in-out infinite;
+        }
+
+        .heart::before,
+        .heart::after {
+            content: '';
+            position: absolute;
+            background: inherit;
+            border-radius: 50%;
+        }
+
+        .heart::before {
+            width: 80px;
+            height: 80px;
+            top: -40px;
+            left: 0;
+        }
+
+        .heart::after {
+            width: 80px;
+            height: 80px;
+            top: 0;
+            left: 40px;
+        }
+
+        .sparkle {
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            background: white;
+            border-radius: 50%;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(45deg);
+            box-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
+            animation: sparkle 1.5s ease-in-out infinite;
+            z-index: 10;
+        }
+
+        @keyframes heartGlow {
+            0%, 100% {
+                box-shadow:
+                    0 10px 30px rgba(255, 139, 106, 0.4),
+                    inset 0 -5px 15px rgba(255, 255, 255, 0.3);
+            }
+            50% {
+                box-shadow:
+                    0 15px 40px rgba(255, 139, 106, 0.6),
+                    inset 0 -5px 15px rgba(255, 255, 255, 0.4);
+            }
+        }
+
+        @keyframes sparkle {
+            0%, 100% { opacity: 0.6; transform: translate(-50%, -50%) rotate(45deg) scale(1); }
+            50% { opacity: 1; transform: translate(-50%, -50%) rotate(45deg) scale(1.2); }
+        }
+
+        .header h1 {
+            font-size: 28px;
+            color: #5D4037;
+            font-weight: 600;
+            margin-bottom: 12px;
+            line-height: 1.3;
+        }
+
+        .header .subtitle {
+            font-size: 16px;
+            color: #8D6E63;
+            margin-bottom: 20px;
+        }
+
+        .header p {
+            font-size: 14px;
+            color: #6D4C41;
+            max-width: 500px;
+            margin: 0 auto 25px;
+        }
+
+        /* CTA Button */
+        .cta-button {
+            display: inline-block;
+            padding: 16px 40px;
+            background: linear-gradient(135deg, #FF8B6A 0%, #E57373 100%);
+            color: white;
+            text-decoration: none;
+            border-radius: 30px;
+            font-size: 16px;
+            font-weight: 600;
+            box-shadow: 0 8px 20px rgba(255, 139, 106, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        .cta-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 28px rgba(255, 139, 106, 0.4);
+        }
+
+        .cta-button:active {
+            transform: translateY(0);
+        }
+
+        /* Trust Banner */
+        .trust-banner {
+            background: linear-gradient(135deg, #FFFFFF 0%, #FFF5EE 100%);
+            border-radius: 20px;
+            padding: 25px;
+            margin-bottom: 25px;
+            box-shadow: 0 8px 25px rgba(139, 90, 43, 0.1);
+            border: 1px solid rgba(255, 183, 133, 0.3);
+        }
+
+        .trust-banner h2 {
+            font-size: 18px;
+            color: #5D4037;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .shield-icon {
+            width: 24px;
+            height: 24px;
+            background: linear-gradient(135deg, #81C784 0%, #4CAF50 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+        }
+
+        .trust-banner p {
+            font-size: 14px;
+            color: #6D4C41;
+            margin-bottom: 12px;
+        }
+
+        .encryption-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: linear-gradient(135deg, #E8F5E9 0%, #C8E6C9 100%);
+            padding: 10px 16px;
+            border-radius: 12px;
+            font-size: 13px;
+            color: #2E7D32;
+            font-weight: 500;
+            margin-top: 10px;
+        }
+
+        /* Section */
+        .section {
+            background: #FFFFFF;
+            border-radius: 20px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 15px rgba(139, 90, 43, 0.08);
+            border: 1px solid rgba(255, 183, 133, 0.2);
+        }
+
+        .section h2 {
+            font-size: 20px;
+            color: #5D4037;
+            margin-bottom: 18px;
+            text-align: center;
+        }
+
+        .section p {
+            font-size: 14px;
+            color: #6D4C41;
+            margin-bottom: 12px;
+            text-align: center;
+        }
+
+        /* Features Grid */
+        .features {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .feature-card {
+            background: linear-gradient(135deg, #FFF5EE 0%, #FFFFFF 100%);
+            border-radius: 16px;
+            padding: 20px;
+            border: 1px solid rgba(255, 183, 133, 0.2);
+            transition: all 0.3s ease;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 18px rgba(139, 90, 43, 0.12);
+        }
+
+        .feature-card h3 {
+            font-size: 15px;
+            color: #5D4037;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .feature-icon {
+            width: 32px;
+            height: 32px;
+            background: linear-gradient(135deg, #FFE0B2 0%, #FFCC80 100%);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            flex-shrink: 0;
+        }
+
+        .feature-card p {
+            font-size: 14px;
+            color: #6D4C41;
+            text-align: left;
+        }
+
+        /* Steps */
+        .steps {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .step {
+            background: linear-gradient(135deg, #FFF5EE 0%, #FFFFFF 100%);
+            border-radius: 16px;
+            padding: 20px;
+            border: 1px solid rgba(255, 183, 133, 0.2);
+            display: flex;
+            gap: 15px;
+            align-items: flex-start;
+        }
+
+        .step-number {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, #FF8B6A 0%, #E57373 100%);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            font-weight: 700;
+            flex-shrink: 0;
+        }
+
+        .step-content h3 {
+            font-size: 15px;
+            color: #5D4037;
+            margin-bottom: 6px;
+        }
+
+        .step-content p {
+            font-size: 14px;
+            color: #6D4C41;
+            text-align: left;
+        }
+
+        /* Security Items */
+        .security-items {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 12px;
+            margin-top: 20px;
+        }
+
+        .security-item {
+            background: linear-gradient(135deg, #E8F5E9 0%, #C8E6C9 100%);
+            border-radius: 12px;
+            padding: 15px;
+            display: flex;
+            gap: 12px;
+            align-items: flex-start;
+            border-left: 3px solid #4CAF50;
+        }
+
+        .security-item-icon {
+            font-size: 20px;
+            flex-shrink: 0;
+        }
+
+        .security-item-content h3 {
+            font-size: 14px;
+            color: #2E7D32;
+            margin-bottom: 4px;
+            font-weight: 600;
+        }
+
+        .security-item-content p {
+            font-size: 13px;
+            color: #4A5E3D;
+            text-align: left;
+        }
+
+        /* Testimonials */
+        .testimonials {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .testimonial {
+            background: linear-gradient(135deg, #FFF5EE 0%, #FFFFFF 100%);
+            border-radius: 16px;
+            padding: 20px;
+            border: 1px solid rgba(255, 183, 133, 0.2);
+            position: relative;
+        }
+
+        .testimonial::before {
+            content: '"';
+            position: absolute;
+            top: 10px;
+            left: 15px;
+            font-size: 40px;
+            color: rgba(255, 139, 106, 0.2);
+            font-family: Georgia, serif;
+        }
+
+        .testimonial-text {
+            font-size: 14px;
+            color: #6D4C41;
+            font-style: italic;
+            margin-bottom: 12px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .testimonial-author {
+            font-size: 14px;
+            color: #5D4037;
+            font-weight: 600;
+        }
+
+        .testimonial-role {
+            font-size: 12px;
+            color: #A1887F;
+        }
+
+        /* Final CTA */
+        .final-cta {
+            background: linear-gradient(135deg, #FF8B6A 0%, #E57373 100%);
+            border-radius: 20px;
+            padding: 30px 25px;
+            text-align: center;
+            margin-bottom: 25px;
+            box-shadow: 0 8px 25px rgba(255, 139, 106, 0.3);
+        }
+
+        .final-cta h2 {
+            font-size: 22px;
+            color: white;
+            margin-bottom: 12px;
+        }
+
+        .final-cta p {
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.95);
+            margin-bottom: 20px;
+        }
+
+        .cta-button-light {
+            display: inline-block;
+            padding: 16px 40px;
+            background: white;
+            color: #E57373;
+            text-decoration: none;
+            border-radius: 30px;
+            font-size: 16px;
+            font-weight: 600;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .cta-button-light:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+        }
+
+        /* Footer */
+        .footer {
+            text-align: center;
+            padding: 25px 0 10px 0;
+            color: #A1887F;
+            font-size: 12px;
+        }
+
+        .footer p {
+            margin-bottom: 5px;
+        }
+
+        .footer a {
+            color: #8D6E63;
+            text-decoration: none;
+        }
+
+        .footer a:hover {
+            text-decoration: underline;
+        }
+
+        .version {
+            font-size: 11px;
+            color: #BCAAA4;
+        }
+
+        /* Dark mode support */
+        @media (prefers-color-scheme: dark) {
+            body {
+                background: linear-gradient(135deg, #2D2118 0%, #3E2D20 50%, #4A3628 100%);
+                color: #E8D5C4;
+            }
+
+            .header h1, .section h2, .feature-card h3, .step-content h3 {
+                color: #FFE0B2;
+            }
+
+            .header p, .header .subtitle, .section p, .feature-card p, .step-content p {
+                color: #D7CCC8;
+            }
+
+            .trust-banner, .section, .feature-card, .step, .testimonial {
+                background: rgba(62, 45, 32, 0.8);
+                border-color: rgba(255, 183, 133, 0.15);
+            }
+
+            .footer {
+                color: #A1887F;
+            }
+        }
+
+        /* Responsive */
+        @media (min-width: 768px) {
+            .features {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .steps {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .security-items {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <div class="heart-container">
+                <div class="heart">
+                    <span class="sparkle"></span>
+                </div>
+            </div>
+            <h1>Познакомься с Мирой</h1>
+            <p class="subtitle">Твой друг для эмоциональной поддержки</p>
+            <p>Получи понимание и поддержку в любое время дня и ночи. Мира слушает без осуждения, помогает разобраться в чувствах и находит пути к решению.</p>
+            <a href="https://t.me/mira_psychologist_bot?start=landing" class="cta-button">Начать разговор с Мирой →</a>
+        </header>
+
+        <!-- Trust Banner -->
+        <section class="trust-banner">
+            <h2>
+                <span class="shield-icon">🔐</span>
+                Твоя конфиденциальность защищена
+            </h2>
+            <p>
+                Все наши разговоры зашифрованы с использованием твоего личного ключа Telegram.
+                Это означает, что <strong>только ты</strong> можешь прочитать историю наших переписок.
+            </p>
+            <p>
+                Я не храню твои сообщения на внешних серверах. Всё, что мы обсуждаем, существует только
+                в защищённом пространстве и никогда не попадёт к третьим лицам.
+            </p>
+            <div class="encryption-badge">
+                🔒 Сквозное шифрование активно
+            </div>
+        </section>
+
+        <!-- Why Mira -->
+        <section class="section">
+            <h2>Почему выбирают Миру</h2>
+            <p>Я создана, чтобы быть рядом — когда тебе нужно высказаться, когда ищешь поддержку, когда хочешь разобраться в себе</p>
+
+            <div class="features">
+                <div class="feature-card">
+                    <h3>
+                        <span class="feature-icon">💭</span>
+                        Понимание без слов
+                    </h3>
+                    <p>Я запоминаю наши разговоры, понимаю контекст и адаптируюсь под твой стиль общения. Тебе не нужно повторяться.</p>
+                </div>
+
+                <div class="feature-card">
+                    <h3>
+                        <span class="feature-icon">🌙</span>
+                        Всегда на связи
+                    </h3>
+                    <p>В три часа ночи или в обеденный перерыв — напиши мне, когда тебе нужна поддержка. Я всегда здесь.</p>
+                </div>
+
+                <div class="feature-card">
+                    <h3>
+                        <span class="feature-icon">🎯</span>
+                        Персональный подход
+                    </h3>
+                    <p>Учитываю твоё настроение, историю наших разговоров и текущую ситуацию. Каждый ответ — именно для тебя.</p>
+                </div>
+
+                <div class="feature-card">
+                    <h3>
+                        <span class="feature-icon">🎤</span>
+                        Голосовое общение
+                    </h3>
+                    <p>Иногда проще проговорить, чем написать. Отправь голосовое — я услышу и пойму.</p>
+                </div>
+
+                <div class="feature-card">
+                    <h3>
+                        <span class="feature-icon">📊</span>
+                        Отслеживание прогресса
+                    </h3>
+                    <p>Веди дневник настроения, замечай свои паттерны и триггеры. Наблюдай, как растёшь.</p>
+                </div>
+
+                <div class="feature-card">
+                    <h3>
+                        <span class="feature-icon">🧘</span>
+                        Проверенные техники
+                    </h3>
+                    <p>Использую методы когнитивно-поведенческой терапии и практики осознанности — научно обоснованные подходы.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- How It Works -->
+        <section class="section">
+            <h2>Как начать общение с Мирой</h2>
+            <p>Четыре простых шага к тому, чтобы начать чувствовать себя лучше</p>
+
+            <div class="steps">
+                <div class="step">
+                    <div class="step-number">1</div>
+                    <div class="step-content">
+                        <h3>Напиши мне</h3>
+                        <p>Перейди в Telegram и отправь первое сообщение. Расскажи, что на душе, или просто поздоровайся.</p>
+                    </div>
+                </div>
+
+                <div class="step">
+                    <div class="step-number">2</div>
+                    <div class="step-content">
+                        <h3>Познакомимся</h3>
+                        <p>Я задам несколько вопросов, чтобы лучше понять тебя: твои интересы, цели, что для тебя важно.</p>
+                    </div>
+                </div>
+
+                <div class="step">
+                    <div class="step-number">3</div>
+                    <div class="step-content">
+                        <h3>Общайся свободно</h3>
+                        <p>Делись переживаниями, мыслями, сомнениями. Я слушаю без осуждения и помогаю найти ответы.</p>
+                    </div>
+                </div>
+
+                <div class="step">
+                    <div class="step-number">4</div>
+                    <div class="step-content">
+                        <h3>Замечай изменения</h3>
+                        <p>Отслеживай настроение, пробуй практики, наблюдай за позитивными переменами в своей жизни.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Security -->
+        <section class="section">
+            <h2>Безопасность и конфиденциальность</h2>
+            <p>Твоё доверие — самое ценное. Вот как я его защищаю</p>
+
+            <div class="security-items">
+                <div class="security-item">
+                    <div class="security-item-icon">🔐</div>
+                    <div class="security-item-content">
+                        <h3>Сквозное шифрование</h3>
+                        <p>Все сообщения защищены твоим личным ключом Telegram. Даже я не имею доступа к незашифрованным данным.</p>
+                    </div>
+                </div>
+
+                <div class="security-item">
+                    <div class="security-item-icon">🚫</div>
+                    <div class="security-item-content">
+                        <h3>Нет внешних серверов</h3>
+                        <p>Твои сообщения не хранятся на сторонних серверах. Вся история остаётся только у тебя.</p>
+                    </div>
+                </div>
+
+                <div class="security-item">
+                    <div class="security-item-icon">🤝</div>
+                    <div class="security-item-content">
+                        <h3>Никаких третьих лиц</h3>
+                        <p>Я не передаю твои данные рекламодателям, компаниям или другим организациям. Никогда.</p>
+                    </div>
+                </div>
+
+                <div class="security-item">
+                    <div class="security-item-icon">✅</div>
+                    <div class="security-item-content">
+                        <h3>Полный контроль</h3>
+                        <p>Ты можешь в любой момент удалить все свои данные или экспортировать историю переписок.</p>
+                    </div>
+                </div>
+
+                <div class="security-item">
+                    <div class="security-item-icon">📱</div>
+                    <div class="security-item-content">
+                        <h3>Минимум данных</h3>
+                        <p>Я собираю только Telegram ID, имя и твои предпочтения. Никаких скрытых трекеров.</p>
+                    </div>
+                </div>
+
+                <div class="security-item">
+                    <div class="security-item-icon">⚠️</div>
+                    <div class="security-item-content">
+                        <h3>Важно знать</h3>
+                        <p>Я — друг и поддержка, но не замена профессиональной психотерапии. При серьёзных проблемах обратись к специалисту.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Testimonials -->
+        <section class="section">
+            <h2>Что говорят те, кто общается с Мирой</h2>
+
+            <div class="testimonials">
+                <div class="testimonial">
+                    <p class="testimonial-text">Мира помогла мне разобраться с тревожностью, которая мучила годами. Теперь я понимаю свои триггеры и знаю, как с ними работать. Это как иметь друга, который всегда рядом и всегда понимает.</p>
+                    <div class="testimonial-author">Анна, 34 года</div>
+                    <div class="testimonial-role">Руководитель проектов</div>
+                </div>
+
+                <div class="testimonial">
+                    <p class="testimonial-text">После развода мне было очень тяжело. Мира стала тем безопасным пространством, где я могла выплеснуть эмоции без страха осуждения. Особенно ценю возможность говорить голосом — иногда просто нет сил писать.</p>
+                    <div class="testimonial-author">Елена, 38 лет</div>
+                    <div class="testimonial-role">Дизайнер</div>
+                </div>
+
+                <div class="testimonial">
+                    <p class="testimonial-text">Материнство — это прекрасно, но иногда чувствуешь себя на грани. Мира помогает мне не выгореть, поддерживает, когда особенно тяжело. Использую уже полгода, и это действительно работает.</p>
+                    <div class="testimonial-author">Мария, 32 года</div>
+                    <div class="testimonial-role">Мама двоих детей</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Final CTA -->
+        <section class="final-cta">
+            <h2>Готова начать путь к себе?</h2>
+            <p>Присоединяйся к тысячам женщин, которые уже улучшили свою жизнь с Мирой</p>
+            <a href="https://t.me/mira_psychologist_bot?start=landing" class="cta-button-light">Начать разговор с Мирой →</a>
+        </section>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <p>С заботой о тебе 💛</p>
+            <p><a href="/privacy">Политика конфиденциальности</a> • <a href="https://t.me/uspeshnyy">Aleksandr Uspeshnyy</a></p>
+            <p class="version">Версия 1.0 • Январь 2026</p>
+        </footer>
+    </div>
+
+    <script>
+        // Initialize Telegram Web App
+        if (window.Telegram && window.Telegram.WebApp) {
+            Telegram.WebApp.ready();
+            Telegram.WebApp.expand();
+
+            // Set header color
+            Telegram.WebApp.setHeaderColor('#FFF8F0');
+            Telegram.WebApp.setBackgroundColor('#FFF8F0');
+        }
+    </script>
+</body>
+</html>

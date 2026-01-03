@@ -3,7 +3,7 @@ Start command handler.
 Онбординг новых пользователей.
 """
 
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram import Update
 from telegram.ext import ContextTypes
 from loguru import logger
 
@@ -79,18 +79,9 @@ async def _start_onboarding(update: Update, user) -> None:
 
 Я здесь, чтобы слушать. Не как психолог — а как подруга, которая не осудит и не будет учить жить.
 
-**🎁 У тебя 3 дня Premium бесплатно — безлимитное общение без ограничений!**
+Как тебя зовут?"""
 
-Как мне к тебе обращаться?"""
-
-    # Создаём inline кнопки
-    keyboard = [
-        [InlineKeyboardButton("📜 Соглашение о неразглашении", callback_data="privacy")],
-        [InlineKeyboardButton("❓ Справка", callback_data="help")],
-    ]
-    reply_markup = InlineKeyboardMarkup(keyboard)
-
-    await update.message.reply_text(text, reply_markup=reply_markup, parse_mode="Markdown")
+    await update.message.reply_text(text)
 
 
 async def _welcome_back(update: Update, user) -> None:

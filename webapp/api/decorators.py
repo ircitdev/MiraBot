@@ -92,11 +92,22 @@ def log_admin_action(
                                 details["message"] = result["message"]
 
                         # Добавляем параметры вызова (без чувствительных данных)
-                        safe_kwargs = {
-                            k: v for k, v in kwargs.items()
-                            if k not in ["admin_data", "request", "password", "token"]
-                            and not k.startswith("_")
-                        }
+                        safe_kwargs = {}
+                        for k, v in kwargs.items():
+                            if k not in ["admin_data", "request", "password", "token"] and not k.startswith("_"):
+                                # Сериализуем Pydantic модели в dict
+                                if hasattr(v, "model_dump"):
+                                    safe_kwargs[k] = v.model_dump()
+                                elif hasattr(v, "dict"):
+                                    safe_kwargs[k] = v.dict()
+                                elif isinstance(v, (str, int, float, bool, type(None))):
+                                    safe_kwargs[k] = v
+                                elif isinstance(v, (list, dict)):
+                                    safe_kwargs[k] = v
+                                else:
+                                    # Для остальных типов сохраняем строковое представление
+                                    safe_kwargs[k] = str(v)
+
                         if safe_kwargs:
                             details["params"] = safe_kwargs
 
@@ -171,9 +182,24 @@ def log_critical_action(action: str, resource_type: Optional[str] = None):
             repo = AdminLogRepository()
 
             # Создаём предварительную запись
+            safe_params = {}
+            for k, v in kwargs.items():
+                if k not in ["admin_data", "request", "password", "token"] and not k.startswith("_"):
+                    # Сериализуем Pydantic модели в dict
+                    if hasattr(v, "model_dump"):
+                        safe_params[k] = v.model_dump()
+                    elif hasattr(v, "dict"):
+                        safe_params[k] = v.dict()
+                    elif isinstance(v, (str, int, float, bool, type(None))):
+                        safe_params[k] = v
+                    elif isinstance(v, (list, dict)):
+                        safe_params[k] = v
+                    else:
+                        safe_params[k] = str(v)
+
             details = {
                 "status": "started",
-                "params": {k: v for k, v in kwargs.items() if k not in ["admin_data", "request"]}
+                "params": safe_params
             }
 
             log_entry = await repo.create(

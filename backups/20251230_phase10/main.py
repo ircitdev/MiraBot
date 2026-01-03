@@ -18,11 +18,6 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "https://web.telegram.org",
-        "https://miradrug.ru",
-        "http://miradrug.ru",
-        "https://www.miradrug.ru",
-        "http://www.miradrug.ru",
-        # Старый домен для обратной совместимости
         "https://mira.uspeshnyy.ru",
         "http://mira.uspeshnyy.ru",
     ],
@@ -98,23 +93,6 @@ async def changelog():
 async def docs_file(date: str, filename: str):
     """TODO и другие документы."""
     docs_path = Path(__file__).parent.parent.parent / "docs" / date / filename
-    if docs_path.exists() and docs_path.is_file():
-        return FileResponse(
-            docs_path,
-            media_type="text/markdown",
-            headers={
-                "Cache-Control": "no-cache, no-store, must-revalidate",
-                "Pragma": "no-cache",
-                "Expires": "0"
-            }
-        )
-    return {"error": "File not found"}
-
-
-@app.get("/docs/todo_plan/{filename}")
-async def todo_plan_file(filename: str):
-    """TODO roadmap файлы."""
-    docs_path = Path(__file__).parent.parent.parent / "docs" / "todo_plan" / filename
     if docs_path.exists() and docs_path.is_file():
         return FileResponse(
             docs_path,

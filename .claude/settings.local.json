@@ -94,7 +94,22 @@
       "Bash(python scripts/init_moderator_simple.py:*)",
       "Bash(git commit -m \"$\\(cat <<''EOF''\ndocs: Финализация документации системы модераторов\n\nИзменения:\n- Обновлен TODO_MODERATOR_ACCESS.md с отметками о выполнении\n- Добавлен прогресс и статус выполнения этапов 1-4\n- Создан MODERATOR_DEPLOYMENT.md с полной инструкцией развертывания\n- Добавлены чеклисты для всех этапов\n- Указаны git коммиты и созданные файлы\n\nСтатус:\n- ✅ Этапы 1-4 завершены \\(Backend + Frontend\\)\n- ⏸️ Этап 5 требует развертывания на сервере\n- 📝 Этап 6 в процессе \\(документация\\)\n\nДокументы:\n- docs/23.12.25/TODO_MODERATOR_ACCESS.md - обновлен с чеклистами\n- docs/29.12.25/MODERATOR_DEPLOYMENT.md - инструкция развертывания\n\n🤖 Generated with [Claude Code]\\(https://claude.com/claude-code\\)\n\nCo-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
       "Bash(ls:*)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(tar:*)",
+      "Bash(alembic upgrade:*)",
+      "Bash(sqlite3:*)",
+      "Bash(alembic stamp:*)",
+      "Bash(alembic current:*)",
+      "Bash(alembic history:*)",
+      "Bash(xcopy:*)",
+      "Bash(copy docsimprovements.html backups20251230_phase10 )",
+      "Bash(copy webappapiroutessystem_prompt.py backups20251230_phase10 )",
+      "Bash(copy webappfrontendadmin.html backups20251230_phase10 )",
+      "Bash(copy aiwhisper_client.py backups20251230_phase10 )",
+      "Bash(copy bothandlersvoice.py backups20251230_phase10 )",
+      "Bash(copy databaserepositoriesapi_cost.py backups20251230_phase10 )",
+      "Bash(copy webappapiroutesapi_costs.py backups20251230_phase10 )",
+      "Bash(copy:*)"
     ]
   }
 }

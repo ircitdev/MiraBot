@@ -32,7 +32,7 @@ def upgrade() -> None:
         sa.Column('secondary_emotions', sa.JSON(), nullable=True),
         sa.Column('triggers', sa.JSON(), nullable=True),
         sa.Column('context_tags', sa.JSON(), nullable=True),
-        sa.Column('created_at', sa.DateTime(), server_default=sa.text('now()'), nullable=True),
+        sa.Column('created_at', sa.DateTime(), server_default=sa.text('CURRENT_TIMESTAMP'), nullable=True),
         sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
         sa.ForeignKeyConstraint(['message_id'], ['messages.id'], ),
         sa.PrimaryKeyConstraint('id')

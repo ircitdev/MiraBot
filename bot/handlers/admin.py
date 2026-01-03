@@ -121,7 +121,7 @@ async def web_admin_command(update: Update, context: ContextTypes.DEFAULT_TYPE) 
         first_name=user.first_name,
     )
 
-    admin_url = f"https://mira.uspeshnyy.ru/admin?token={jwt_token}"
+    admin_url = f"https://miradrug.ru/admin?token={jwt_token}"
 
     await update.message.reply_text(
         f"🌐 <b>Web-админка</b>\n\n"
@@ -153,7 +153,7 @@ async def handle_admin_callback(update: Update, context: ContextTypes.DEFAULT_TY
             first_name=user.first_name,
         )
 
-        admin_url = f"https://mira.uspeshnyy.ru/admin?token={jwt_token}"
+        admin_url = f"https://miradrug.ru/admin?token={jwt_token}"
 
         await query.message.reply_text(
             f"🌐 <b>Web-админка</b>\n\n"

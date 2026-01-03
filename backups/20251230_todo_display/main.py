@@ -18,11 +18,6 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "https://web.telegram.org",
-        "https://miradrug.ru",
-        "http://miradrug.ru",
-        "https://www.miradrug.ru",
-        "http://www.miradrug.ru",
-        # Старый домен для обратной совместимости
         "https://mira.uspeshnyy.ru",
         "http://mira.uspeshnyy.ru",
     ],
