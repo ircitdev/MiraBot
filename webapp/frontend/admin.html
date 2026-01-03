@@ -6628,6 +6628,15 @@
 
         const API_BASE = '/api/admin';
 
+        // Initialize admin token from URL or localStorage
+        const urlParams = new URLSearchParams(window.location.search);
+        const tokenFromUrl = urlParams.get('token');
+        if (tokenFromUrl) {
+            localStorage.setItem('admin_token', tokenFromUrl);
+            window.history.replaceState({}, document.title, window.location.pathname);
+        }
+        const adminToken = localStorage.getItem('admin_token');
+
         // Telegram-style avatar colors
         const AVATAR_COLORS = [
             '#E17076', // red
@@ -7522,14 +7531,6 @@
             savedTheme === 'light' ? 'dark_mode' : 'light_mode';
 
         // Token management
-        const urlParams = new URLSearchParams(window.location.search);
-        const tokenFromUrl = urlParams.get('token');
-        if (tokenFromUrl) {
-            localStorage.setItem('admin_token', tokenFromUrl);
-            window.history.replaceState({}, document.title, window.location.pathname);
-        }
-        const adminToken = localStorage.getItem('admin_token');
-
         // Restore last active tab
         const savedTab = localStorage.getItem('admin_active_tab');
         if (savedTab) {
