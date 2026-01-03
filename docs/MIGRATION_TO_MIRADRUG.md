@@ -243,7 +243,9 @@ location /api/ {
 ```
 
 ### 2. Privacy Page
-Privacy page берётся из `/var/www/freescout/docs/privacy.html`, так как используется общая версия для всех проектов.
+Privacy page расположен в `/root/mira_bot/docs/privacy.html` и доступен по двум URL:
+- `https://miradrug.ru/privacy`
+- `https://miradrug.ru/privacy.html`
 
 ### 3. SSL Auto-Renewal
 Certbot автоматически продлевает сертификат. Проверка:
