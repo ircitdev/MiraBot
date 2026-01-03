@@ -3186,3 +3186,31 @@ async def get_todo_plan_content(
         "content": content,
         "size_kb": round(len(content.encode('utf-8')) / 1024, 2)
     }
+
+
+@router.get("/changelog")
+async def get_changelog(
+    _admin: dict = Depends(require_admin)
+):
+    """
+    Получить содержимое CHANGELOG.md.
+
+    Returns:
+        Содержимое CHANGELOG файла
+    """
+    from pathlib import Path
+
+    # Путь к CHANGELOG в корне проекта
+    changelog_path = Path(__file__).parent.parent.parent.parent / "CHANGELOG.md"
+
+    if not changelog_path.exists():
+        raise HTTPException(status_code=404, detail="CHANGELOG.md not found")
+
+    # Читаем содержимое
+    with open(changelog_path, 'r', encoding='utf-8') as f:
+        content = f.read()
+
+    return {
+        "content": content,
+        "size_kb": round(len(content.encode('utf-8')) / 1024, 2)
+    }

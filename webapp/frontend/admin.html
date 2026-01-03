@@ -12718,9 +12718,9 @@
             container.innerHTML = '<div class="loading"><div class="spinner"></div><div>Загрузка changelog...</div></div>';
 
             try {
-                const response = await fetch('/CHANGELOG.md');
-                if (response.ok) {
-                    const markdown = await response.text();
+                const data = await apiRequest('/changelog');
+                if (data && data.content) {
+                    const markdown = data.content;
 
                     // Парсим changelog на версии
                     const versions = parseChangelogVersions(markdown);
@@ -12767,7 +12767,7 @@
                 }
             } catch (error) {
                 console.error('Failed to load changelog:', error);
-                container.innerHTML = '<div class="error-message">Ошибка загрузки changelog</div>';
+                container.innerHTML = '<div class="error-message">Ошибка загрузки changelog: ' + (error.message || 'неизвестная ошибка') + '</div>';
             }
         }
 
