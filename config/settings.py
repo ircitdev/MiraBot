@@ -226,10 +226,42 @@ class Settings(BaseSettings):
     )
 
     # =====================================
+    # SUPPORT BOT
+    # =====================================
+    SUPPORT_BOT_TOKEN: str = Field(
+        default="",
+        description="Токен бота технической поддержки @MiraDrugSupport_bot"
+    )
+    SUPPORT_GROUP_ID: int = Field(
+        default=0,
+        description="ID супергруппы MiraBotEvents для топиков поддержки"
+    )
+    SUPPORT_TOPIC_ID: int = Field(
+        default=2,
+        description="ID топика для обращений в поддержку"
+    )
+    REVIEWS_TOPIC_ID: int = Field(
+        default=4,
+        description="ID топика для отзывов пользователей"
+    )
+    SUPPORT_AUTO_REPLY: str = Field(
+        default="✅ Сообщение получено. Ожидайте ответа от специалиста.",
+        description="Автоматический ответ после получения сообщения"
+    )
+    SUPPORT_ENABLED: bool = Field(
+        default=True,
+        description="Включить/выключить бота поддержки"
+    )
+    SUPPORT_RATE_LIMIT: int = Field(
+        default=10,
+        description="Лимит сообщений в минуту от одного пользователя"
+    )
+
+    # =====================================
     # ЛОГИРОВАНИЕ
     # =====================================
     LOG_LEVEL: str = Field(default="INFO", description="Уровень логирования")
-    
+
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"

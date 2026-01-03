@@ -24,7 +24,7 @@ async def settings_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -
     """Обработчик команды /settings - открывает WebApp с настройками."""
 
     # WebApp URL (нужно будет настроить в production)
-    webapp_url = f"https://{settings.WEBAPP_DOMAIN or 'localhost:8081'}"
+    webapp_url = f"https://{settings.WEBAPP_DOMAIN or 'localhost:8081'}/app"
 
     keyboard = InlineKeyboardMarkup([
         [InlineKeyboardButton("⚙️ Открыть настройки", web_app=WebAppInfo(url=webapp_url))]
@@ -440,3 +440,26 @@ async def plans_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     parts.append("\n\nПросто расскажи мне как прошло любое из обещаний — я отмечу результат!")
 
     await update.message.reply_text("\n".join(parts), parse_mode="Markdown")
+
+
+async def support_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """
+    Обработчик команды /support - отправляет пользователю ссылку на бота поддержки.
+    """
+    keyboard = InlineKeyboardMarkup([
+        [InlineKeyboardButton(
+            "🎧 Открыть бота поддержки",
+            url="https://t.me/MiraDrugSupport_bot?start=from_main_bot"
+        )]
+    ])
+
+    await update.message.reply_text(
+        "💬 *Техническая поддержка*\n\n"
+        "Если у тебя возникли вопросы, предложения или нужна помощь — "
+        "я всегда рад пообщаться!\n\n"
+        "Для связи с технической поддержкой перейди к боту:\n"
+        "👉 @MiraDrugSupport\\_bot\n\n"
+        "_Я отвечу как можно скорее!_ 💛",
+        reply_markup=keyboard,
+        parse_mode="Markdown"
+    )

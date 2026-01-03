@@ -1,0 +1,2151 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SMIT — Интернет-провайдер будущего</title>
+    
+    <!-- Подключение Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Подключение React и ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    
+    <!-- Подключение Babel -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <!-- Подключение GSAP -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+
+    <style>
+        body {
+            overflow-x: hidden;
+            background-color: #f8fafc;
+            margin: 0;
+        }
+        
+        /* Анимация левитации */
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-15px); }
+        }
+        .animate-float {
+            animation: float 4s ease-in-out infinite;
+        }
+
+        /* Стили для аккордеона */
+        details > summary {
+            list-style: none;
+        }
+        details > summary::-webkit-details-marker {
+            display: none;
+        }
+        details[open] summary ~ * {
+            animation: slideDown 0.3s ease-in-out;
+        }
+        @keyframes slideDown {
+            0% { opacity: 0; transform: translateY(-10px); }
+            100% { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Fallback анимации */
+        .animate-in { animation-duration: 0.7s; animation-fill-mode: backwards; animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1); }
+        .fade-in { animation-name: fadeIn; }
+        .slide-in-from-bottom-4 { animation-name: slideInFromBottom; }
+        .slide-in-from-left { animation-name: slideInFromLeft; }
+        .slide-in-from-right { animation-name: slideInFromRight; }
+        .fill-mode-backwards { animation-fill-mode: backwards; }
+        
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes slideInFromBottom { from { transform: translateY(1rem); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        @keyframes slideInFromLeft { from { transform: translateX(-100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        @keyframes slideInFromRight { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+        .glass-text { text-shadow: 0 2px 10px rgba(16, 185, 129, 0.1); }
+        
+        /* Кастомный скроллбар для модальных окон */
+        .custom-scroll::-webkit-scrollbar { width: 6px; }
+        .custom-scroll::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 4px; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        .custom-scroll::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+        #error-display { padding: 20px; color: red; font-family: monospace; display: none; }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+    <div id="error-display"></div>
+
+    <script type="text/babel" data-presets="env,react">
+        try {
+            const { useState, useEffect, useRef, useMemo } = React;
+
+            // --- КОМПОНЕНТ ИКОНКИ ---
+            const Icon = ({ children, size = 24, className = "", ...props }) => (
+                <svg 
+                    xmlns="http://www.w3.org/2000/svg" 
+                    width={size} 
+                    height={size} 
+                    viewBox="0 0 24 24" 
+                    fill="none" 
+                    stroke="currentColor" 
+                    strokeWidth="2" 
+                    strokeLinecap="round" 
+                    strokeLinejoin="round" 
+                    className={className}
+                    {...props}
+                >
+                    {children}
+                </svg>
+            );
+
+            // --- БИБЛИОТЕКА ИКОНОК ---
+            const Icons = {
+                Menu: (p) => <Icon {...p}><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="18" y2="18"/></Icon>,
+                X: (p) => <Icon {...p}><path d="M18 6 6 18"/><path d="m6 6 12 12"/></Icon>,
+                Check: (p) => <Icon {...p}><path d="M20 6 9 17l-5-5"/></Icon>,
+                Phone: (p) => <Icon {...p}><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></Icon>,
+                User: (p) => <Icon {...p}><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></Icon>,
+                CreditCard: (p) => <Icon {...p}><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></Icon>,
+                Wifi: (p) => <Icon {...p}><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" x2="12.01" y1="20" y2="20"/></Icon>,
+                Monitor: (p) => <Icon {...p}><rect width="20" height="14" x="2" y="3" rx="2"/><line x1="8" x2="16" y1="21" y2="21"/><line x1="12" x2="12" y1="17" y2="21"/></Icon>,
+                Shield: (p) => <Icon {...p}><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/></Icon>,
+                Zap: (p) => <Icon {...p}><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></Icon>,
+                Download: (p) => <Icon {...p}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></Icon>,
+                MapPin: (p) => <Icon {...p}><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></Icon>,
+                Clock: (p) => <Icon {...p}><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></Icon>,
+                Mail: (p) => <Icon {...p}><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></Icon>,
+                ChevronRight: (p) => <Icon {...p}><path d="m9 18 6-6-6-6"/></Icon>,
+                ChevronLeft: (p) => <Icon {...p}><path d="m15 18-6-6 6-6"/></Icon>,
+                ChevronDown: (p) => <Icon {...p}><path d="m6 9 6 6 6-6"/></Icon>,
+                Server: (p) => <Icon {...p}><rect width="20" height="8" x="2" y="2" rx="2" ry="2"/><rect width="20" height="8" x="2" y="14" rx="2" ry="2"/><line x1="6" x2="6.01" y1="6" y2="6"/><line x1="6" x2="6.01" y1="18" y2="18"/></Icon>,
+                MousePointer: (p) => <Icon {...p}><path d="m3 3 7.07 16.97 2.51-7.39 7.39-2.51L3 3z"/><path d="m13 13 6 6"/></Icon>,
+                ArrowRight: (p) => <Icon {...p}><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></Icon>,
+                FileText: (p) => <Icon {...p}><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></Icon>,
+                Tv: (p) => <Icon {...p}><rect width="20" height="15" x="2" y="7" rx="2" ry="2"/><polyline points="17 2 12 7 7 2"/></Icon>,
+                Cpu: (p) => <Icon {...p}><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><path d="M15 2v2"/><path d="M15 20v2"/><path d="M2 15h2"/><path d="M2 9h2"/><path d="M20 15h2"/><path d="M20 9h2"/><path d="M9 2v2"/><path d="M9 20v2"/></Icon>,
+                HardDrive: (p) => <Icon {...p}><line x1="22" x2="2" y1="12" y2="12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/><line x1="6" x2="6.01" y1="16" y2="16"/><line x1="10" x2="10.01" y1="16" y2="16"/></Icon>,
+                Bot: (p) => <Icon {...p}><rect width="18" height="10" x="3" y="11" rx="2" /><circle cx="12" cy="5" r="2" /><path d="M12 7v4" /><line x1="8" x2="8" y1="16" y2="16" /><line x1="16" x2="16" y1="16" y2="16" /></Icon>,
+                File: (p) => <Icon {...p}><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" /><polyline points="14 2 14 8 20 8" /></Icon>,
+                Cookie: (p) => <Icon {...p}><path d="M12 2a10 10 0 1 0 10 10 4 4 0 0 1-5-5 4 4 0 0 1-5-5" /><path d="M8.5 8.5v.01" /><path d="M16 15.5v.01" /><path d="M12 12v.01" /><path d="M11 17v.01" /><path d="M7 14v.01" /></Icon>,
+                Settings: (p) => <Icon {...p}><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.38a2 2 0 0 0-.73-2.73l-.15-.1a2 2 0 0 1-1-1.72v-.51a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path><circle cx="12" cy="12" r="3"></circle></Icon>
+            };
+
+            const { 
+                Menu, X, Check, Phone, User, CreditCard, 
+                Wifi, Monitor, Shield, Zap, Download, 
+                MapPin, Clock, Mail, ChevronRight, ChevronLeft, ChevronDown, Server,
+                MousePointer, ArrowRight, FileText,
+                Tv, Cpu, HardDrive, Bot, File, Cookie, Settings
+            } = Icons;
+
+            // --- 3D ФОН (CANVAS) ---
+            const GeometricBackground = () => {
+                const canvasRef = useRef(null);
+                
+                useEffect(() => {
+                    const canvas = canvasRef.current;
+                    if (!canvas) return;
+                    const ctx = canvas.getContext('2d');
+                    let animationFrameId;
+
+                    let width = window.innerWidth;
+                    let height = window.innerHeight;
+
+                    const nodes = [];
+                    const nodeCount = 50; 
+                    const connectionDistance = 300; 
+                    const perspective = 800;
+                    
+                    let mouseX = 0;
+                    let mouseY = 0;
+                    let scrollY = 0;
+
+                    const handleResize = () => {
+                        width = window.innerWidth;
+                        height = window.innerHeight;
+                        canvas.width = width;
+                        canvas.height = height;
+                    };
+                    window.addEventListener('resize', handleResize);
+                    handleResize();
+
+                    const handleMouseMove = (e) => {
+                        mouseX = (e.clientX - width / 2) * 0.0005; 
+                        mouseY = (e.clientY - height / 2) * 0.0005;
+                    };
+                    window.addEventListener('mousemove', handleMouseMove);
+
+                    const handleScroll = () => {
+                        scrollY = window.scrollY;
+                    };
+                    window.addEventListener('scroll', handleScroll);
+
+                    class NetworkNode {
+                        constructor() {
+                            this.x = (Math.random() - 0.5) * width * 1.5;
+                            this.y = (Math.random() - 0.5) * height * 1.5;
+                            this.z = (Math.random() - 0.5) * 1000;
+                            this.vx = (Math.random() - 0.5) * 0.3; 
+                            this.vy = (Math.random() - 0.5) * 0.3;
+                            this.vz = (Math.random() - 0.5) * 0.3;
+                            this.size = Math.random() * 3 + 2; 
+                            this.color = Math.random() > 0.5 ? '#059669' : '#10b981'; 
+                        }
+
+                        rotate(x, y, z, rX, rY) {
+                            let dy = y * Math.cos(rX) - z * Math.sin(rX);
+                            let dz = y * Math.sin(rX) + z * Math.cos(rX);
+                            y = dy;
+                            z = dz;
+                            let dx = x * Math.cos(rY) - z * Math.sin(rY);
+                            dz = x * Math.sin(rY) + z * Math.cos(rY);
+                            x = dx;
+                            z = dz;
+                            return {x, y, z};
+                        }
+
+                        project(x, y, z) {
+                            const scale = perspective / (perspective + z + 1000);
+                            return {
+                                x: width / 2 + x * scale,
+                                y: height / 2 + y * scale,
+                                scale: scale,
+                                z: z 
+                            };
+                        }
+
+                        update(rotationX, rotationY, scrollFactor) {
+                            this.x += this.vx;
+                            this.y += this.vy;
+                            this.z += this.vz;
+                            // Boundary checks
+                            const limit = 1000;
+                            if (this.x > limit) this.x = -limit;
+                            if (this.x < -limit) this.x = limit;
+                            if (this.y > limit) this.y = -limit;
+                            if (this.y < -limit) this.y = limit;
+                            if (this.z > limit) this.z = -limit;
+                            if (this.z < -limit) this.z = limit;
+
+                            const currentRX = rotationX + scrollFactor * 0.0005;
+                            const currentRY = rotationY + scrollFactor * 0.0005;
+                            
+                            const rotated = this.rotate(this.x, this.y, this.z, currentRX, currentRY);
+                            return this.project(rotated.x, rotated.y, rotated.z);
+                        }
+                    }
+
+                    // Initialize nodes
+                    for(let i = 0; i < nodeCount; i++) {
+                        nodes.push(new NetworkNode());
+                    }
+
+                    let globalRotationX = 0;
+                    let globalRotationY = 0;
+
+                    const render = () => {
+                        ctx.clearRect(0, 0, width, height);
+                        
+                        globalRotationX += 0.0005;
+                        globalRotationY += 0.0005;
+
+                        const rX = globalRotationX + mouseY;
+                        const rY = globalRotationY + mouseX;
+
+                        const projectedNodes = nodes.map(node => ({
+                            ...node.update(rX, rY, scrollY),
+                            ref: node 
+                        }));
+
+                        ctx.lineWidth = 1.2; 
+                        for (let i = 0; i < projectedNodes.length; i++) {
+                            const p1 = projectedNodes[i];
+                            if (p1.scale < 0) continue;
+
+                            for (let j = i + 1; j < projectedNodes.length; j++) {
+                                const p2 = projectedNodes[j];
+                                if (p2.scale < 0) continue;
+
+                                const dx = p1.x - p2.x;
+                                const dy = p1.y - p2.y;
+                                const dist = Math.sqrt(dx * dx + dy * dy);
+
+                                if (dist < connectionDistance * p1.scale) {
+                                    const alpha = (1 - dist / (connectionDistance * p1.scale)); 
+                                    ctx.beginPath();
+                                    ctx.moveTo(p1.x, p1.y);
+                                    ctx.lineTo(p2.x, p2.y);
+                                    ctx.strokeStyle = `rgba(5, 150, 105, ${alpha * 0.6})`; 
+                                    ctx.stroke();
+                                }
+                            }
+                        }
+
+                        for (let i = 0; i < projectedNodes.length; i++) {
+                            const p1 = projectedNodes[i];
+                            if (p1.scale < 0) continue;
+                            ctx.beginPath();
+                            ctx.arc(p1.x, p1.y, p1.ref.size * p1.scale, 0, Math.PI * 2);
+                            ctx.fillStyle = p1.ref.color;
+                            ctx.globalAlpha = 0.9; 
+                            ctx.fill();
+                        }
+                        
+                        ctx.globalAlpha = 1;
+                        animationFrameId = requestAnimationFrame(render);
+                    };
+
+                    render();
+
+                    return () => {
+                        window.removeEventListener('resize', handleResize);
+                        window.removeEventListener('mousemove', handleMouseMove);
+                        window.removeEventListener('scroll', handleScroll);
+                        cancelAnimationFrame(animationFrameId);
+                    };
+                }, []);
+
+                return (
+                    <canvas 
+                        ref={canvasRef} 
+                        className="fixed top-0 left-0 w-full h-full -z-10 pointer-events-none bg-slate-50"
+                    />
+                );
+            };
+
+            // --- КОМПОНЕНТЫ UI ---
+            const Button = ({ children, primary, className = "", onClick, icon: Icon }) => (
+                <button 
+                    onClick={onClick}
+                    className={`
+                        relative overflow-hidden group px-6 py-3 rounded-xl font-semibold transition-all duration-300 transform hover:-translate-y-1 hover:shadow-lg flex items-center gap-2
+                        ${primary 
+                            ? 'bg-gradient-to-r from-emerald-500 to-teal-400 text-white shadow-emerald-500/30' 
+                            : 'bg-white/80 backdrop-blur-md text-slate-700 border border-white/50 hover:bg-white'}
+                        ${className}
+                    `}
+                >
+                    <div className="absolute inset-0 w-full h-full bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300 pointer-events-none"></div>
+                    {Icon && <Icon size={18} />}
+                    {children}
+                </button>
+            );
+
+            const GlassCard = ({ children, className = "", hoverEffect = true, animateIn = false, onClick }) => (
+                <div 
+                    onClick={onClick}
+                    className={`
+                        backdrop-blur-xl bg-white/60 border border-white/60 rounded-2xl p-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)]
+                        ${hoverEffect ? 'transition-all duration-300 hover:shadow-[0_8px_30px_rgba(16,185,129,0.15)] hover:bg-white/80 hover:-translate-y-2' : ''}
+                        ${animateIn ? 'animate-in fade-in slide-in-from-bottom-4 duration-700 fill-mode-backwards' : ''}
+                        ${className}
+                        ${animateIn ? 'gsap-card' : ''} 
+                    `}
+                >
+                    {children}
+                </div>
+            );
+
+            const Badge = ({ children }) => (
+                <span className="inline-block px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-700 mb-2 border border-emerald-200">
+                    {children}
+                </span>
+            );
+
+            // --- NOTICE MODAL CONTENT ---
+            const noticeContent = (
+                <div className="text-slate-600 text-sm leading-relaxed space-y-4">
+                    <div className="border-l-4 border-emerald-500 pl-3 py-1 bg-emerald-50/50 rounded-r-lg">
+                        <h5 className="font-bold text-slate-800 text-sm mb-1 uppercase tracking-wide">
+                            Уважаемые абоненты!<br/>
+                            Оплата через личный кабинет снова доступна!
+                        </h5>
+                    </div>
+                    <p>
+                        Также обращаем ваше внимание, что оплата совершенная через онлайн банк сегодня, поступит только после новогодних праздников.
+                        Для того, чтобы остаться на связи 01.01.2026 года, можно произвести оплату через ЛК (зачисление денежных средств в течении 10 минут), либо заблаговременно взять обещанный платеж самостоятельно через ЛК (БЕСПЛАТНО) или через оператора.
+                    </p>
+                    
+                    <hr className="border-slate-200 my-4" />
+                    
+                    <div>
+                        <p className="font-bold text-slate-800 mb-2 flex items-center gap-2">
+                            <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
+                            Внимание!!
+                        </p>
+                        <p>
+                            Оставить заявку на подключение и написать в поддержку можно через <a href="#ai" className="text-emerald-600 font-bold hover:underline" onClick={(e) => { e.preventDefault(); alert('Запуск AI ассистента...'); }}>Виртуального ассистента</a>.
+                        </p>
+                        <p className="mt-2">
+                            Для этого необходимо позвонить по номеру <a href="tel:553559" className="text-emerald-600 font-medium hover:underline">55-35-59</a>, выбрать нужный пункт меню и следовать инструкциям.
+                        </p>
+                        <p className="mt-2">
+                            Оставляйте адреса для подключения или составляйте заявку на решения вопросов самостоятельно. Наши специалисты обработают их и свяжутся с вами в кратчайшие сроки.
+                            Можно обратиться через нашу группу в <a href="https://vk.com/im/convo/-214756373?entrypoint=list_all&rp=peer-214756373" target="_blank" className="text-blue-600 font-medium hover:underline">VK</a> или <a href="https://t.me/smitsupport_bot" target="_blank" className="text-sky-500 font-medium hover:underline">Телеграм</a>.
+                            А также отправив письмо на <a href="mailto:ask@support.smit34.ru" className="text-emerald-600 font-medium hover:underline">ask@support.smit34.ru</a>.
+                        </p>
+                    </div>
+                    
+                    <p className="text-center text-slate-400 text-xs italic mt-6">
+                        Благодарим за понимание! Мы работаем для вас!
+                    </p>
+                </div>
+            );
+
+            // --- ТЕКСТЫ ДОКУМЕНТОВ ---
+            const privacyPolicyText = (
+                <div className="policy-container prose prose-sm prose-slate max-w-none text-slate-800">
+                    <div className="policy-section mb-8">
+                        <h2 className="text-xl font-bold mb-4 text-slate-900">1. Общие положения</h2>
+                        <p className="mb-3 leading-relaxed">Настоящая Политика конфиденциальности персональных данных (далее — Политика) действует в отношении всей информации, которую ООО «СМИТ» (далее — Оператор) может получить о Пользователе во время использования сайта smit34.ru.</p>
+                        <p className="mb-3 leading-relaxed">Использование сайта означает безоговорочное согласие Пользователя с настоящей Политикой и указанными в ней условиями обработки его персональной информации.</p>
+                    </div>
+
+                    <div className="policy-section mb-8">
+                        <h2 className="text-xl font-bold mb-4 text-slate-900">2. Персональные данные пользователей</h2>
+                        <h3 className="font-bold text-lg mt-6 mb-3 text-slate-800">2.1. Оператор обрабатывает следующие данные:</h3>
+                        <ul className="list-disc pl-6 mb-6 space-y-2">
+                            <li>Фамилия, имя, отчество</li>
+                            <li>Адрес электронной почты</li>
+                            <li>Номер телефона</li>
+                            <li>Адрес подключения услуг</li>
+                            <li>Данные об используемых услугах</li>
+                        </ul>
+
+                        <h3 className="font-bold text-lg mt-6 mb-3 text-slate-800">2.2. Цели обработки персональных данных:</h3>
+                        <ul className="list-disc pl-6 space-y-2">
+                            <li>Предоставление телекоммуникационных услуг</li>
+                            <li>Заключение и исполнение договоров</li>
+                            <li>Техническая поддержка пользователей</li>
+                            <li>Информирование об изменениях тарифов и услуг</li>
+                            <li>Улучшение качества предоставляемых услуг</li>
+                        </ul>
+                    </div>
+
+                    <div className="policy-section mb-8">
+                        <h2 className="text-xl font-bold mb-4 text-slate-900">3. Обработка и защита персональных данных</h2>
+                        <p className="mb-3 leading-relaxed">Оператор обязуется обеспечивать конфиденциальность персональных данных и принимать необходимые меры для их защиты от несанкционированного доступа.</p>
+                        <p className="mb-3 leading-relaxed">Персональные данные обрабатываются в течение срока действия договора и в течение 5 лет после его прекращения.</p>
+                    </div>
+
+                    <div className="policy-section mb-8">
+                        <h2 className="text-xl font-bold mb-4 text-slate-900">4. Права пользователя</h2>
+                        <p className="mb-3">Пользователь имеет право:</p>
+                        <ul className="list-disc pl-6 mb-6 space-y-2">
+                            <li>Получать информацию, касающуюся обработки его персональных данных</li>
+                            <li>Требовать уточнения, блокирования или уничтожения персональных данных</li>
+                            <li>Отозвать согласие на обработку персональных данных</li>
+                            <li>Обжаловать действия Оператора в уполномоченный орган по защите прав субъектов персональных данных</li>
+                        </ul>
+                    </div>
+
+                    <div className="policy-section mb-8">
+                        <h2 className="text-xl font-bold mb-4 text-slate-900">5. Использование файлов cookie</h2>
+                        <p className="mb-3 leading-relaxed">Сайт использует файлы cookie для улучшения работы и удобства пользователей. Продолжая использовать сайт, вы соглашаетесь с использованием cookie.</p>
+                    </div>
+
+                    <div className="company-details mb-8 bg-slate-50 p-6 rounded-xl border border-slate-200">
+                        <h3 className="text-lg font-bold mb-4 text-slate-900 border-b border-slate-200 pb-2">Реквизиты оператора</h3>
+                        <table className="w-full text-sm text-left">
+                            <tbody>
+                                <tr className="border-b border-slate-200 last:border-0"><td className="py-3 pr-4 font-semibold text-slate-700 w-1/3 align-top">Полное наименование:</td><td className="py-3 text-slate-600">Общество с ограниченной ответственностью «СМИТ»</td></tr>
+                                <tr className="border-b border-slate-200 last:border-0"><td className="py-3 pr-4 font-semibold text-slate-700 align-top">Место нахождения:</td><td className="py-3 text-slate-600">400080, Волгоградская обл., г. Волгоград, ул. 40 лет ВЛКСМ, д. 80, оф.1</td></tr>
+                                <tr className="border-b border-slate-200 last:border-0"><td className="py-3 pr-4 font-semibold text-slate-700 align-top">Почтовый адрес:</td><td className="py-3 text-slate-600">400080, Волгоградская обл., г. Волгоград, ул. 40 лет ВЛКСМ, д. 80, оф.1</td></tr>
+                                <tr className="border-b border-slate-200 last:border-0"><td className="py-3 pr-4 font-semibold text-slate-700 align-top">ИНН:</td><td className="py-3 text-slate-600">3461009378</td></tr>
+                                <tr className="border-b border-slate-200 last:border-0"><td className="py-3 pr-4 font-semibold text-slate-700 align-top">КПП:</td><td className="py-3 text-slate-600">346101001</td></tr>
+                                <tr className="border-b border-slate-200 last:border-0"><td className="py-3 pr-4 font-semibold text-slate-700 align-top">ОГРН:</td><td className="py-3 text-slate-600">1143443002273</td></tr>
+                                <tr className="border-b border-slate-200 last:border-0"><td className="py-3 pr-4 font-semibold text-slate-700 align-top">Расчётный счёт:</td><td className="py-3 text-slate-600">40702810726090000151</td></tr>
+                                <tr className="border-b border-slate-200 last:border-0"><td className="py-3 pr-4 font-semibold text-slate-700 align-top">Банк:</td><td className="py-3 text-slate-600">Филиал «РОСТОВСКИЙ» ОАО «АЛЬФА-БАНК», г. Ростов-на-Дону, ул. Темерницкая, 93</td></tr>
+                                <tr className="border-b border-slate-200 last:border-0"><td className="py-3 pr-4 font-semibold text-slate-700 align-top">Кор.счёт:</td><td className="py-3 text-slate-600">30101810500000000207</td></tr>
+                                <tr className="border-b border-slate-200 last:border-0"><td className="py-3 pr-4 font-semibold text-slate-700 align-top">БИК:</td><td className="py-3 text-slate-600">046015207</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div className="policy-section">
+                        <h2 className="text-xl font-bold mb-4 text-slate-900">6. Контактная информация</h2>
+                        <p className="mb-3">По всем вопросам, касающимся обработки персональных данных, вы можете обратиться:</p>
+                        <ul className="list-none pl-0 space-y-2">
+                            <li className="flex items-center gap-2"><span className="font-semibold">Телефон:</span> <a href="tel:+78442553559" className="text-emerald-600 hover:text-emerald-700 font-medium transition-colors">+7 (8442) 55-35-59</a></li>
+                            <li className="flex items-center gap-2"><span className="font-semibold">Email:</span> <a href="mailto:ask@support.smit34.ru" className="text-emerald-600 hover:text-emerald-700 font-medium transition-colors">ask@support.smit34.ru</a></li>
+                        </ul>
+                    </div>
+                </div>
+            );
+
+            const userAgreementText = (
+                <div className="agreement-container prose prose-sm prose-slate max-w-none text-slate-800">
+                    <div className="agreement-section mb-8">
+                        <h2 className="text-xl font-bold mb-4 text-slate-900">1. Общие положения</h2>
+                        <p className="mb-3 leading-relaxed">Настоящее Пользовательское соглашение (далее — Соглашение) регулирует отношения между ООО «СМИТ» (далее — Оператор) и физическим лицом (далее — Пользователь) при использовании сайта smit34.ru и предоставляемых через него услуг.</p>
+                        <p className="mb-3 leading-relaxed">Использование сайта означает полное и безоговорочное принятие Пользователем настоящего Соглашения.</p>
+                    </div>
+
+                    <div className="agreement-section mb-8">
+                        <h2 className="text-xl font-bold mb-4 text-slate-900">2. Предмет соглашения</h2>
+                        <p className="mb-3">Оператор предоставляет Пользователю следующие услуги:</p>
+                        <ul className="list-disc pl-6 mb-6 space-y-2">
+                            <li>Доступ к информации о телекоммуникационных услугах</li>
+                            <li>Возможность оформления заявки на подключение услуг</li>
+                            <li>Консультации по вопросам предоставляемых услуг</li>
+                            <li>Техническую поддержку</li>
+                        </ul>
+                    </div>
+
+                    <div className="agreement-section mb-8">
+                        <h2 className="text-xl font-bold mb-4 text-slate-900">3. Права и обязанности Пользователя</h2>
+                        <h3 className="font-bold text-lg mt-6 mb-3 text-slate-800">3.1. Пользователь имеет право:</h3>
+                        <ul className="list-disc pl-6 mb-6 space-y-2">
+                            <li>Получать полную и достоверную информацию об услугах</li>
+                            <li>Оформлять заявки на подключение услуг</li>
+                            <li>Обращаться в службу поддержки</li>
+                            <li>Расторгнуть договор в соответствии с условиями</li>
+                        </ul>
+
+                        <h3 className="font-bold text-lg mt-6 mb-3 text-slate-800">3.2. Пользователь обязуется:</h3>
+                        <ul className="list-disc pl-6 mb-6 space-y-2">
+                            <li>Предоставлять достоверную информацию при регистрации</li>
+                            <li>Своевременно оплачивать предоставляемые услуги</li>
+                            <li>Соблюдать условия договора</li>
+                            <li>Не использовать услуги в противоправных целях</li>
+                        </ul>
+                    </div>
+
+                    <div className="agreement-section mb-8">
+                        <h2 className="text-xl font-bold mb-4 text-slate-900">4. Права и обязанности Оператора</h2>
+                        <h3 className="font-bold text-lg mt-6 mb-3 text-slate-800">4.1. Оператор имеет право:</h3>
+                        <ul className="list-disc pl-6 mb-6 space-y-2">
+                            <li>Изменять условия предоставления услуг с уведомлением Пользователя</li>
+                            <li>Приостанавливать предоставление услуг при нарушении условий договора</li>
+                            <li>Проводить технические работы с предварительным уведомлением</li>
+                        </ul>
+
+                        <h3 className="font-bold text-lg mt-6 mb-3 text-slate-800">4.2. Оператор обязуется:</h3>
+                        <ul className="list-disc pl-6 mb-6 space-y-2">
+                            <li>Обеспечивать качественное предоставление услуг</li>
+                            <li>Обеспечивать конфиденциальность персональных данных</li>
+                            <li>Оказывать техническую поддержку</li>
+                            <li>Своевременно информировать об изменениях тарифов и условий</li>
+                        </ul>
+                    </div>
+
+                    <div className="agreement-section mb-8">
+                        <h2 className="text-xl font-bold mb-4 text-slate-900">5. Стоимость услуг и порядок оплаты</h2>
+                        <p className="mb-3 leading-relaxed">Стоимость услуг определяется действующими тарифами, размещенными на сайте.</p>
+                        <p className="mb-3 leading-relaxed">Оплата производится в соответствии с выбранным тарифным планом.</p>
+                        <div className="important-note mt-4 p-4 bg-emerald-50 border-l-4 border-emerald-500 text-emerald-800 rounded-r-lg text-sm">
+                            <strong>Важно:</strong> Актуальные тарифы и условия всегда доступны на сайте smit34.ru
+                        </div>
+                    </div>
+
+                    <div className="agreement-section mb-8">
+                        <h2 className="text-xl font-bold mb-4 text-slate-900">6. Ответственность сторон</h2>
+                        <p className="mb-3 leading-relaxed">Стороны несут ответственность за неисполнение или ненадлежащее исполнение обязательств по настоящему Соглашению в соответствии с законодательством РФ.</p>
+                        <p className="mb-3">Оператор не несет ответственности за перебои в предоставлении услуг, вызванные:</p>
+                        <ul className="list-disc pl-6 mb-6 space-y-2">
+                            <li>Действием непреодолимой силы</li>
+                            <li>Проведением плановых технических работ</li>
+                            <li>Действиями третьих лиц</li>
+                        </ul>
+                    </div>
+
+                    <div className="agreement-section mb-8">
+                        <h2 className="text-xl font-bold mb-4 text-slate-900">7. Порядок разрешения споров</h2>
+                        <p className="leading-relaxed">Все споры и разногласия решаются путем переговоров. При невозможности достижения согласия споры разрешаются в судебном порядке по месту нахождения Оператора.</p>
+                    </div>
+
+                    <div className="agreement-section mb-8">
+                        <h2 className="text-xl font-bold mb-4 text-slate-900">8. Заключительные положения</h2>
+                        <p className="mb-3 leading-relaxed">Соглашение вступает в силу с момента использования сайта Пользователем и действует до момента прекращения использования.</p>
+                        <p className="leading-relaxed">Оператор вправе в одностороннем порядке вносить изменения в Соглашение с уведомлением Пользователей путем размещения новой редакции на сайте.</p>
+                    </div>
+
+                    <div className="company-details mb-8 bg-slate-50 p-6 rounded-xl border border-slate-200">
+                        <h3 className="text-lg font-bold mb-4 text-slate-900 border-b border-slate-200 pb-2">Реквизиты оператора</h3>
+                        <table className="w-full text-sm text-left">
+                            <tbody>
+                                <tr className="border-b border-slate-200 last:border-0"><td className="py-3 pr-4 font-semibold text-slate-700 w-1/3 align-top">Полное наименование:</td><td className="py-3 text-slate-600">Общество с ограниченной ответственностью «СМИТ»</td></tr>
+                                <tr className="border-b border-slate-200 last:border-0"><td className="py-3 pr-4 font-semibold text-slate-700 align-top">Место нахождения:</td><td className="py-3 text-slate-600">400080, Волгоградская обл., г. Волгоград, ул. 40 лет ВЛКСМ, д. 80, оф.1</td></tr>
+                                <tr className="border-b border-slate-200 last:border-0"><td className="py-3 pr-4 font-semibold text-slate-700 align-top">Почтовый адрес:</td><td className="py-3 text-slate-600">400080, Волгоградская обл., г. Волгоград, ул. 40 лет ВЛКСМ, д. 80, оф.1</td></tr>
+                                <tr className="border-b border-slate-200 last:border-0"><td className="py-3 pr-4 font-semibold text-slate-700 align-top">ИНН:</td><td className="py-3 text-slate-600">3461009378</td></tr>
+                                <tr className="border-b border-slate-200 last:border-0"><td className="py-3 pr-4 font-semibold text-slate-700 align-top">КПП:</td><td className="py-3 text-slate-600">346101001</td></tr>
+                                <tr className="border-b border-slate-200 last:border-0"><td className="py-3 pr-4 font-semibold text-slate-700 align-top">ОГРН:</td><td className="py-3 text-slate-600">1143443002273</td></tr>
+                                <tr className="border-b border-slate-200 last:border-0"><td className="py-3 pr-4 font-semibold text-slate-700 align-top">Расчётный счёт:</td><td className="py-3 text-slate-600">40702810726090000151</td></tr>
+                                <tr className="border-b border-slate-200 last:border-0"><td className="py-3 pr-4 font-semibold text-slate-700 align-top">Банк:</td><td className="py-3 text-slate-600">Филиал «РОСТОВСКИЙ» ОАО «АЛЬФА-БАНК», г. Ростов-на-Дону, ул. Темерницкая, 93</td></tr>
+                                <tr className="border-b border-slate-200 last:border-0"><td className="py-3 pr-4 font-semibold text-slate-700 align-top">Кор.счёт:</td><td className="py-3 text-slate-600">30101810500000000207</td></tr>
+                                <tr className="border-b border-slate-200 last:border-0"><td className="py-3 pr-4 font-semibold text-slate-700 align-top">БИК:</td><td className="py-3 text-slate-600">046015207</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div className="agreement-section">
+                        <h2 className="text-xl font-bold mb-4 text-slate-900">9. Контактная информация</h2>
+                        <p className="mb-3">По всем вопросам, касающимся настоящего Соглашения, вы можете обратиться:</p>
+                        <ul className="list-none pl-0 space-y-2">
+                            <li className="flex items-center gap-2"><span className="font-semibold">Телефон:</span> <a href="tel:+78442553559" className="text-emerald-600 hover:text-emerald-700 font-medium transition-colors">+7 (8442) 55-35-59</a></li>
+                            <li className="flex items-center gap-2"><span className="font-semibold">Email:</span> <a href="mailto:ask@support.smit34.ru" className="text-emerald-600 hover:text-emerald-700 font-medium transition-colors">ask@support.smit34.ru</a></li>
+                            <li className="flex items-center gap-2"><span className="font-semibold">Сайт:</span> <a href="https://smit34.ru" className="text-emerald-600 hover:text-emerald-700 font-medium transition-colors">smit34.ru</a></li>
+                        </ul>
+                    </div>
+                </div>
+            );
+
+            // --- ГЛАВНОЕ ПРИЛОЖЕНИЕ ---
+            function App() {
+                const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+                const [activeTab, setActiveTab] = useState('apartment');
+                const [scrolled, setScrolled] = useState(false);
+                const [showModal, setShowModal] = useState(false);
+                const [activeService, setActiveService] = useState(null);
+                const [activeDoc, setActiveDoc] = useState(null); // 'privacy' or 'agreement'
+                const [lightboxOpen, setLightboxOpen] = useState(false);
+                const [showMapModal, setShowMapModal] = useState(false);
+                const [showSpeedtestModal, setShowSpeedtestModal] = useState(false);
+                const [activeSpeedtestTab, setActiveSpeedtestTab] = useState('yandex');
+                const [currentLicenseIndex, setCurrentLicenseIndex] = useState(0);
+                const [showCookieConsent, setShowCookieConsent] = useState(false);
+                const [checkResultModal, setCheckResultModal] = useState(false);
+                const [touchStart, setTouchStart] = useState(null);
+                const [touchEnd, setTouchEnd] = useState(null);
+                const minSwipeDistance = 50;
+
+                // --- АДРЕС И ПОДСКАЗКИ ---
+                const [addressQuery, setAddressQuery] = useState('');
+                const [addressSuggestions, setAddressSuggestions] = useState([]);
+                const [isSuggestionsOpen, setIsSuggestionsOpen] = useState(false);
+                
+                const mockAddresses = [
+                    "г. Волгоград, ул. 40 лет ВЛКСМ",
+                    "г. Волгоград, пр-кт Героев Сталинграда",
+                    "г. Волгоград, ул. Удмуртская",
+                    "г. Волгоград, б-р Энгельса",
+                    "г. Волгоград, ул. Остравская",
+                    "г. Волгоград, ул. Пролетарская",
+                    "г. Волгоград, ул. Изобильная",
+                    "г. Волгоград, ул. Гражданская",
+                    "г. Волгоград, ул. Довженко",
+                    "г. Волгоград, ул. Фадеева",
+                    "г. Волгоград, ул. Бахтурова",
+                    "г. Волгоград, ул. Вучетича",
+                    "г. Волгоград, ул. Российская"
+                ];
+
+                const handleAddressChange = (e) => {
+                    const value = e.target.value;
+                    setAddressQuery(value);
+                    if (value.length > 0) {
+                        const filtered = mockAddresses.filter(addr =>
+                            addr.toLowerCase().includes(value.toLowerCase())
+                        );
+                        setAddressSuggestions(filtered);
+                        setIsSuggestionsOpen(true);
+                    } else {
+                        setAddressSuggestions([]);
+                        setIsSuggestionsOpen(false);
+                    }
+                };
+
+                const handleSelectAddress = (addr) => {
+                    setAddressQuery(addr);
+                    setIsSuggestionsOpen(false);
+                };
+
+                const handleCheckAddress = () => {
+                    if (addressQuery.trim().length > 0) {
+                        setCheckResultModal(true);
+                    } else {
+                        alert("Пожалуйста, введите адрес.");
+                    }
+                };
+                
+                const licenses = [
+                    'license1.jpg',
+                    'license2.jpg'
+                ];
+
+                const nextLicense = () => {
+                    setCurrentLicenseIndex((prev) => (prev + 1) % licenses.length);
+                };
+
+                const prevLicense = () => {
+                    setCurrentLicenseIndex((prev) => (prev - 1 + licenses.length) % licenses.length);
+                };
+
+                const onTouchStart = (e) => {
+                    setTouchEnd(null);
+                    setTouchStart(e.targetTouches[0].clientX);
+                };
+
+                const onTouchMove = (e) => setTouchEnd(e.targetTouches[0].clientX);
+
+                const onTouchEnd = () => {
+                    if (!touchStart || !touchEnd) return;
+                    const distance = touchStart - touchEnd;
+                    const isLeftSwipe = distance > minSwipeDistance;
+                    const isRightSwipe = distance < -minSwipeDistance;
+                    if (isLeftSwipe) {
+                        nextLicense();
+                    }
+                    if (isRightSwipe) {
+                        prevLicense();
+                    }
+                };
+
+                const scrollToTop = () => {
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                };
+
+                // Refs
+                const titleRef = useRef(null);
+                const textRef = useRef(null);
+                const checkBlockRef = useRef(null);
+                const mobileMenuRef = useRef(null);
+                const heroImageRef = useRef(null);
+                const bizRobotRef = useRef(null);
+
+                useEffect(() => {
+                    // GSAP ScrollTrigger Animations
+                    if (window.gsap && window.ScrollTrigger) {
+                        gsap.registerPlugin(ScrollTrigger);
+                        
+                        // Refs Animation
+                        const refsToAnimate = [titleRef.current, textRef.current, checkBlockRef.current].filter(Boolean);
+                        
+                        if (refsToAnimate.length > 0) {
+                            window.gsap.set(refsToAnimate, { autoAlpha: 1 });
+
+                            if(titleRef.current) {
+                                gsap.fromTo(titleRef.current, 
+                                    { y: 50, opacity: 0 },
+                                    { y: 0, opacity: 1, duration: 1.2 }
+                                );
+                            }
+                            if(textRef.current) {
+                                gsap.fromTo(textRef.current, 
+                                    { y: 30, opacity: 0 },
+                                    { y: 0, opacity: 1, duration: 1 },
+                                    "-=0.8"
+                                );
+                            }
+                            if(checkBlockRef.current) {
+                                gsap.fromTo(checkBlockRef.current,
+                                    { scale: 0.8, opacity: 0, y: 20 },
+                                    { scale: 1, opacity: 1, y: 0, duration: 0.8, ease: "back.out(1.7)" },
+                                    "-=0.6"
+                                );
+                            }
+                        }
+
+                        // Animate Sections
+                        const sections = document.querySelectorAll('.gsap-section');
+                        sections.forEach(section => {
+                             gsap.fromTo(section, 
+                                { opacity: 0, y: 50 },
+                                {
+                                    opacity: 1,
+                                    y: 0,
+                                    duration: 1,
+                                    ease: 'power3.out',
+                                    scrollTrigger: {
+                                        trigger: section,
+                                        start: 'top 85%',
+                                        toggleActions: 'play none none reverse'
+                                    }
+                                }
+                            );
+                        });
+
+                        // Animate Grids with Cards
+                        const grids = document.querySelectorAll('.grid');
+                        grids.forEach(grid => {
+                            const cards = grid.querySelectorAll('.gsap-card');
+                            if (cards.length > 0) {
+                                gsap.fromTo(cards, 
+                                    { y: 50, opacity: 0 },
+                                    {
+                                        y: 0,
+                                        opacity: 1,
+                                        duration: 0.8,
+                                        stagger: 0.15,
+                                        ease: 'back.out(1.5)',
+                                        scrollTrigger: {
+                                            trigger: grid,
+                                            start: 'top 85%',
+                                        }
+                                    }
+                                );
+                            }
+                        });
+                    }
+
+                    const handleScroll = () => setScrolled(window.scrollY > 50);
+                    window.addEventListener('scroll', handleScroll);
+
+                    // --- COOKIE CONSENT LOGIC ---
+                    const lastSeen = localStorage.getItem('smit_cookie_consent_time');
+                    const now = new Date().getTime();
+                    const oneDay = 24 * 60 * 60 * 1000;
+
+                    if (!lastSeen || (now - parseInt(lastSeen)) > oneDay) {
+                        const cookieTimer = setTimeout(() => {
+                            setShowCookieConsent(true);
+                        }, 15000); // 15 seconds
+                        return () => clearTimeout(cookieTimer);
+                    }
+
+                    // --- PARALLAX FOR IMAGE ---
+                    const handleMouseMove = (e) => {
+                        const { clientX, clientY } = e;
+                        const { innerWidth, innerHeight } = window;
+
+                        if (heroImageRef.current) {
+                            const xOffset = (clientX / innerWidth - 0.5) * 20; 
+                            const yOffset = (clientY / innerHeight - 0.5) * 20;
+                            heroImageRef.current.style.transform = `translate(${xOffset}px, ${yOffset}px) rotateX(${yOffset * -0.5}deg) rotateY(${xOffset * 0.5}deg)`;
+                        }
+
+                        if (bizRobotRef.current) {
+                            const xOffset = (clientX / innerWidth - 0.5) * 15;
+                            const yOffset = (clientY / innerHeight - 0.5) * 15;
+                            bizRobotRef.current.style.transform = `translate(${xOffset}px, ${yOffset}px) rotateX(${yOffset * -0.5}deg) rotateY(${xOffset * 0.5}deg)`;
+                        }
+                    };
+                    window.addEventListener('mousemove', handleMouseMove);
+
+                    // LOCK BODY SCROLL FOR MODAL
+                    if (showModal) {
+                        document.body.style.overflow = 'hidden';
+                    } else {
+                        document.body.style.overflow = 'unset';
+                    }
+
+                    return () => {
+                        window.removeEventListener('scroll', handleScroll);
+                        window.removeEventListener('mousemove', handleMouseMove);
+                        document.body.style.overflow = 'unset';
+                    };
+                }, [showModal]); // Added dependency to re-run on showModal change
+                
+                // IMPORTANT INFO MODAL TIMER - Separate effect to run only ONCE on mount
+                useEffect(() => {
+                    const timer = setTimeout(() => setShowModal(true), 5000);
+                    return () => clearTimeout(timer);
+                }, []);
+
+                const handleAcceptCookies = () => {
+                    localStorage.setItem('smit_cookie_consent_time', new Date().getTime().toString());
+                    setShowCookieConsent(false);
+                };
+
+                useEffect(() => {
+                    if (mobileMenuOpen && mobileMenuRef.current && window.gsap) {
+                        const items = mobileMenuRef.current.querySelectorAll('.mobile-menu-item');
+                        if(items.length) {
+                            window.gsap.fromTo(items, 
+                                { y: 30, opacity: 0 },
+                                { y: 0, opacity: 1, duration: 0.5, stagger: 0.1, ease: "back.out(1.2)" }
+                            );
+                        }
+                    }
+                }, [mobileMenuOpen]);
+
+                const scrollToSection = (id) => {
+                    const element = document.getElementById(id);
+                    if (element) {
+                        element.scrollIntoView({ behavior: 'smooth' });
+                        setMobileMenuOpen(false);
+                    }
+                };
+
+                const navLinks = [
+                    { name: 'Квартира', id: 'tariffs', tab: 'apartment' },
+                    { name: 'Дом', id: 'tariffs', tab: 'house' },
+                    { name: 'Бизнес', id: 'tariffs', tab: 'business' },
+                    { name: 'Услуги', id: 'services' },
+                    { name: 'Поддержка', id: 'help' },
+                ];
+
+                const tariffsData = {
+                    apartment: [
+                        { name: 'Простой', speed: '50 Мбит/с', price: '350', features: ['Стабильное соединение', 'Бесплатное подключение', 'Техподдержка 24/7'] },
+                        { name: 'Домашний', speed: '100 Мбит/с', price: '500', isHit: true, features: ['Высокая скорость', 'Wi-Fi роутер в рассрочку', 'ТВ каналы (пакет S)', 'Приоритет в поддержке'] },
+                        { name: 'Всё включено', speed: '300 Мбит/с', price: '850', features: ['Максимальная скорость', 'Игровой приоритет', 'ТВ каналы (пакет XXL)', 'Антивирус в подарок'] },
+                    ],
+                    house: [
+                        { name: 'Оптима', speed: '100 Мбит/с', price: '700', features: ['Технология GPON', 'Оптика в дом', 'Стабильно в любую погоду'] },
+                        { name: 'Максимум', speed: '300 Мбит/с', price: '1200', isHit: true, features: ['Технология GPON', 'Видеонаблюдение (1 камера)', 'Статический IP'] },
+                    ],
+                    business: [
+                         { name: 'SMIT Бизнес', speed: '100 Мбит/с', price: '10 500', features: ['Выделенная линия', 'SLA гарантия', 'Персональный менеджер', 'Статический IP'] },
+                    ]
+                };
+
+                const servicesDetails = {
+                    tv: {
+                        title: 'Интерактивное ТВ',
+                        subtitle: 'Более 200 каналов в высоком качестве',
+                        icon: Tv,
+                        description: 'Современное телевидение с возможностью управления эфиром. Смотрите любимые передачи тогда, когда удобно вам.',
+                        features: ['Архив передач за 7 дней', 'Пауза и перемотка', 'Просмотр на 5 устройствах', 'Кинотеатры (START, Premier)'],
+                        image: 'smitrobot_tv.jpg',
+                        prices: [
+                            { name: 'Пакет S', detail: '130 каналов', price: '150 ₽' },
+                            { name: 'Пакет M', detail: '170 каналов', price: '250 ₽' },
+                            { name: 'Пакет L', detail: '200+ каналов', price: '350 ₽' },
+                            { name: 'Пакет XL', detail: 'Максимальный + Кино', price: '500 ₽' },
+                        ],
+                        cta: 'Подключить ТВ'
+                    },
+                    cctv: {
+                        title: 'Видеонаблюдение',
+                        subtitle: 'Безопасность вашего дома',
+                        icon: Shield,
+                        description: 'Облачное видеонаблюдение для частных домов и дворов. Доступ к камерам из любой точки мира через приложение.',
+                        features: ['Запись в облако 24/7', 'Доступ со смартфона', 'Датчики движения', 'Ночная съемка'],
+                        image: 'smitrobot_video.jpg',
+                        prices: [
+                            { name: 'Онлайн', detail: 'Только просмотр', price: '100 ₽/мес' },
+                            { name: 'Архив 3 дня', detail: 'Хранение записей', price: '200 ₽/мес' },
+                            { name: 'Архив 7 дней', detail: 'Оптимальный выбор', price: '300 ₽/мес' },
+                            { name: 'Установка камеры', detail: 'Монтаж и настройка', price: 'от 2000 ₽' },
+                        ],
+                        cta: 'Заказать установку'
+                    },
+                    pc: {
+                        title: 'Компьютерный сервис',
+                        subtitle: 'Скорая компьютерная помощь',
+                        icon: Cpu,
+                        description: 'Квалифицированный ремонт компьютеров и настройка оборудования от инженеров SmIT. Выезд на дом.',
+                        features: ['Диагностика бесплатно', 'Гарантия на работы', 'Настройка любого ПО', 'Чистка от пыли'],
+                        image: 'smitrobot_support.jpg',
+                        prices: [
+                            { name: 'Установка Windows', detail: 'С драйверами', price: '800 ₽' },
+                            { name: 'Настройка роутера', detail: 'Любая модель', price: '500 ₽' },
+                            { name: 'Чистка от вирусов', detail: 'Полное сканирование', price: 'от 400 ₽' },
+                            { name: 'Обжим кабеля', detail: 'За коннектор', price: '100 ₽' },
+                        ],
+                        cta: 'Вызвать мастера'
+                    },
+                    files: {
+                        title: 'Файловый архив',
+                        subtitle: 'Программы и инструкции',
+                        icon: Download,
+                        description: 'Здесь вы можете скачать необходимые программы для настройки оборудования и просмотра цифрового ТВ.',
+                        fileList: [
+                            { name: 'IPTV Player', desc: 'Программа для просмотра ТВ на Windows', size: '15.4 MB', type: 'exe', iconType: Monitor },
+                            { name: 'Playlist.m3u', desc: 'Список каналов для Smart TV', size: '12 KB', type: 'm3u', iconType: FileText },
+                            { name: 'Инструкция по настройке.pdf', desc: 'Настройка роутеров TP-Link', size: '2.1 MB', type: 'pdf', iconType: FileText },
+                            { name: 'Договор оферты.docx', desc: 'Образец договора на оказание услуг', size: '450 KB', type: 'doc', iconType: FileText },
+                        ],
+                        cta: 'Перейти в полный архив'
+                    },
+                    documents: {
+                       title: 'Документы',
+                       subtitle: 'Регламенты и условия',
+                       icon: FileText,
+                       description: 'Официальные документы, регламентирующие оказание услуг связи.',
+                       fileList: [
+                           { name: 'Регламент оказания услуг связи', desc: 'SMIT_Reglament.pdf', size: '100 KB', type: 'pdf', iconType: FileText },
+                           { name: 'Согласие на обработку персональных данных', desc: 'Personal_Data.pdf', size: '25 KB', type: 'pdf', iconType: FileText },
+                           { name: 'Условия договора с физическими лицами', desc: 'Terms_of_Agreement.pdf', size: '212 KB', type: 'pdf', iconType: FileText },
+                           { name: 'Публичная оферта (IPTV)', desc: 'IPTV_offer.pdf', size: '178 KB', type: 'pdf', iconType: FileText },
+                           { name: 'Рекомендации по эксплуатации оборудования', desc: 'Telecom_Equipment.pdf', size: '62 KB', type: 'pdf', iconType: FileText },
+                       ],
+                       cta: 'Закрыть',
+                   },
+                    instructions: {
+                        title: 'Инструкции',
+                        subtitle: 'Пошаговые руководства',
+                        icon: Settings,
+                        description: 'Здесь собраны подробные инструкции по оплате и управлению услугами.',
+                        accordionItems: [
+                            {
+                                title: "Как оплатить",
+                                content: (
+                                    <div className="space-y-6 text-sm text-slate-600">
+                                        <div>
+                                            <h5 className="font-bold text-slate-800 mb-2">1. С помощью любой Банковской Карты</h5>
+                                            <ol className="list-decimal pl-4 space-y-1 marker:text-emerald-500">
+                                                <li>Зайдите на сайт <a href="https://www.smit34.ru" className="text-emerald-600 hover:underline">www.smit34.ru</a></li>
+                                                <li>Перейдите в раздел "Личный кабинет".</li>
+                                                <li>Введите "Логин" и "Пароль" с вашей карточки абонента и войдите в свой личный кабинет.</li>
+                                                <li>Выберите раздел "Пополнить счет" =&gt; "Единая касса" =&gt; "Ок".</li>
+                                                <li>В поле ввода введите сумму которую вы хотите внести на свой счет =&gt; "Продолжить".</li>
+                                                <li>В открывшемся окне выберите способ "Карты России и СНГ".</li>
+                                                <li>Введите данные карты и email =&gt; "Далее".</li>
+                                                <li>Подтвердите платеж и ожидайте зачисления.</li>
+                                            </ol>
+                                            <p className="mt-2 italic text-xs">Зачисление происходит в течении нескольких минут. Если для оплаты нужен интернет, воспользуйтесь "Обещанным платежом".</p>
+                                        </div>
+                                        <div>
+                                            <h5 className="font-bold text-slate-800 mb-2">2. По квитанции через банк</h5>
+                                            <ol className="list-decimal pl-4 space-y-1 marker:text-emerald-500">
+                                                <li>Скачайте бланк квитанции с нашего сайта.</li>
+                                                <li>Заполните номер договора и ФИО.</li>
+                                                <li>Оплатите в любом отделении банка.</li>
+                                            </ol>
+                                        </div>
+                                    </div>
+                                )
+                            },
+                            {
+                                title: "Обещанный платеж",
+                                content: (
+                                    <div className="space-y-4 text-sm text-slate-600">
+                                        <p>Подключая услугу "Обещанный платеж", вы добровольно обязуетесь оплатить интернет в данном месяце.</p>
+                                        <ol className="list-decimal pl-4 space-y-2 marker:text-emerald-500">
+                                            <li>Войдите в ваш личный кабинет, используя ваш логин и пароль.</li>
+                                            <li>Выберите вкладку «Операции с балансом».</li>
+                                            <li>Установите сумму обещанного платежа (равна стоимости вашего тарифа).</li>
+                                            <li>Нажмите кнопку «Взять».</li>
+                                            <li>В течение <strong>5 дней</strong> оплатите взятую вами сумму реальными средствами.</li>
+                                        </ol>
+                                    </div>
+                                )
+                            }
+                        ],
+                        cta: 'Перейти в раздел Помощь'
+                    },
+                    payment: {
+                        title: 'Оплата',
+                        subtitle: 'Пополнение баланса',
+                        icon: CreditCard,
+                        description: 'Оплачивайте услуги интернета и телевидения онлайн без комиссии. Средства зачисляются мгновенно.',
+                        cta: 'Перейти к оплате', // This will render in the footer
+                        isPayment: true // Flag to render images in the body
+                    }
+                };
+
+                return (
+                    <div className="min-h-screen text-slate-800 font-sans selection:bg-emerald-200 overflow-x-hidden">
+                        <GeometricBackground />
+
+                        {/* HEADER */}
+                        <header className={`fixed top-0 w-full z-50 transition-all duration-300 ${scrolled ? 'py-2 bg-white/80 backdrop-blur-xl border-b border-emerald-100/50 shadow-sm' : 'py-4 bg-transparent'}`}>
+                            <div className="container mx-auto px-4 md:px-8 flex justify-between items-center">
+                                {/* Logo */}
+                                <div className="flex items-center gap-2 cursor-pointer" onClick={scrollToTop}>
+                                    <div className="w-10 h-10 bg-gradient-to-br from-emerald-500 to-teal-400 rounded-lg flex items-center justify-center text-white font-bold text-xl shadow-lg shadow-emerald-500/20">S</div>
+                                    <span className="text-2xl font-bold tracking-tight text-slate-800">SmIT</span>
+                                </div>
+
+                                {/* Desktop Nav */}
+                                <nav className="hidden lg:flex items-center gap-8 bg-white/40 px-8 py-2 rounded-full border border-white/60 backdrop-blur-md">
+                                    {navLinks.map((link) => (
+                                        <button 
+                                            key={link.name} 
+                                            onClick={() => {
+                                                scrollToSection(link.id);
+                                                if(link.tab) setActiveTab(link.tab);
+                                                setMobileMenuOpen(false);
+                                            }}
+                                            className="text-sm font-medium text-slate-600 hover:text-emerald-600 transition-colors"
+                                        >
+                                            {link.name}
+                                        </button>
+                                    ))}
+                                </nav>
+
+                                {/* Actions */}
+                                <div className="hidden lg:flex items-center gap-4">
+                                    <div className="flex flex-col items-end mr-2">
+                                        <a href="tel:+79375551122" className="text-sm font-bold text-slate-800 hover:text-emerald-600 transition-colors">+7 (937) 555-11-22</a>
+                                        <span className="text-[10px] text-slate-500 uppercase tracking-wider flex items-center gap-1">
+                                            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                                            Работаем 24/7
+                                        </span>
+                                    </div>
+                                    <a href="#" className="p-2 text-emerald-600 hover:bg-emerald-50 rounded-full transition-colors" title="Быстрая оплата">
+                                        <CreditCard size={20} />
+                                    </a>
+                                    <Button primary className="!px-4 !py-2 !rounded-lg text-sm" onClick={() => window.open('https://bill.smit34.ru', '_blank')}>
+                                        <User size={16} /> Кабинет
+                                    </Button>
+                                </div>
+
+                                {/* Mobile Menu Toggle */}
+                                <button className="lg:hidden p-2 text-slate-700 z-[110] relative" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
+                                    {mobileMenuOpen ? <X size={28} /> : <Menu size={28} />}
+                                </button>
+                            </div>
+                        </header>
+
+                        {/* FULLSCREEN MOBILE MENU */}
+                        {mobileMenuOpen && (
+                            <div className="fixed inset-0 z-[100] bg-white/98 backdrop-blur-xl flex flex-col items-center justify-center p-6 animate-in fade-in duration-300">
+                                <div ref={mobileMenuRef} className="flex flex-col items-center gap-8 w-full max-w-sm">
+                                    {navLinks.map((link) => (
+                                        <button 
+                                            key={link.name} 
+                                            onClick={() => {
+                                                scrollToSection(link.id);
+                                                if(link.tab) setActiveTab(link.tab);
+                                                setMobileMenuOpen(false);
+                                            }}
+                                            className="mobile-menu-item text-3xl font-bold text-slate-800 hover:text-emerald-600 transition-colors"
+                                        >
+                                            {link.name}
+                                        </button>
+                                    ))}
+
+                                    <div className="mobile-menu-item w-full">
+                                        <button 
+                                            onClick={() => {
+                                                alert('Запуск AI ассистента...');
+                                                setMobileMenuOpen(false);
+                                            }}
+                                            className="w-full justify-center relative group px-4 py-3 rounded-xl font-semibold text-white bg-gradient-to-r from-purple-600 to-indigo-600 shadow-lg shadow-purple-500/30 flex items-center gap-2 text-lg"
+                                        >
+                                            <Bot size={20} />
+                                            <span>AI-ассистент</span>
+                                        </button>
+                                    </div>
+                                    
+                                    <div className="w-full flex flex-col gap-4 mobile-menu-item">
+                                        <Button onClick={() => window.open('https://bill.smit34.ru', '_blank')} className="w-full justify-center text-lg py-4">
+                                            <User size={20} /> Личный кабинет
+                                        </Button>
+                                    </div>
+
+                                    <div className="flex flex-col items-center gap-2 mt-8 mobile-menu-item">
+                                        <a href="tel:+79375551122" className="text-2xl font-bold text-emerald-600">+7 (937) 555-11-22</a>
+                                        <span className="text-slate-400">Работаем круглосуточно</span>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* HERO SECTION */}
+                        <section className="relative pt-32 pb-20 md:pt-48 md:pb-32 px-4 overflow-hidden gsap-section">
+                            <div className="container mx-auto max-w-6xl relative z-10 flex flex-col md:flex-row items-center justify-between gap-8">
+                                <div className="max-w-2xl">
+                                    <Badge>Новая Эра Технологий</Badge>
+                                    
+                                    <h1 ref={titleRef} style={{opacity: 0}} className="text-4xl md:text-6xl lg:text-7xl font-bold leading-[1.1] mb-6 text-slate-900">
+                                        Стабильный Интернет <br/>
+                                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-500 to-teal-400">
+                                            в Волгоградской области
+                                        </span>
+                                    </h1>
+
+                                    <p ref={textRef} style={{opacity: 0}} className="text-lg md:text-xl text-slate-600 mb-8 max-w-lg leading-relaxed glass-text">
+                                        Бесплатное подключение квартир и технология GPON в частный сектор. Скорость света в вашем доме.
+                                    </p>
+
+                                    <div ref={checkBlockRef} style={{opacity: 0}} className="glass-panel p-2 rounded-2xl bg-white/60 backdrop-blur-md border border-white/50 shadow-lg inline-flex flex-col relative w-full md:w-auto">
+                                        <div className="flex flex-col md:flex-row gap-2 w-full">
+                                            <div className="relative w-full md:w-80">
+                                                <input 
+                                                    type="text" 
+                                                    placeholder="Введите ваш адрес..." 
+                                                    className="bg-transparent px-4 py-3 outline-none text-slate-800 placeholder:text-slate-400 w-full"
+                                                    value={addressQuery}
+                                                    onChange={handleAddressChange}
+                                                    onFocus={() => { if(addressSuggestions.length > 0) setIsSuggestionsOpen(true); }}
+                                                    onBlur={() => setTimeout(() => setIsSuggestionsOpen(false), 200)}
+                                                />
+                                                {/* Autocomplete Dropdown - Z-Index Increased */}
+                                                {isSuggestionsOpen && addressSuggestions.length > 0 && (
+                                                    <div className="absolute top-full left-0 w-full bg-white rounded-xl shadow-xl mt-2 border border-slate-100 overflow-hidden z-[60] animate-in fade-in duration-200">
+                                                        <ul>
+                                                            {addressSuggestions.map((addr, idx) => (
+                                                                <li 
+                                                                    key={idx}
+                                                                    className="px-4 py-2 hover:bg-emerald-50 cursor-pointer text-slate-600 text-sm transition-colors border-b border-slate-50 last:border-0"
+                                                                    onClick={() => handleSelectAddress(addr)}
+                                                                >
+                                                                    {addr}
+                                                                </li>
+                                                            ))}
+                                                        </ul>
+                                                    </div>
+                                                )}
+                                            </div>
+                                            <Button primary className="w-full md:w-auto whitespace-nowrap justify-center" onClick={handleCheckAddress}>
+                                                Проверить <span className="hidden md:inline">возможность</span>
+                                            </Button>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div className="md:w-1/2 flex justify-center md:justify-end animate-in fade-in slide-in-from-right duration-700 delay-300">
+                                    <div className="relative w-full max-w-md h-auto" style={{perspective: '1000px'}}>
+                                        <img 
+                                            ref={heroImageRef}
+                                            src="smitrobot.png" 
+                                            alt="Робот-помощник SMIT" 
+                                            className="w-full h-auto object-contain transition-transform duration-100 ease-out hover:scale-105 drop-shadow-2xl"
+                                            style={{transformStyle: 'preserve-3d'}}
+                                        />
+                                        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-emerald-500/20 blur-[100px] rounded-full -z-10 pointer-events-none"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
+
+                        {/* CHECK RESULT MODAL */}
+                        {checkResultModal && (
+                            <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md animate-in fade-in duration-300">
+                                <GlassCard className="max-w-lg w-full bg-white relative p-8">
+                                    <button 
+                                        onClick={() => setCheckResultModal(false)}
+                                        className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 transition-colors"
+                                    >
+                                        <X size={24} />
+                                    </button>
+                                    <div className="text-center">
+                                         <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                                            <Check size={32} className="text-emerald-600" />
+                                        </div>
+                                        <h3 className="text-2xl font-bold text-slate-900 mb-2">Техническая возможность есть!</h3>
+                                        <p className="text-slate-600 mb-6">
+                                            По адресу: <br/>
+                                            <span className="font-bold text-slate-800">{addressQuery}</span>
+                                        </p>
+                                        <Button primary className="w-full justify-center" onClick={() => window.open('https://bill.smit34.ru', '_blank')}>
+                                            Подключить интернет
+                                        </Button>
+                                    </div>
+                                </GlassCard>
+                            </div>
+                        )}
+
+                        {/* TARIFFS SECTION */}
+                        <section id="tariffs" className="py-20 px-4 gsap-section">
+                            <div className="container mx-auto max-w-6xl">
+                                <div className="text-center mb-12">
+                                    <h2 className="text-3xl md:text-5xl font-bold mb-4 text-slate-900">Тарифные планы</h2>
+                                    <p className="text-slate-500 max-w-xl mx-auto">Честные скорости. Без скрытых условий. Выберите то, что подходит именно вам.</p>
+                                </div>
+
+                                <div className="flex justify-center mb-12">
+                                    <div className="bg-slate-200/50 backdrop-blur-sm p-1.5 rounded-2xl inline-flex gap-2">
+                                        {[
+                                            { id: 'apartment', label: 'Квартира', icon: Monitor },
+                                            { id: 'house', label: 'Дом', icon: MapPin },
+                                            { id: 'business', label: 'Бизнес', icon: Server }
+                                        ].map((tab) => (
+                                            <button
+                                                key={tab.id}
+                                                onClick={() => setActiveTab(tab.id)}
+                                                className={`
+                                                    px-6 py-3 rounded-xl text-sm font-bold flex items-center gap-2 transition-all duration-300
+                                                    ${activeTab === tab.id 
+                                                    ? 'bg-white text-slate-900 shadow-md scale-105' 
+                                                    : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'}
+                                                `}
+                                            >
+                                                <tab.icon size={16} />
+                                                {tab.label}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                                    {tariffsData[activeTab].map((tariff, index) => (
+                                        <GlassCard key={index} animateIn className="gsap-card relative flex flex-col" style={{animationDelay: `${index * 0.1}s`}}>
+                                            {tariff.isHit && (
+                                                <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-emerald-500 text-white text-xs font-bold px-3 py-1 rounded-full shadow-lg shadow-emerald-500/30">
+                                                    ХИТ ПРОДАЖ
+                                                </div>
+                                            )}
+                                            
+                                            <h3 className="text-2xl font-bold mb-2">{tariff.name}</h3>
+                                            <div className="text-4xl font-extrabold text-slate-800 mb-1">
+                                                {tariff.speed}
+                                            </div>
+                                            
+                                            <div className="my-6 space-y-3 flex-1">
+                                                {tariff.features.map((feature, idx) => (
+                                                    <div key={idx} className="flex items-center gap-3 text-slate-600 text-sm">
+                                                        <div className="w-5 h-5 rounded-full bg-emerald-100 flex items-center justify-center shrink-0">
+                                                            <Check size={12} className="text-emerald-600" />
+                                                        </div>
+                                                        {feature}
+                                                    </div>
+                                                ))}
+                                            </div>
+
+                                            <div className="mt-auto pt-6 border-t border-slate-100">
+                                                <div className="flex items-end gap-1 mb-4">
+                                                    <span className="text-3xl font-bold text-emerald-600 whitespace-nowrap">{tariff.price}<span className="whitespace-nowrap">₽</span></span>
+                                                    <span className="text-slate-400 text-sm mb-1">/ мес</span>
+                                                </div>
+                                                <Button primary className="w-full justify-center">
+                                                    Подключить
+                                                </Button>
+                                            </div>
+                                        </GlassCard>
+                                    ))}
+                                </div>
+
+                                {activeTab === 'house' && (
+                                    <div className="mt-8 p-6 bg-emerald-50/50 rounded-2xl border border-emerald-100 text-center text-emerald-800 animate-in fade-in duration-700">
+                                        <p className="font-semibold">🏠 Подключение частного сектора от 5500<span className="whitespace-nowrap">₽</span> (зависит от сложности монтажа)</p>
+                                    </div>
+                                )}
+                            </div>
+                        </section>
+
+                        {/* BUSINESS SECTION */}
+                        <section className="py-20 px-4 gsap-section">
+                            <div className="container mx-auto max-w-6xl">
+                                <div className="bg-slate-900 rounded-3xl p-8 md:p-12 md:pb-0 overflow-hidden relative shadow-2xl">
+                                     {/* Decorative Background */}
+                                     <div className="absolute top-0 right-0 w-full h-full bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div>
+                                     <div className="absolute -top-24 -right-24 w-96 h-96 bg-emerald-500/20 blur-[100px] rounded-full"></div>
+                                     <div className="absolute -bottom-24 -left-24 w-96 h-96 bg-blue-500/20 blur-[100px] rounded-full"></div>
+                        
+                                     <div className="relative z-10 grid md:grid-cols-2 gap-12 items-end">
+                                        {/* Left: Image */}
+                                        <div className="flex justify-center h-full items-end relative">
+                                            <img 
+                                                ref={bizRobotRef}
+                                                src="smitrobot-biz.png" 
+                                                alt="SMIT для бизнеса" 
+                                                className="w-full max-w-sm object-contain drop-shadow-2xl origin-bottom"
+                                                style={{transformStyle: 'preserve-3d'}}
+                                            />
+                                            {/* Gradient Overlay for Mobile */}
+                                            <div className="absolute bottom-0 left-0 w-full h-32 bg-gradient-to-t from-slate-900 to-transparent md:hidden"></div>
+                                        </div>
+                        
+                                        {/* Right: Content */}
+                                        <div className="text-white pb-8 md:pb-12 -mt-24 md:mt-0 relative z-10">
+                                            <Badge>SMIT Бизнес</Badge>
+                                            <h2 className="text-3xl md:text-4xl font-bold mb-6 mt-4">Высокоскоростной интернет для вашего дела</h2>
+                                            
+                                            <div className="space-y-6 mb-8">
+                                                <div className="flex items-start gap-4">
+                                                     <div className="p-3 bg-emerald-500/20 rounded-xl text-emerald-400 shrink-0">
+                                                        <Zap size={24} />
+                                                     </div>
+                                                     <div>
+                                                        <h4 className="text-lg font-bold">Скорость 100 Мбит/с</h4>
+                                                        <p className="text-slate-400 text-sm">Стабильная скорость для работы офиса</p>
+                                                     </div>
+                                                </div>
+                        
+                                                <div className="flex items-start gap-4">
+                                                     <div className="p-3 bg-blue-500/20 rounded-xl text-blue-400 shrink-0">
+                                                        <Server size={24} />
+                                                     </div>
+                                                     <div>
+                                                        <h4 className="text-lg font-bold">Выделенная линия & SLA</h4>
+                                                        <p className="text-slate-400 text-sm">Гарантированная доступность сервиса</p>
+                                                     </div>
+                                                </div>
+                        
+                                                <div className="flex items-start gap-4">
+                                                     <div className="p-3 bg-purple-500/20 rounded-xl text-purple-400 shrink-0">
+                                                        <CreditCard size={24} />
+                                                     </div>
+                                                     <div>
+                                                        <h4 className="text-lg font-bold">10 500 <span className="whitespace-nowrap">₽</span>/мес</h4>
+                                                        <p className="text-slate-400 text-sm">Стоимость подключения рассчитывается индивидуально</p>
+                                                     </div>
+                                                </div>
+                                            </div>
+                        
+                                            <div className="flex flex-col sm:flex-row gap-4 items-center pt-4 border-t border-white/10">
+                                                <div className="text-center sm:text-left">
+                                                    <span className="text-sm text-slate-400 block mb-1">Отдел по работе с юр. лицами</span>
+                                                    <a href="tel:554035" className="text-2xl font-bold hover:text-emerald-400 transition-colors">55-40-35</a>
+                                                </div>
+                                                <Button primary className="w-full sm:w-auto ml-auto">
+                                                    Подключить офис
+                                                </Button>
+                                            </div>
+                                        </div>
+                                     </div>
+                                </div>
+                            </div>
+                        </section>
+
+                        {/* SERVICES SECTION */}
+                        <section id="services" className="py-20 bg-white/40 backdrop-blur-sm border-y border-white/50 gsap-section">
+                            <div className="container mx-auto max-w-6xl px-4">
+                                <div className="mb-12">
+                                    <Badge>Экосистема</Badge>
+                                    <h2 className="text-4xl font-bold mt-2 text-slate-900">Больше чем интернет</h2>
+                                </div>
+
+                                <div className="grid md:grid-cols-3 gap-6">
+                                    <GlassCard 
+                                        className="gsap-card group cursor-pointer hover:border-emerald-200" 
+                                        animateIn 
+                                        style={{animationDelay: '0s'}}
+                                        onClick={() => setActiveService('tv')}
+                                    >
+                                        <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                                            <Monitor size={24} />
+                                        </div>
+                                        <h3 className="text-xl font-bold mb-2">Цифровое ТВ</h3>
+                                        <p className="text-slate-500 text-sm mb-4">Более 200 каналов в HD качестве. Управление эфиром: пауза, перемотка, архив передач за 7 дней.</p>
+                                        <span className="text-blue-600 font-semibold text-sm flex items-center gap-1 group-hover:gap-2 transition-all">Подробнее <ArrowRight size={14}/></span>
+                                    </GlassCard>
+
+                                    <GlassCard 
+                                        className="gsap-card group cursor-pointer hover:border-emerald-200" 
+                                        animateIn 
+                                        style={{animationDelay: '0.1s'}}
+                                        onClick={() => setActiveService('cctv')}
+                                    >
+                                        <div className="w-12 h-12 bg-purple-100 text-purple-600 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                                            <Shield size={24} />
+                                        </div>
+                                        <h3 className="text-xl font-bold mb-2">Видеонаблюдение</h3>
+                                        <p className="text-slate-500 text-sm mb-4">Ваш дом под присмотром 24/7. Доступ к камерам со смартфона, облачное хранение записей.</p>
+                                        <span className="text-purple-600 font-semibold text-sm flex items-center gap-1 group-hover:gap-2 transition-all">Подобрать камеры <ArrowRight size={14}/></span>
+                                    </GlassCard>
+
+                                    <GlassCard 
+                                        className="gsap-card group cursor-pointer hover:border-emerald-200" 
+                                        animateIn 
+                                        style={{animationDelay: '0.2s'}}
+                                        onClick={() => setActiveService('pc')}
+                                    >
+                                        <div className="w-12 h-12 bg-orange-100 text-orange-600 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                                            <Zap size={24} />
+                                        </div>
+                                        <h3 className="text-xl font-bold mb-2">Компьютерный сервис</h3>
+                                        <p className="text-slate-500 text-sm mb-4">Ремонт ПК, настройка роутеров, удаление вирусов. Профессиональная помощь от локального оператора.</p>
+                                        <span className="text-orange-600 font-semibold text-sm flex items-center gap-1 group-hover:gap-2 transition-all">Прайс-лист <ArrowRight size={14}/></span>
+                                    </GlassCard>
+                                </div>
+                            </div>
+                        </section>
+
+                        {/* EQUIPMENT */}
+                        <section className="py-20 px-4 gsap-section">
+                            <div className="container mx-auto max-w-6xl">
+                                <div className="flex flex-col md:flex-row md:items-end justify-between mb-10 gap-4">
+                                    <div>
+                                        <h2 className="text-3xl font-bold text-slate-900">Оборудование</h2>
+                                        <p className="text-slate-500">Надежные устройства для максимальной скорости</p>
+                                    </div>
+                                </div>
+                                
+                                <div className="grid md:grid-cols-3 gap-6 items-center">
+                                    <GlassCard className="gsap-card flex items-center gap-6" animateIn style={{animationDelay: '0s'}}>
+                                        <div className="w-24 h-24 bg-slate-100 rounded-lg flex items-center justify-center shrink-0">
+                                            <Wifi size={40} className="text-slate-400" />
+                                        </div>
+                                        <div>
+                                            <h4 className="text-xl font-bold mb-1">Двухдиапазонный роутер</h4>
+                                            <p className="text-sm text-slate-500 mb-2">Wi-Fi 5GHz + 2.4GHz. Гигабитные порты.</p>
+                                            <div className="flex items-center gap-4">
+                                                <span className="font-bold text-emerald-600">3 500 <span className="whitespace-nowrap">₽</span></span>
+                                                <span className="text-xs bg-emerald-100 text-emerald-700 px-2 py-1 rounded">Доступна рассрочка</span>
+                                            </div>
+                                        </div>
+                                    </GlassCard>
+
+                                    {/* Robot Middle */}
+                                    <div className="hidden md:flex flex-col items-center justify-center">
+                                        <div className="relative w-full max-w-[300px] aspect-square">
+                                            <div className="absolute inset-0 bg-emerald-500/20 blur-[50px] rounded-full animate-pulse"></div>
+                                            <img 
+                                                src="smitrobot_tv.png" 
+                                                alt="Smart Robot" 
+                                                className="w-full h-full object-contain animate-float drop-shadow-2xl relative z-10"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <GlassCard className="gsap-card flex items-center gap-6" animateIn style={{animationDelay: '0.1s'}}>
+                                        <div className="w-24 h-24 bg-slate-100 rounded-lg flex items-center justify-center shrink-0">
+                                            <Monitor size={40} className="text-slate-400" />
+                                        </div>
+                                        <div>
+                                            <h4 className="text-xl font-bold mb-1">ТВ-Приставка 4K</h4>
+                                            <p className="text-sm text-slate-500 mb-2">Android TV, YouTube, Кинотеатры.</p>
+                                            <div className="flex items-center gap-4">
+                                                <span className="font-bold text-emerald-600">4 200 <span className="whitespace-nowrap">₽</span></span>
+                                                <span className="text-xs bg-slate-100 text-slate-600 px-2 py-1 rounded">Аренда 150 <span className="whitespace-nowrap">₽</span>/мес</span>
+                                            </div>
+                                        </div>
+                                    </GlassCard>
+                                </div>
+                            </div>
+                        </section>
+
+                        {/* SUPPORT & HELP */}
+                        <section id="help" className="py-20 bg-slate-900 text-white relative overflow-hidden gsap-section">
+                            {/* ... background elements ... */}
+
+                            <div className="container mx-auto max-w-6xl relative z-10 px-4">
+                                <div className="grid lg:grid-cols-2 gap-12 items-center">
+                                    
+                                    {/* LEFT SIDE: Content + Contacts */}
+                                    <div className="gsap-card">
+                                        <Badge>Поддержка</Badge>
+                                        <h2 className="text-4xl font-bold mt-2 mb-6">Помощь абоненту</h2>
+                                        <p className="text-slate-300 mb-8 text-lg">
+                                            Мы собрали всё необходимое, чтобы вы могли решить вопрос самостоятельно и быстро.
+                                        </p>
+                                        
+                                        {/* Help Buttons */}
+                                        <div className="grid sm:grid-cols-2 gap-4 mb-10">
+                                            <button 
+                                                className="flex items-center gap-3 p-4 bg-white/10 hover:bg-white/20 rounded-xl transition-colors text-left border border-white/10"
+                                                onClick={() => setShowSpeedtestModal(true)}
+                                            >
+                                                <div className="p-2 bg-emerald-500 rounded-lg"><Zap size={20} /></div>
+                                                <div>
+                                                    <div className="font-bold">Speedtest</div>
+                                                    <div className="text-xs text-slate-400">Проверить скорость</div>
+                                                </div>
+                                            </button>
+                                            <button 
+                                                className="flex items-center gap-3 p-4 bg-white/10 hover:bg-white/20 rounded-xl transition-colors text-left border border-white/10"
+                                                onClick={() => setActiveService('files')}
+                                            >
+                                                <div className="p-2 bg-blue-500 rounded-lg"><Download size={20} /></div>
+                                                <div>
+                                                    <div className="font-bold">Файлы</div>
+                                                    <div className="text-xs text-slate-400">Плеер и плейлисты</div>
+                                                </div>
+                                            </button>
+                                            <button 
+                                                className="flex items-center gap-3 p-4 bg-white/10 hover:bg-white/20 rounded-xl transition-colors text-left border border-white/10"
+                                                onClick={() => setActiveService('documents')}
+                                            >
+                                                <div className="p-2 bg-teal-500 rounded-lg"><FileText size={20} /></div>
+                                                <div>
+                                                    <div className="font-bold">Документы</div>
+                                                    <div className="text-xs text-slate-400">Оферты и регламенты</div>
+                                                </div>
+                                            </button>
+                                            <button 
+                                                className="flex items-center gap-3 p-4 bg-white/10 hover:bg-white/20 rounded-xl transition-colors text-left border border-white/10"
+                                                onClick={() => setActiveService('instructions')}
+                                            >
+                                                <div className="p-2 bg-orange-500 rounded-lg"><Settings size={20} /></div>
+                                                <div>
+                                                    <div className="font-bold">Инструкции</div>
+                                                    <div className="text-xs text-slate-400">Настройка роутера</div>
+                                                </div>
+                                            </button>
+                                            <button 
+                                                className="flex items-center gap-3 p-4 bg-white/10 hover:bg-white/20 rounded-xl transition-colors text-left border border-white/10"
+                                                onClick={() => setActiveService('payment')}
+                                            >
+                                                <div className="p-2 bg-purple-500 rounded-lg"><CreditCard size={20} /></div>
+                                                <div>
+                                                    <div className="font-bold">Оплата</div>
+                                                    <div className="text-xs text-slate-400">Обещанный платеж</div>
+                                                </div>
+                                            </button>
+                                        </div>
+
+                                        {/* Moved Contact Info */}
+                                        <div className="border-t border-white/10 pt-8">
+                                            <div className="flex flex-col md:flex-row justify-between items-start gap-6">
+                                                <div>
+                                                    <h3 className="text-2xl font-bold mb-2">Не нашли ответ?</h3>
+                                                    <p className="text-slate-300 mb-4">Наша техническая поддержка работает круглосуточно.</p>
+                                                </div>
+                                                <Button 
+                                                    className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-lg shadow-purple-500/30 hover:scale-105 border-none whitespace-nowrap"
+                                                    onClick={() => alert('Запуск AI ассистента...')}
+                                                >
+                                                    <Bot size={20} /> Спросить у AI
+                                                </Button>
+                                            </div>
+                                            <div className="flex flex-col sm:flex-row gap-6 mt-6">
+                                                <div>
+                                                    <a href="tel:+79375551122" className="text-3xl font-bold text-emerald-400 hover:text-emerald-300 transition-colors block mb-2">
+                                                        +7 (937) 555-11-22
+                                                    </a>
+                                                    <div className="flex items-center gap-2 text-slate-400 text-sm">
+                                                        <Clock size={14} /> Круглосуточно
+                                                    </div>
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <div className="flex items-center gap-2 text-slate-400">
+                                                        <Mail size={16} /> ask@support.smit34.ru
+                                                    </div>
+                                                    <div className="flex items-center gap-2 text-slate-400">
+                                                        <MapPin size={16} /> Волгоград, ул. 40 лет ВЛКСМ
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* RIGHT SIDE: Robot Illustration */}
+                                    <div className="relative flex justify-center gsap-card">
+                                         {/* Background Glow */}
+                                         <div className="absolute inset-0 bg-emerald-500/20 blur-[80px] rounded-full pointer-events-none transform translate-y-10"></div>
+                                         
+                                         <img 
+                                            src="smitrobot_help.png" 
+                                            alt="Робот поддержки SMIT" 
+                                            className="relative w-full max-w-md object-contain animate-float drop-shadow-2xl z-10"
+                                         />
+                                    </div>
+
+                                </div>
+                            </div>
+                        </section>
+
+                        {/* ABOUT & MAP */}
+                        <section className="py-20 px-4 gsap-section">
+                            <div className="container mx-auto max-w-6xl">
+                                <div className="grid md:grid-cols-2 gap-12 items-center">
+                                    <div className="gsap-card">
+                                        <h2 className="text-3xl font-bold mb-6 text-slate-900">SmIT — твой местный оператор</h2>
+                                        <div className="space-y-4 text-slate-600 leading-relaxed">
+                                            <p>
+                                                Мы работаем в Красноармейском районе уже более 10 лет. В отличие от федеральных гигантов, мы рядом. 
+                                                Наш офис находится на улице 40 лет ВЛКСМ, а инженеры знают каждый дом района.
+                                            </p>
+                                            <p>
+                                                Мы строим свои сети с запасом прочности, используем современное оптоволокно и реагируем на заявки в день обращения.
+                                            </p>
+                                        </div>
+                                        <div className="mt-8 grid grid-cols-2 gap-4">
+                                            <div className="p-4 bg-emerald-50 rounded-xl border border-emerald-100">
+                                                <div className="font-bold text-3xl text-emerald-600 mb-1">10+</div>
+                                                <div className="text-sm text-slate-500">Лет на рынке</div>
+                                            </div>
+                                            <div className="p-4 bg-emerald-50 rounded-xl border border-emerald-100">
+                                                <div className="font-bold text-3xl text-emerald-600 mb-1">GPON</div>
+                                                <div className="text-sm text-slate-500">Технология будущего</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div 
+                                        className="h-80 bg-slate-200 rounded-3xl overflow-hidden relative shadow-inner cursor-pointer group"
+                                        onClick={() => setShowMapModal(true)}
+                                    >
+                                        {/* Background Image */}
+                                        <div className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-110" style={{backgroundImage: "url('map.png')"}}></div>
+                                        
+                                        {/* Overlay content */}
+                                        <div className="absolute inset-0 bg-slate-900/30 group-hover:bg-slate-900/20 transition-colors flex items-center justify-center">
+                                            <div className="text-center bg-white/90 backdrop-blur-sm p-4 rounded-2xl shadow-lg">
+                                                <MapPin size={48} className="mx-auto text-emerald-600 mb-2" />
+                                                <span className="text-slate-800 font-bold block">Карта покрытия</span>
+                                                <span className="text-slate-500 text-sm">Нажмите, чтобы открыть</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
+
+                        {/* MAP MODAL */}
+                        {showMapModal && (
+                            <div className="fixed inset-0 z-[100] bg-black/90 flex items-center justify-center p-4 animate-in fade-in duration-300">
+                                <button 
+                                    className="absolute top-4 right-4 text-white hover:text-emerald-400 transition-colors z-[101]" 
+                                    onClick={() => setShowMapModal(false)}
+                                >
+                                    <X size={32} />
+                                </button>
+                                <div className="w-full h-full max-w-7xl max-h-[90vh] bg-white rounded-2xl overflow-hidden relative">
+                                    <iframe 
+                                        src="https://yandex.ru/map-widget/v1/?ll=44.634437%2C48.465393&mode=usermaps&source=constructorLink&um=constructor%3Af90d9a43df4e905f6d7799d37dfeaec94d1cc23668fac40495a6fb80db623c6d&z=11" 
+                                        width="100%" 
+                                        height="100%" 
+                                        frameBorder="0"
+                                        allowFullScreen={true}
+                                        className="absolute inset-0 w-full h-full"
+                                    ></iframe>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* SPEEDTEST MODAL */}
+                        {showSpeedtestModal && (
+                            <div className="fixed inset-0 z-[100] bg-black/90 flex items-center justify-center p-4 animate-in fade-in duration-300">
+                                <button 
+                                    className="absolute top-4 right-4 text-white hover:text-emerald-400 transition-colors z-[101]" 
+                                    onClick={() => setShowSpeedtestModal(false)}
+                                >
+                                    <X size={32} />
+                                </button>
+                                
+                                <div className="w-full h-full max-w-7xl max-h-[90vh] bg-white rounded-2xl overflow-hidden relative flex flex-col">
+                                    <div className="flex bg-slate-50 border-b border-slate-200">
+                                        <button 
+                                            onClick={() => setActiveSpeedtestTab('yandex')}
+                                            className={`flex-1 p-4 font-bold text-center transition-colors ${activeSpeedtestTab === 'yandex' ? 'bg-white text-emerald-600 border-b-2 border-emerald-500' : 'text-slate-500 hover:bg-slate-100 hover:text-slate-700'}`}
+                                        >
+                                            Яндекс.Интернетометр
+                                        </button>
+                                        <button 
+                                            onClick={() => setActiveSpeedtestTab('rt')}
+                                            className={`flex-1 p-4 font-bold text-center transition-colors ${activeSpeedtestTab === 'rt' ? 'bg-white text-emerald-600 border-b-2 border-emerald-500' : 'text-slate-500 hover:bg-slate-100 hover:text-slate-700'}`}
+                                        >
+                                            Ростелеком Speedtest
+                                        </button>
+                                    </div>
+                                    
+                                    <div className="flex-1 relative bg-slate-100 flex items-center justify-center p-8">
+                                        {activeSpeedtestTab === 'yandex' && (
+                                            <div className="text-center max-w-md">
+                                                <div className="mb-6 mx-auto w-24 h-24 bg-red-100 text-red-600 rounded-full flex items-center justify-center">
+                                                    <Zap size={48} />
+                                                </div>
+                                                <h3 className="text-2xl font-bold mb-4 text-slate-800">Измерьте скорость на Яндексе</h3>
+                                                <p className="text-slate-500 mb-8">Для получения точных результатов перейдите на сервис Яндекс.Интернетометр. Это безопасно и быстро.</p>
+                                                <a 
+                                                    href="https://yandex.ru/internet" 
+                                                    target="_blank" 
+                                                    rel="noopener noreferrer"
+                                                    className="inline-flex items-center gap-2 bg-red-500 hover:bg-red-600 text-white font-bold py-3 px-8 rounded-xl transition-all shadow-lg hover:shadow-red-500/30 hover:-translate-y-1"
+                                                >
+                                                    Открыть Яндекс.Интернетометр <ArrowRight size={20} />
+                                                </a>
+                                            </div>
+                                        )}
+                                        {activeSpeedtestTab === 'rt' && (
+                                            <div className="text-center max-w-md">
+                                                <div className="mb-6 mx-auto w-24 h-24 bg-purple-100 text-purple-600 rounded-full flex items-center justify-center">
+                                                    <Zap size={48} />
+                                                </div>
+                                                <h3 className="text-2xl font-bold mb-4 text-slate-800">Измерьте скорость через Ростелеком</h3>
+                                                <p className="text-slate-500 mb-8">Используйте официальный сервис замера скорости от Ростелеком для проверки качества соединения.</p>
+                                                <a 
+                                                    href="https://www.rt.ru/speedtest" 
+                                                    target="_blank" 
+                                                    rel="noopener noreferrer"
+                                                    className="inline-flex items-center gap-2 bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-8 rounded-xl transition-all shadow-lg hover:shadow-purple-500/30 hover:-translate-y-1"
+                                                >
+                                                    Открыть RT Speedtest <ArrowRight size={20} />
+                                                </a>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* FOOTER */}
+                        <footer className="bg-slate-50 border-t border-slate-200 pt-16 pb-8 text-sm animate-in fade-in duration-700 fill-mode-backwards" style={{animationDelay: '1.2s'}}>
+                            <div className="container mx-auto max-w-6xl px-4">
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
+                                    {/* Col 1: Brand */}
+                                    <div>
+                                        <div className="flex items-center gap-2 mb-4">
+                                            <div className="w-8 h-8 bg-emerald-600 rounded-md flex items-center justify-center text-white font-bold">S</div>
+                                            <span className="text-xl font-bold text-slate-800">SmIT</span>
+                                        </div>
+                                        <p className="text-slate-500 mb-4">© 2025 SmIT.<br/>Все права защищены.</p>
+                                        <div className="flex gap-4">
+                                            {/* VK Icon */}
+                                            <a href="https://vk.com/im/convo/-214756373?entrypoint=list_all&rp=peer-214756373" target="_blank" className="w-8 h-8 bg-blue-100 text-blue-600 rounded-full hover:bg-blue-600 hover:text-white transition-colors flex items-center justify-center">
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 22.5h-5c-6.5 0-7.5-5-7.5-9s1-9 7.5-9h5c6.5 0 7.5 5 7.5 9s-1 9-7.5 9z"/><path d="M17.5 8c.5.5 1 2 1 4s-.5 3.5-1 4"/><path d="M14.5 12h-5"/></svg>
+                                            </a>
+                                            {/* Telegram Icon */}
+                                            <a href="https://t.me/smitsupport_bot" target="_blank" className="w-8 h-8 bg-sky-100 text-sky-500 rounded-full hover:bg-sky-500 hover:text-white transition-colors flex items-center justify-center">
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="22" x2="11" y1="2" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                                            </a>
+                                             {/* Mail Icon */}
+                                            <a href="mailto:ask@support.smit34.ru" className="w-8 h-8 bg-emerald-100 text-emerald-600 rounded-full hover:bg-emerald-600 hover:text-white transition-colors flex items-center justify-center">
+                                                <Mail size={16} />
+                                            </a>
+                                        </div>
+                                    </div>
+
+                                    {/* Col 2: Navigation */}
+                                    <div>
+                                        <h4 className="font-bold text-slate-900 mb-4">Навигация</h4>
+                                        <ul className="space-y-2">
+                                            <li><a href="#tariffs" className="text-slate-600 hover:text-emerald-600 transition-colors">Тарифы</a></li>
+                                            <li><a href="#services" className="text-slate-600 hover:text-emerald-600 transition-colors">Услуги</a></li>
+                                            <li><a href="#help" className="text-slate-600 hover:text-emerald-600 transition-colors">Поддержка</a></li>
+                                            <li><a href="https://bill.smit34.ru" className="text-emerald-600 font-medium hover:underline">Личный кабинет</a></li>
+                                        </ul>
+                                    </div>
+
+                                    {/* Col 3: Documents */}
+                                    <div>
+                                        <h4 className="font-bold text-slate-900 mb-4">Документы</h4>
+                                        <ul className="space-y-2">
+                                            <li>
+                                                <button 
+                                                    className="flex items-center gap-2 text-slate-600 hover:text-emerald-600 transition-colors text-left"
+                                                    onClick={() => setLightboxOpen(true)}
+                                                >
+                                                    <FileText size={14} /> Лицензии и сертификаты
+                                                </button>
+                                            </li>
+                                            <li>
+                                                <button 
+                                                    className="text-slate-600 hover:text-emerald-600 transition-colors text-left"
+                                                    onClick={() => setActiveDoc('agreement')}
+                                                >
+                                                    Договор оферты
+                                                </button>
+                                            </li>
+                                            <li>
+                                                <button 
+                                                    className="text-slate-600 hover:text-emerald-600 transition-colors text-left mt-1"
+                                                    onClick={() => setActiveDoc('privacy')}
+                                                >
+                                                    Политика конфиденциальности
+                                                </button>
+                                            </li>
+                                            <li>
+                                                <button 
+                                                    className="text-slate-600 hover:text-emerald-600 transition-colors text-left"
+                                                    onClick={() => setActiveService('documents')}
+                                                >
+                                                    Регламенты и условия
+                                                </button>
+                                            </li>
+                                            <li className="text-slate-400 mt-4 text-xs">
+                                                ООО «Смит»<br/>ИНН 3461009378<br/>ОГРН 1143443002273
+                                            </li>
+                                        </ul>
+                                    </div>
+
+                                    {/* Col 4: Contacts */}
+                                    <div>
+                                        <h4 className="font-bold text-slate-900 mb-4">Контакты</h4>
+                                        <ul className="space-y-3">
+                                            <li className="flex items-start gap-3 text-slate-600">
+                                                <MapPin size={16} className="mt-1 shrink-0 text-emerald-600" />
+                                                <span>г. Волгоград,<br/>ул. 40 лет ВЛКСМ, д. 1</span>
+                                            </li>
+                                            <li className="flex items-start gap-3 text-slate-600">
+                                                <Phone size={16} className="mt-1 shrink-0 text-emerald-600" />
+                                                <div className="flex flex-col">
+                                                    <a href="tel:+79375551122" className="hover:text-emerald-600 font-medium">+7 (937) 555-11-22</a>
+                                                    <span className="text-xs text-slate-400">Телефон для физических лиц</span>
+                                                </div>
+                                            </li>
+                                            <li className="flex items-start gap-3 text-slate-600">
+                                                <Phone size={16} className="mt-1 shrink-0 text-emerald-600" />
+                                                <div className="flex flex-col">
+                                                    <a href="tel:554035" className="hover:text-emerald-600 font-medium">55-40-35</a>
+                                                    <span className="text-xs text-slate-400">Телефон для юридических лиц</span>
+                                                </div>
+                                            </li>
+                                            <li className="flex items-center gap-3 text-slate-600">
+                                                <Mail size={16} className="text-emerald-600" />
+                                                <a href="mailto:ask@support.smit34.ru" className="hover:text-emerald-600">ask@support.smit34.ru</a>
+                                            </li>
+                                            <li className="flex items-center gap-3 text-slate-600">
+                                                <Clock size={16} className="text-emerald-600" />
+                                                <span>Пн-Вс: 09:00 - 20:00</span>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </footer>
+
+                        {/* LIGHTBOX FOR LICENSES */}
+                        {lightboxOpen && (
+                            <div className="fixed inset-0 z-[90] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md animate-in fade-in duration-300"
+                                onTouchStart={onTouchStart}
+                                onTouchMove={onTouchMove}
+                                onTouchEnd={onTouchEnd}
+                            >
+                                <button 
+                                    className="absolute top-4 right-4 text-white hover:text-emerald-400 transition-colors z-[92]" 
+                                    onClick={() => setLightboxOpen(false)}
+                                >
+                                    <X size={32} />
+                                </button>
+                                
+                                <button 
+                                    className="hidden md:block absolute left-4 top-1/2 -translate-y-1/2 text-white/50 hover:text-white transition-colors z-[91] p-2" 
+                                    onClick={prevLicense}
+                                >
+                                     <ChevronLeft size={48} />
+                                </button>
+
+                                <div className="relative max-w-full max-h-[85vh]">
+                                    <img 
+                                        src={licenses[currentLicenseIndex]} 
+                                        alt={`License ${currentLicenseIndex + 1}`} 
+                                        className="max-w-full max-h-[85vh] object-contain rounded-lg shadow-2xl pointer-events-none select-none" 
+                                    />
+                                </div>
+
+                                <button 
+                                    className="hidden md:block absolute right-4 top-1/2 -translate-y-1/2 text-white/50 hover:text-white transition-colors z-[91] p-2" 
+                                    onClick={nextLicense}
+                                >
+                                     <ChevronRight size={48} />
+                                </button>
+
+                                {/* Mobile Controls */}
+                                <div className="md:hidden absolute bottom-8 left-0 w-full flex justify-center gap-8 z-[91]">
+                                     <button onClick={prevLicense} className="p-3 bg-white/10 rounded-full backdrop-blur-sm text-white border border-white/20 active:bg-white/30">
+                                        <ChevronLeft size={32} />
+                                     </button>
+                                     <button onClick={nextLicense} className="p-3 bg-white/10 rounded-full backdrop-blur-sm text-white border border-white/20 active:bg-white/30">
+                                        <ChevronRight size={32} />
+                                     </button>
+                                </div>
+                                
+                                <div className="absolute bottom-20 md:bottom-6 left-1/2 -translate-x-1/2 text-white/70 text-sm font-medium tracking-widest">
+                                    {currentLicenseIndex + 1} / {licenses.length}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* SERVICE SIDEBAR DRAWER */}
+                        <div className={`fixed inset-0 z-[60] flex justify-end ${activeService ? 'pointer-events-auto' : 'pointer-events-none'}`}>
+                            {/* Backdrop */}
+                            <div 
+                                className={`absolute inset-0 bg-slate-900/30 backdrop-blur-sm transition-opacity duration-300 ${activeService ? 'opacity-100' : 'opacity-0'}`}
+                                onClick={() => setActiveService(null)}
+                            ></div>
+
+                            {/* Sidebar Panel */}
+                            <div 
+                                className={`
+                                    relative w-full max-w-md bg-white h-full shadow-2xl flex flex-col transform transition-transform duration-300 ease-in-out
+                                    ${activeService ? 'translate-x-0' : 'translate-x-full'}
+                                `}
+                            >
+                                {activeService && servicesDetails[activeService] && (
+                                    <React.Fragment>
+                                        {/* Sidebar Header */}
+                                        <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-10 h-10 bg-emerald-100 text-emerald-600 rounded-xl flex items-center justify-center">
+                                                    {React.createElement(servicesDetails[activeService].icon, { size: 24 })}
+                                                </div>
+                                                <div>
+                                                    <h3 className="font-bold text-xl text-slate-900">{servicesDetails[activeService].title}</h3>
+                                                    <p className="text-xs text-slate-500">{servicesDetails[activeService].subtitle}</p>
+                                                </div>
+                                            </div>
+                                            <button 
+                                                onClick={() => setActiveService(null)}
+                                                className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-200 rounded-full transition-colors"
+                                            >
+                                                <X size={24} />
+                                            </button>
+                                        </div>
+
+                                        {/* Sidebar Content */}
+                                        <div className="flex-1 overflow-y-auto p-6">
+                                            <p className="text-slate-600 mb-8 leading-relaxed">
+                                                {servicesDetails[activeService].description}
+                                            </p>
+
+                                            {servicesDetails[activeService].fileList ? (
+                                                /* FILE LIST RENDER */
+                                                <div className="space-y-4">
+                                                    <h4 className="font-bold text-slate-900 mb-4">Доступные файлы:</h4>
+                                                    {servicesDetails[activeService].fileList.map((file, i) => (
+                                                        <div key={i} className="flex items-start p-4 bg-slate-50 rounded-xl border border-slate-100 hover:border-emerald-200 transition-colors group cursor-pointer">
+                                                            <div className="p-3 bg-white rounded-lg shadow-sm mr-4 text-emerald-600">
+                                                                {React.createElement(file.iconType || File, { size: 24 })}
+                                                            </div>
+                                                            <div className="flex-1">
+                                                                <h5 className="font-bold text-slate-800 text-sm mb-1">{file.name}</h5>
+                                                                <p className="text-xs text-slate-500 mb-2">{file.desc}</p>
+                                                                <div className="flex items-center gap-3">
+                                                                    <span className="text-[10px] font-bold bg-slate-200 text-slate-600 px-2 py-0.5 rounded uppercase">{file.type}</span>
+                                                                    <span className="text-[10px] text-slate-400">{file.size}</span>
+                                                                </div>
+                                                            </div>
+                                                            <div className="self-center">
+                                                                <div className="p-2 text-slate-300 group-hover:text-emerald-500 transition-colors">
+                                                                    <Download size={20} />
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            ) : servicesDetails[activeService].accordionItems ? (
+                                                /* INSTRUCTIONS ACCORDION RENDER */
+                                                <div className="space-y-4">
+                                                    {servicesDetails[activeService].accordionItems.map((item, i) => (
+                                                        <details key={i} className="group bg-slate-50 rounded-xl border border-slate-200 open:border-emerald-200 transition-colors">
+                                                            <summary className="flex items-center justify-between p-4 cursor-pointer font-bold text-slate-800 hover:bg-slate-50 rounded-xl transition-colors">
+                                                                <span>{item.title}</span>
+                                                                <span className="transform group-open:rotate-180 transition-transform duration-300 text-emerald-500">
+                                                                    <ChevronDown size={20} />
+                                                                </span>
+                                                            </summary>
+                                                            <div className="px-4 pb-4 pt-2 border-t border-slate-100 mt-2">
+                                                                {item.content}
+                                                            </div>
+                                                        </details>
+                                                    ))}
+                                                </div>
+                                            ) : servicesDetails[activeService].isPayment ? (
+                                                /* PAYMENT RENDER */
+                                                <div className="space-y-6">
+                                                    <div className="p-4 bg-slate-50 rounded-xl border border-slate-100">
+                                                        <h5 className="font-bold text-slate-800 mb-2">QR-код для оплаты</h5>
+                                                        <img src="qr.jpg" alt="QR-код" className="w-full rounded-lg shadow-sm mb-4" />
+                                                        <h5 className="font-bold text-slate-800 mb-2">Платежные системы</h5>
+                                                        <img src="paysys-medium.jpg" alt="Платежные системы" className="w-full rounded-lg shadow-sm" />
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                /* DEFAULT SERVICE RENDER */
+                                                <>
+                                                    <div className="mb-8">
+                                                        <h4 className="font-bold text-slate-900 mb-4">Возможности:</h4>
+                                                        <ul className="space-y-3">
+                                                            {servicesDetails[activeService].features.map((feature, i) => (
+                                                                <li key={i} className="flex items-center gap-3 text-slate-600 text-sm">
+                                                                    <Check size={16} className="text-emerald-500" />
+                                                                    {feature}
+                                                                </li>
+                                                            ))}
+                                                        </ul>
+                                                    </div>
+
+                                                    <div>
+                                                        <h4 className="font-bold text-slate-900 mb-4">Тарифы и цены:</h4>
+                                                        <div className="space-y-3">
+                                                            {servicesDetails[activeService].prices.map((item, i) => (
+                                                                <div key={i} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg border border-slate-100 hover:border-emerald-200 transition-colors">
+                                                                    <div>
+                                                                        <div className="font-bold text-slate-800">{item.name}</div>
+                                                                        <div className="text-xs text-slate-500">{item.detail}</div>
+                                                                    </div>
+                                                                    <div className="font-bold text-emerald-600">{item.price}</div>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                </>
+                                            )}
+
+                                            {servicesDetails[activeService].image && (
+                                                 <div className="mt-8">
+                                                    <img 
+                                                        src={servicesDetails[activeService].image} 
+                                                        alt="Иллюстрация" 
+                                                        className="w-full rounded-xl shadow-md"
+                                                    />
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        {/* Sidebar Footer */}
+                                        <div className="p-6 border-t border-slate-100 bg-slate-50">
+                                            <Button 
+                                                primary 
+                                                className="w-full justify-center"
+                                                onClick={() => {
+                                                    if (servicesDetails[activeService].isPayment) {
+                                                        window.open('https://bill.smit34.ru', '_blank');
+                                                    }
+                                                    // Simple close for other types
+                                                    setActiveService(null);
+                                                }}
+                                            >
+                                                {servicesDetails[activeService].cta}
+                                            </Button>
+                                        </div>
+                                    </React.Fragment>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* MODAL */}
+                        {showModal && (
+                            <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 animate-in fade-in duration-300">
+                                {/* Backdrop */}
+                                <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setShowModal(false)}></div>
+                                
+                                {/* Modal Content */}
+                                <GlassCard className="relative w-full max-w-md mx-auto animate-in fade-in slide-in-from-bottom-4 duration-300 bg-white p-0 overflow-hidden">
+                                    <button 
+                                        onClick={() => setShowModal(false)}
+                                        className="absolute top-4 right-4 text-white hover:text-slate-100 transition-colors z-10"
+                                    >
+                                        <X size={24} />
+                                    </button>
+                                    
+                                    {/* Header */}
+                                    <div className="bg-emerald-500 p-6 text-white text-center">
+                                        <span className="text-lg font-bold tracking-wide uppercase opacity-90">ВАЖНАЯ ИНФОРМАЦИЯ!!</span>
+                                    </div>
+
+                                    {/* Body */}
+                                    <div className="p-6 max-h-[60vh] overflow-y-auto custom-scroll">
+                                        {noticeContent}
+                                    </div>
+                                    
+                                    {/* Footer Removed as requested */}
+                                </GlassCard>
+                            </div>
+                        )}
+
+                        {/* DOCS MODAL */}
+                        {activeDoc && (
+                            <div className="fixed inset-0 z-[80] flex items-center justify-center p-4 sm:p-6 animate-in fade-in duration-300">
+                                <div className="absolute inset-0 bg-slate-900/80 backdrop-blur-sm" onClick={() => setActiveDoc(null)}></div>
+                                
+                                <div className="relative w-full max-w-4xl h-[90vh] bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col animate-in slide-in-from-bottom-4">
+                                    <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+                                        <h2 className="text-2xl font-bold text-slate-900">
+                                            {activeDoc === 'privacy' ? 'Политика конфиденциальности' : 'Пользовательское соглашение'}
+                                        </h2>
+                                        <button 
+                                            onClick={() => setActiveDoc(null)}
+                                            className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-200 rounded-full transition-colors"
+                                        >
+                                            <X size={24} />
+                                        </button>
+                                    </div>
+                                    
+                                    <div className="flex-1 overflow-y-auto p-6 sm:p-10 custom-scroll">
+                                        {activeDoc === 'privacy' ? privacyPolicyText : userAgreementText}
+                                    </div>
+                                    
+                                    {/* Footer removed as requested */}
+                                </div>
+                            </div>
+                        )}
+                        
+                        {/* COOKIE CONSENT */}
+                        {showCookieConsent && (
+                            <div className="fixed bottom-6 left-6 z-[90] max-w-sm w-full animate-in slide-in-from-bottom-4 duration-500">
+                                <GlassCard className="bg-white/95 backdrop-blur-xl border-emerald-100 shadow-2xl p-6">
+                                    <div className="flex items-start gap-4">
+                                        <div className="p-3 bg-emerald-100 text-emerald-600 rounded-xl shrink-0">
+                                            <Cookie size={24} />
+                                        </div>
+                                        <div>
+                                            <h4 className="font-bold text-slate-800 mb-2">Мы используем cookie</h4>
+                                            <p className="text-sm text-slate-500 mb-4">
+                                                Это необходимо для корректной работы сайта и анализа трафика. Продолжая, вы соглашаетесь с нашей <button onClick={() => setActiveDoc('privacy')} className="text-emerald-600 hover:underline">политикой обработки данных</button>.
+                                            </p>
+                                            <div className="flex gap-3">
+                                                <Button primary onClick={handleAcceptCookies} className="py-2 px-4 text-sm">
+                                                    Хорошо
+                                                </Button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </GlassCard>
+                            </div>
+                        )}
+                    </div>
+                );
+            }
+
+            const root = ReactDOM.createRoot(document.getElementById('root'));
+            root.render(<App />);
+        
+        } catch (err) {
+            console.error(err);
+            document.getElementById('error-display').innerText = "Ошибка запуска сайта: " + err.message + "\n\nПожалуйста, проверьте консоль разработчика (F12) для подробностей.";
+            document.getElementById('error-display').style.display = 'block';
+        }
+    </script>
+</body>
+</html>

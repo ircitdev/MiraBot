@@ -509,6 +509,7 @@ class TopActiveUserItem(BaseModel):
     messages_this_week: int
     mood_emoji: Optional[str] = None
     primary_emotion: Optional[str] = None
+    api_cost_usd: float = 0.0
 
 
 @router.get("/stats/top-active", response_model=List[TopActiveUserItem])
@@ -558,6 +559,19 @@ async def get_top_active_users(
             .where(Subscription.expires_at > datetime.now())
         )
         active_subs = {sub.user_id: sub for sub in subscriptions_result.scalars().all()}
+
+        # Получаем расходы API за неделю
+        from database.models import APIUsageLog
+        api_costs_result = await session.execute(
+            select(
+                APIUsageLog.user_id,
+                func.sum(APIUsageLog.cost_usd).label("total_cost")
+            )
+            .where(APIUsageLog.user_id.in_(user_ids))
+            .where(APIUsageLog.timestamp >= week_ago)
+            .group_by(APIUsageLog.user_id)
+        )
+        api_costs = {row.user_id: float(row.total_cost or 0) for row in api_costs_result.all()}
 
         # Получаем последние настроения пользователей
         from database.models import MoodEntry
@@ -610,6 +624,7 @@ async def get_top_active_users(
                 "messages_this_week": messages_count or 0,
                 "mood_emoji": mood_emoji,
                 "primary_emotion": primary_emotion,
+                "api_cost_usd": api_costs.get(user.id, 0.0),
             })
 
         return top_users

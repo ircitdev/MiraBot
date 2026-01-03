@@ -581,21 +581,44 @@ async function loadReferralData() {
         const statsData = await apiRequest('/referral/stats');
         console.log('Referral data loaded:', { codeData, statsData });
 
-        const referralLink = codeData.link || '';
-        console.log('Setting referral link:', referralLink);
-        document.getElementById('referral-link').value = referralLink;
-        document.getElementById('referral-count').textContent = statsData.invited_count || 0;
-        document.getElementById('referral-bonus').textContent = statsData.bonus_earned_days || 0;
+        const referralCode = codeData.code || '';
+        console.log('Setting referral code:', referralCode);
+
+        // Формируем ссылку на лендинг
+        const landingLink = referralCode ? `https://miradrug.ru/?ref=${referralCode}` : 'https://miradrug.ru/';
+        console.log('Setting landing link:', landingLink);
+
+        const refLinkEl = document.getElementById('referral-link');
+        if (refLinkEl) {
+            refLinkEl.value = landingLink;
+        }
+
+        const refCountEl = document.getElementById('referral-count');
+        if (refCountEl) {
+            refCountEl.textContent = statsData.invited_count || 0;
+        }
+
+        const refBonusEl = document.getElementById('referral-bonus');
+        if (refBonusEl) {
+            refBonusEl.textContent = statsData.bonus_earned_days || 0;
+        }
 
         const progressBar = document.getElementById('milestone-progress');
-        progressBar.style.width = (statsData.milestone_progress || 0) + '%';
+        if (progressBar) {
+            progressBar.style.width = (statsData.milestone_progress || 0) + '%';
+        }
 
     } catch (error) {
         console.error('Failed to load referral data:', error);
         // Устанавливаем дефолтные значения при ошибке
-        document.getElementById('referral-link').value = '';
-        document.getElementById('referral-count').textContent = '0';
-        document.getElementById('referral-bonus').textContent = '0';
+        const refLinkEl = document.getElementById('referral-link');
+        if (refLinkEl) refLinkEl.value = 'https://miradrug.ru/';
+
+        const refCountEl = document.getElementById('referral-count');
+        if (refCountEl) refCountEl.textContent = '0';
+
+        const refBonusEl = document.getElementById('referral-bonus');
+        if (refBonusEl) refBonusEl.textContent = '0';
     }
 }
 
@@ -665,10 +688,11 @@ async function loadPaymentTab() {
         document.getElementById('payment-referral-count').textContent = referralStats.invited_count || 0;
         document.getElementById('payment-referral-days').textContent = referralStats.bonus_earned_days || 0;
 
-        // Реферальная ссылка
-        const linkValue = referralCode.link || '';
-        console.log('Setting referral link to:', linkValue);
-        document.getElementById('referral-link').value = linkValue;
+        // Реферальная ссылка на лендинг
+        const refCode = referralCode.code || '';
+        const landingLink = refCode ? `https://miradrug.ru/?ref=${refCode}` : 'https://miradrug.ru/';
+        console.log('Setting referral link to:', landingLink);
+        document.getElementById('referral-link').value = landingLink;
 
     } catch (error) {
         console.error('Failed to load payment tab:', error);
@@ -864,6 +888,7 @@ document.addEventListener('DOMContentLoaded', () => {
             window.open(shareUrl, '_blank');
         }
     });
+
 
     // Period toggle buttons
     document.querySelectorAll('.period-btn').forEach(btn => {

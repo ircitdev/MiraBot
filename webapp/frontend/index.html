@@ -5,8 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Мира — Настройки и Статистика</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <link rel="stylesheet" href="/static/styles.css?v=2.0.7">
-    <script src="/static/app.js?v=2.0.7" defer></script>
+    <link rel="stylesheet" href="styles.css?v=2.0.8">
+    <script src="app.js?v=2.0.8" defer></script>
 </head>
 <body>
     <div id="app">
@@ -135,6 +135,38 @@
         <!-- Payment Tab -->
         <div id="payment-tab" class="tab-content">
             <div class="section">
+                <!-- Реферальная программа -->
+                <div class="referral-section">
+                    <h3>👭 Пригласи подругу</h3>
+                    <p class="hint">Пригласи подругу и получите обе +7 дней Premium!</p>
+
+                    <div class="referral-code-box">
+                        <label class="small-label">Твоя реферальная ссылка:</label>
+                        <input type="text" id="referral-link" readonly>
+                        <div class="referral-buttons">
+                            <button id="copy-referral" class="btn-secondary">📋 Скопировать</button>
+                            <button id="share-referral" class="btn-primary">📤 Поделиться</button>
+                        </div>
+                    </div>
+
+                    <div class="referral-stats">
+                        <div class="stat-row">
+                            <span>Приглашено подруг:</span>
+                            <strong id="referral-count">—</strong>
+                        </div>
+                        <div class="stat-row">
+                            <span>Заработано дней Premium:</span>
+                            <strong id="referral-bonus">—</strong>
+                        </div>
+                        <div class="milestone-box">
+                            <span class="small-label">До следующей награды (3 подруги):</span>
+                            <div class="progress-bar">
+                                <div id="milestone-progress" class="progress-fill"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <h2>💎 Подписка</h2>
 
                 <!-- Текущий статус подписки -->
@@ -229,38 +261,6 @@
                     <button id="renew-btn" class="btn-primary" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
                         🔄 Продлить подписку
                     </button>
-                </div>
-
-                <!-- Реферальная программа -->
-                <div class="referral-section">
-                    <h3>👭 Пригласи подругу</h3>
-                    <p class="hint">Пригласи подругу и получите обе +7 дней Premium!</p>
-
-                    <div class="referral-code-box">
-                        <label class="small-label">Твоя реферальная ссылка:</label>
-                        <input type="text" id="referral-link" readonly>
-                        <div class="referral-buttons">
-                            <button id="copy-referral" class="btn-secondary">📋 Скопировать</button>
-                            <button id="share-referral" class="btn-primary">📤 Поделиться</button>
-                        </div>
-                    </div>
-
-                    <div class="referral-stats">
-                        <div class="stat-row">
-                            <span>Приглашено подруг:</span>
-                            <strong id="referral-count">—</strong>
-                        </div>
-                        <div class="stat-row">
-                            <span>Заработано дней Premium:</span>
-                            <strong id="referral-bonus">—</strong>
-                        </div>
-                        <div class="milestone-box">
-                            <span class="small-label">До следующей награды (3 подруги):</span>
-                            <div class="progress-bar">
-                                <div id="milestone-progress" class="progress-fill"></div>
-                            </div>
-                        </div>
-                    </div>
                 </div>
             </div>
         </div>
@@ -536,6 +536,6 @@
         </div>
     </div>
 
-    <script src="/static/app.js"></script>
+    <script src="app.js"></script>
 </body>
 </html>

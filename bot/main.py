@@ -33,6 +33,7 @@ from bot.handlers.commands import (
     privacy_command,
     goals_command,
     plans_command,
+    support_command,
 )
 from bot.handlers.programs import programs_command, program_callback
 from bot.handlers.callbacks import handle_callback
@@ -297,6 +298,7 @@ def create_application() -> Application:
     application.add_handler(CommandHandler("privacy", privacy_command))
     application.add_handler(CommandHandler("goals", goals_command))
     application.add_handler(CommandHandler("plans", plans_command))
+    application.add_handler(CommandHandler("support", support_command))
     application.add_handler(CommandHandler("programs", programs_command))
     application.add_handler(CommandHandler("exercises", exercises_command))
     application.add_handler(CommandHandler("affirmation", affirmation_command))

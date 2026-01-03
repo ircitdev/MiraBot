@@ -1143,3 +1143,127 @@ class ApiCost(Base):
 
     def __repr__(self) -> str:
         return f"<ApiCost(id={self.id}, user_id={self.user_id}, provider={self.provider}, cost=${self.cost_usd:.4f})>"
+
+
+# =====================================
+# SUPPORT BOT MODELS
+# =====================================
+
+
+class SupportUser(Base):
+    """Пользователь бота технической поддержки."""
+
+    __tablename__ = "support_users"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    telegram_id: Mapped[int] = mapped_column(BigInteger, unique=True, nullable=False, index=True)
+    first_name: Mapped[Optional[str]] = mapped_column(String(255))
+    last_name: Mapped[Optional[str]] = mapped_column(String(255))
+    username: Mapped[Optional[str]] = mapped_column(String(255))
+    photo_url: Mapped[Optional[str]] = mapped_column(String(500))  # URL аватара или file_id
+
+    # ID топика в супергруппе MiraBotEvents
+    topic_id: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
+
+    # Статус блокировки бота
+    is_bot_blocked: Mapped[bool] = mapped_column(Boolean, default=False)
+
+    # Метаданные
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=func.now(), nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=func.now(), onupdate=func.now())
+
+    # Связи
+    messages: Mapped[list["SupportMessage"]] = relationship("SupportMessage", back_populates="user", cascade="all, delete-orphan")
+    reviews: Mapped[list["SupportReview"]] = relationship("SupportReview", back_populates="user", cascade="all, delete-orphan")
+
+    # Индексы
+    __table_args__ = (
+        Index("idx_support_user_telegram_id", "telegram_id"),
+        Index("idx_support_user_topic_id", "topic_id"),
+    )
+
+    def __repr__(self) -> str:
+        return f"<SupportUser(id={self.id}, telegram_id={self.telegram_id}, topic_id={self.topic_id})>"
+
+
+class SupportMessage(Base):
+    """Сообщение в технической поддержке."""
+
+    __tablename__ = "support_messages"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    user_id: Mapped[int] = mapped_column(Integer, ForeignKey("support_users.id"), nullable=False, index=True)
+
+    # Тип отправителя: user (пользователь) или admin (администратор)
+    sender_type: Mapped[str] = mapped_column(
+        SQLEnum("user", "admin", name="sender_type_enum"),
+        nullable=False
+    )
+
+    # Содержимое сообщения
+    message_text: Mapped[Optional[str]] = mapped_column(Text)  # Null для медиа без подписи
+    media_type: Mapped[str] = mapped_column(
+        SQLEnum("text", "photo", "video", "voice", "video_note", "document", "sticker", name="media_type_enum"),
+        default="text"
+    )
+    media_file_id: Mapped[Optional[str]] = mapped_column(String(500))  # file_id из Telegram
+
+    # ID сообщения в Telegram (для редактирования/удаления)
+    telegram_message_id: Mapped[Optional[int]] = mapped_column(BigInteger)
+
+    # Статус прочтения (опционально)
+    is_read: Mapped[bool] = mapped_column(Boolean, default=False)
+
+    # Метаданные
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=func.now(), nullable=False, index=True)
+
+    # Связи
+    user: Mapped["SupportUser"] = relationship("SupportUser", back_populates="messages")
+
+    # Индексы
+    __table_args__ = (
+        Index("idx_support_message_user", "user_id"),
+        Index("idx_support_message_created", "created_at"),
+        Index("idx_support_message_user_created", "user_id", "created_at"),
+    )
+
+    def __repr__(self) -> str:
+        return f"<SupportMessage(id={self.id}, user_id={self.user_id}, sender={self.sender_type}, type={self.media_type})>"
+
+
+class SupportReview(Base):
+    """Отзыв пользователя о Мире."""
+
+    __tablename__ = "support_reviews"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    user_id: Mapped[Optional[int]] = mapped_column(
+        Integer,
+        ForeignKey("support_users.id"),
+        nullable=True,
+        index=True
+    )  # Nullable для анонимных отзывов
+
+    # Данные из формы отзыва
+    username: Mapped[Optional[str]] = mapped_column(String(255))  # @username из Telegram
+    age: Mapped[Optional[int]] = mapped_column(Integer)
+    about_self: Mapped[Optional[str]] = mapped_column(Text)  # "О себе"
+    review_text: Mapped[str] = mapped_column(Text, nullable=False)  # Текст отзыва
+    permission_to_publish: Mapped[bool] = mapped_column(Boolean, default=False)  # Разрешение на публикацию
+
+    # Метаданные
+    telegram_message_id: Mapped[Optional[int]] = mapped_column(BigInteger)  # ID сообщения в топике #4
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=func.now(), nullable=False, index=True)
+
+    # Связи
+    user: Mapped[Optional["SupportUser"]] = relationship("SupportUser", back_populates="reviews")
+
+    # Индексы
+    __table_args__ = (
+        Index("idx_support_review_user", "user_id"),
+        Index("idx_support_review_created", "created_at"),
+        Index("idx_support_review_permission", "permission_to_publish"),
+    )
+
+    def __repr__(self) -> str:
+        return f"<SupportReview(id={self.id}, user_id={self.user_id}, permission={self.permission_to_publish})>"

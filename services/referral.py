@@ -126,10 +126,16 @@ class ReferralService:
         """Статистика рефералов пользователя."""
         code = await self.get_or_create_code(user_id)
         count = await self.referral_repo.count_by_referrer(user_id)
-        
+
+        # Подсчитываем бонусные дни с учетом milestone
+        bonus_days = count * settings.REFERRAL_BONUS_DAYS
+        if count >= 3:
+            # Добавляем бонус за первый milestone (3 подруги)
+            bonus_days += settings.REFERRAL_MILESTONE_3
+
         return {
             "code": code,
             "invited_count": count,
-            "bonus_earned_days": count * settings.REFERRAL_BONUS_DAYS,
+            "bonus_earned_days": bonus_days,
             "next_milestone": 3 - count if count < 3 else None,
         }
