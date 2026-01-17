@@ -1,0 +1,1382 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Профиль пользователя</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+
+    <!-- Material Design Fonts & Icons -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+    <style>
+         :root {
+            /* MD3 Color Tokens - Light (Blue Theme) */
+            --md-sys-color-primary: #0061A4;
+            --md-sys-color-on-primary: #FFFFFF;
+            --md-sys-color-primary-container: #D1E4FF;
+            --md-sys-color-on-primary-container: #001D36;
+            --md-sys-color-secondary: #535F70;
+            --md-sys-color-on-secondary: #FFFFFF;
+            --md-sys-color-secondary-container: #D7E3F7;
+            --md-sys-color-on-secondary-container: #101C2B;
+            --md-sys-color-tertiary: #6B5778;
+            --md-sys-color-tertiary-container: #F2DAFF;
+            --md-sys-color-on-tertiary-container: #251431;
+            --md-sys-color-error: #BA1A1A;
+            --md-sys-color-error-container: #FFDAD6;
+            --md-sys-color-on-error-container: #410002;
+            --md-sys-color-background: #FDFCFF;
+            --md-sys-color-on-background: #1A1C1E;
+            /* Surfaces */
+            --md-sys-color-surface: #FDFCFF;
+            --md-sys-color-surface-container-low: #F0F4F9;
+            --md-sys-color-surface-container: #EAEFF4;
+            --md-sys-color-surface-container-high: #E4E9EF;
+            --md-sys-color-on-surface: #1A1C1E;
+            --md-sys-color-on-surface-variant: #42474E;
+            --md-sys-color-outline: #73777F;
+            --md-sys-color-outline-variant: #C3C7CF;
+            /* Gradients */
+            --gradient-primary: linear-gradient(135deg, var(--md-sys-color-primary) 0%, #3694e0 100%);
+            --gradient-surface: linear-gradient(180deg, var(--md-sys-color-surface) 0%, var(--md-sys-color-surface-container) 100%);
+            --gradient-premium: linear-gradient(135deg, var(--md-sys-color-tertiary) 0%, #9c82b3 100%);
+            --radius-l: 24px;
+            --radius-m: 16px;
+            --radius-s: 12px;
+            --header-height: 64px;
+            --sidebar-width: 360px;
+        }
+        
+        [data-theme="dark"] {
+            /* MD3 Color Tokens - Dark (Blue Theme) */
+            --md-sys-color-primary: #9ECAFF;
+            --md-sys-color-on-primary: #003258;
+            --md-sys-color-primary-container: #00497D;
+            --md-sys-color-on-primary-container: #D1E4FF;
+            --md-sys-color-secondary: #BBC7DB;
+            --md-sys-color-on-secondary: #253140;
+            --md-sys-color-secondary-container: #3B4858;
+            --md-sys-color-on-secondary-container: #D7E3F7;
+            --md-sys-color-tertiary: #D7BEE4;
+            --md-sys-color-tertiary-container: #523F5F;
+            --md-sys-color-on-tertiary-container: #F2DAFF;
+            --md-sys-color-error: #FFB4AB;
+            --md-sys-color-error-container: #93000A;
+            --md-sys-color-on-error-container: #FFDAD6;
+            --md-sys-color-background: #1A1C1E;
+            --md-sys-color-on-background: #E2E2E6;
+            --md-sys-color-surface: #1A1C1E;
+            --md-sys-color-surface-container-low: #1C1F22;
+            --md-sys-color-surface-container: #202327;
+            --md-sys-color-surface-container-high: #272A2E;
+            --md-sys-color-on-surface: #E2E2E6;
+            --md-sys-color-on-surface-variant: #C3C7CF;
+            --md-sys-color-outline: #8D9199;
+            --md-sys-color-outline-variant: #42474E;
+            /* Gradients Dark */
+            --gradient-primary: linear-gradient(135deg, var(--md-sys-color-primary) 0%, #6cb7ff 100%);
+            --gradient-surface: linear-gradient(180deg, var(--md-sys-color-surface) 0%, var(--md-sys-color-surface-container) 100%);
+            --gradient-premium: linear-gradient(135deg, var(--md-sys-color-tertiary) 0%, #e6d3f0 100%);
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        body {
+            font-family: 'Roboto', sans-serif;
+            background: var(--gradient-surface);
+            /* Gradient Background */
+            background-attachment: fixed;
+            color: var(--md-sys-color-on-background);
+            transition: background 0.3s ease, color 0.3s ease;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        /* --- App Bar --- */
+        
+        .app-bar {
+            background: rgba(var(--md-sys-color-surface), 0.7);
+            /* More transparent */
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            color: var(--md-sys-color-on-surface);
+            height: var(--header-height);
+            padding: 0 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            border-bottom: 1px solid rgba(var(--md-sys-color-outline), 0.1);
+        }
+        
+        .app-bar-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+        
+        .app-bar h1 {
+            font-size: 20px;
+            font-weight: 500;
+            line-height: 28px;
+            margin: 0;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .icon-btn {
+            background: transparent;
+            border: none;
+            color: var(--md-sys-color-on-surface-variant);
+            cursor: pointer;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s;
+        }
+        
+        .icon-btn:hover {
+            background: var(--md-sys-color-surface-container-high);
+            color: var(--md-sys-color-on-surface);
+        }
+        /* --- Main Layout --- */
+        
+        .main-layout {
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            max-width: 1440px;
+            margin: 0 auto;
+            padding: 24px;
+            gap: 24px;
+        }
+        
+        @media (min-width: 1024px) {
+            .main-layout {
+                display: grid;
+                grid-template-columns: var(--sidebar-width) 1fr;
+                align-items: start;
+            }
+            .sticky-sidebar {
+                position: sticky;
+                top: calc(var(--header-height) + 24px);
+            }
+        }
+        /* --- Cards --- */
+        
+        .card {
+            background: var(--md-sys-color-surface-container-low);
+            /* Subtle gradient for cards */
+            background: linear-gradient(160deg, var(--md-sys-color-surface-container-low) 0%, var(--md-sys-color-surface-container) 100%);
+            border-radius: var(--radius-l);
+            padding: 24px;
+            border: 1px solid rgba(var(--md-sys-color-outline), 0.08);
+            overflow: hidden;
+            transition: background 0.3s;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.03);
+        }
+        /* --- User Profile Card --- */
+        
+        .profile-card {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+        }
+        
+        .user-avatar {
+            width: 96px;
+            height: 96px;
+            border-radius: 50%;
+            background: var(--gradient-primary);
+            /* Gradient Avatar */
+            color: var(--md-sys-color-on-primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 40px;
+            font-weight: 500;
+            margin-bottom: 16px;
+            box-shadow: 0 8px 16px rgba(0, 97, 164, 0.2);
+        }
+        
+        .profile-name {
+            font-size: 24px;
+            font-weight: 400;
+            color: var(--md-sys-color-on-surface);
+            margin-bottom: 4px;
+        }
+        
+        .profile-handle {
+            font-size: 14px;
+            color: var(--md-sys-color-on-surface-variant);
+            margin-bottom: 16px;
+        }
+        
+        .badges-row {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 8px;
+            margin-bottom: 24px;
+        }
+        
+        .badge {
+            padding: 6px 16px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 500;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+        
+        .badge-premium {
+            background: var(--gradient-premium);
+            color: white;
+            box-shadow: 0 2px 8px rgba(107, 87, 120, 0.3);
+        }
+        
+        .badge-trial {
+            background: var(--md-sys-color-secondary-container);
+            color: var(--md-sys-color-on-secondary-container);
+        }
+        
+        .badge-free {
+            background: var(--md-sys-color-surface-container-high);
+            color: var(--md-sys-color-on-surface-variant);
+        }
+        
+        .profile-meta-list {
+            width: 100%;
+            text-align: left;
+            margin-bottom: 24px;
+        }
+        
+        .meta-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--md-sys-color-outline-variant);
+            font-size: 14px;
+        }
+        
+        .meta-item:last-child {
+            border-bottom: none;
+        }
+        
+        .meta-label {
+            color: var(--md-sys-color-on-surface-variant);
+        }
+        
+        .meta-value {
+            color: var(--md-sys-color-on-surface);
+            font-weight: 500;
+            text-align: right;
+        }
+        
+        .action-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            width: 100%;
+        }
+        /* --- Buttons --- */
+        
+        .btn {
+            height: 40px;
+            border-radius: 20px;
+            border: none;
+            padding: 0 24px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: all 0.2s;
+            text-decoration: none;
+            font-family: inherit;
+        }
+        
+        .btn-filled {
+            background: var(--gradient-primary);
+            /* Gradient Button */
+            color: var(--md-sys-color-on-primary);
+            box-shadow: 0 2px 6px rgba(0, 97, 164, 0.2);
+        }
+        
+        .btn-filled:hover {
+            box-shadow: 0 4px 12px rgba(0, 97, 164, 0.3);
+            filter: brightness(1.1);
+        }
+        
+        .btn-tonal {
+            background: var(--md-sys-color-secondary-container);
+            color: var(--md-sys-color-on-secondary-container);
+        }
+        
+        .btn-tonal:hover {
+            background: color-mix(in srgb, var(--md-sys-color-secondary-container), black 5%);
+        }
+        
+        .btn-outlined {
+            background: transparent;
+            border: 1px solid var(--md-sys-color-outline);
+            color: var(--md-sys-color-primary);
+        }
+        
+        .btn-outlined:hover {
+            background: var(--md-sys-color-primary-container);
+            border-color: var(--md-sys-color-primary);
+        }
+        /* --- Tabs --- */
+        
+        .tabs-wrapper {
+            background: var(--md-sys-color-surface-container-low);
+            border-radius: var(--radius-l);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            min-height: 600px;
+            border: 1px solid rgba(var(--md-sys-color-outline), 0.08);
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.03);
+        }
+        
+        .tabs-header {
+            display: flex;
+            background: var(--md-sys-color-surface);
+            border-bottom: 1px solid var(--md-sys-color-surface-container-high);
+            overflow-x: auto;
+            scrollbar-width: none;
+        }
+        
+        .tabs-header::-webkit-scrollbar {
+            display: none;
+        }
+        
+        .tab-btn {
+            flex: 1;
+            min-width: 120px;
+            padding: 16px;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            color: var(--md-sys-color-on-surface-variant);
+            font-size: 14px;
+            font-weight: 500;
+            position: relative;
+            transition: color 0.2s;
+        }
+        
+        .tab-btn:hover {
+            background: var(--md-sys-color-surface-container-high);
+        }
+        
+        .tab-btn.active {
+            color: var(--md-sys-color-primary);
+        }
+        
+        .tab-btn.active::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 3px;
+            background: var(--gradient-primary);
+            /* Gradient Indicator */
+            border-top-left-radius: 3px;
+            border-top-right-radius: 3px;
+        }
+        
+        .tab-content {
+            padding: 24px;
+            flex-grow: 1;
+        }
+        
+        .tab-pane {
+            display: none;
+            animation: fadeIn 0.3s ease-in-out;
+        }
+        
+        .tab-pane.active {
+            display: block;
+        }
+        
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        /* --- Stats Grid --- */
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+        
+        .stat-item {
+            background: var(--md-sys-color-surface);
+            padding: 20px;
+            border-radius: var(--radius-m);
+            border: 1px solid var(--md-sys-color-outline-variant);
+            transition: transform 0.2s;
+        }
+        
+        .stat-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+        }
+        
+        .stat-val {
+            font-size: 32px;
+            font-weight: 500;
+            background: var(--gradient-primary);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            /* Gradient Text */
+            margin-bottom: 4px;
+        }
+        
+        .stat-lbl {
+            font-size: 14px;
+            color: var(--md-sys-color-on-surface-variant);
+        }
+        /* --- Info Grid --- */
+        
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 16px;
+        }
+        
+        .info-box {
+            background: var(--md-sys-color-surface-container);
+            padding: 16px;
+            border-radius: var(--radius-s);
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .info-box-lbl {
+            font-size: 12px;
+            color: var(--md-sys-color-on-surface-variant);
+            margin-bottom: 4px;
+        }
+        
+        .info-box-val {
+            font-size: 16px;
+            color: var(--md-sys-color-on-surface);
+            font-weight: 500;
+        }
+        /* --- Chat Interface --- */
+        
+        .chat-container {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            height: 600px;
+            overflow-y: auto;
+            padding-right: 8px;
+        }
+        /* Custom Scrollbar for chat */
+        
+        .chat-container::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        .chat-container::-webkit-scrollbar-thumb {
+            background: var(--md-sys-color-outline-variant);
+            border-radius: 3px;
+        }
+        
+        .chat-container::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        
+        .msg-row {
+            display: flex;
+            margin-bottom: 12px;
+            animation: slideIn 0.3s ease;
+        }
+        
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .msg-row.user {
+            justify-content: flex-end;
+        }
+        
+        .msg-row.assistant {
+            justify-content: flex-start;
+        }
+        
+        .msg-bubble {
+            max-width: 75%;
+            padding: 12px 16px;
+            border-radius: 18px;
+            position: relative;
+            font-size: 15px;
+            line-height: 1.5;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+        }
+        
+        .msg-row.user .msg-bubble {
+            background: var(--gradient-primary);
+            /* Gradient Chat Bubble */
+            color: var(--md-sys-color-on-primary);
+            border-bottom-right-radius: 4px;
+        }
+        
+        .msg-row.assistant .msg-bubble {
+            background: var(--md-sys-color-secondary-container);
+            color: var(--md-sys-color-on-secondary-container);
+            border-bottom-left-radius: 4px;
+        }
+        
+        .msg-meta {
+            font-size: 11px;
+            margin-top: 4px;
+            opacity: 0.7;
+            text-align: right;
+        }
+        
+        .msg-tags {
+            margin-top: 8px;
+            display: flex;
+            gap: 4px;
+            flex-wrap: wrap;
+        }
+        
+        .msg-tag {
+            background: rgba(0, 0, 0, 0.1);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 10px;
+        }
+        /* --- Charts --- */
+        
+        .chart-wrapper {
+            background: var(--md-sys-color-surface);
+            padding: 24px;
+            border-radius: var(--radius-m);
+            margin-bottom: 24px;
+            border: 1px solid var(--md-sys-color-outline-variant);
+        }
+        
+        .chart-wrapper h3 {
+            font-size: 18px;
+            font-weight: 500;
+            margin-bottom: 16px;
+            color: var(--md-sys-color-on-surface);
+        }
+        
+        .canvas-container {
+            position: relative;
+            height: 300px;
+            width: 100%;
+        }
+        /* --- Timeline --- */
+        
+        .timeline {
+            position: relative;
+            padding-left: 24px;
+        }
+        
+        .timeline::before {
+            content: '';
+            position: absolute;
+            left: 7px;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: var(--md-sys-color-surface-container-high);
+        }
+        
+        .timeline-item {
+            position: relative;
+            margin-bottom: 32px;
+            padding-left: 24px;
+        }
+        
+        .timeline-marker {
+            position: absolute;
+            left: -24px;
+            top: 0;
+            width: 16px;
+            height: 16px;
+            background: var(--gradient-primary);
+            /* Gradient Marker */
+            border: 4px solid var(--md-sys-color-surface-container-low);
+            border-radius: 50%;
+            z-index: 1;
+        }
+        
+        .timeline-date {
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--md-sys-color-primary);
+            margin-bottom: 4px;
+        }
+        
+        .timeline-content {
+            background: var(--md-sys-color-surface);
+            padding: 16px;
+            border-radius: var(--radius-s);
+            border: 1px solid var(--md-sys-color-outline-variant);
+        }
+        
+        .timeline-title {
+            font-weight: 500;
+            color: var(--md-sys-color-on-surface);
+            margin-bottom: 4px;
+        }
+        
+        .timeline-desc {
+            font-size: 14px;
+            color: var(--md-sys-color-on-surface-variant);
+        }
+        /* --- Loading --- */
+        
+        .loading-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 48px;
+            color: var(--md-sys-color-on-surface-variant);
+        }
+        
+        .spinner {
+            width: 48px;
+            height: 48px;
+            border: 4px solid var(--md-sys-color-surface-container-high);
+            border-top-color: var(--md-sys-color-primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 16px;
+        }
+        
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+        /* Mobile specific adjustments */
+        
+        @media (max-width: 768px) {
+             :root {
+                --header-height: 56px;
+            }
+            .app-bar {
+                padding: 0 16px;
+            }
+            .main-layout {
+                padding: 16px;
+            }
+            .profile-card {
+                margin-bottom: 0;
+            }
+            .tabs-wrapper {
+                min-height: auto;
+            }
+            .stats-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body data-theme="light">
+
+    <!-- App Bar -->
+    <header class="app-bar">
+        <div class="app-bar-left">
+            <button class="icon-btn" onclick="goBack()" aria-label="Назад">
+                <span class="material-icons-round">arrow_back</span>
+            </button>
+            <h1>
+                <span id="user-name">Пользователь</span>
+            </h1>
+        </div>
+        <button class="icon-btn" onclick="toggleTheme()" aria-label="Сменить тему">
+            <span class="material-icons-round" id="theme-icon">dark_mode</span>
+        </button>
+    </header>
+
+    <div class="main-layout">
+        <!-- Sidebar: User Profile -->
+        <aside class="sticky-sidebar">
+            <div class="card profile-card">
+                <div class="user-avatar" id="user-avatar">
+                    <span class="material-icons-round" style="font-size: 48px;">person</span>
+                </div>
+                <h2 class="profile-name" id="header-user-name">Загрузка...</h2>
+                <div class="profile-handle" id="header-username">@loading</div>
+
+                <div class="badges-row">
+                    <span class="badge" id="header-subscription">PLAN</span>
+                </div>
+
+                <div class="profile-meta-list">
+                    <div class="meta-item">
+                        <span class="meta-label">ID Telegram</span>
+                        <span class="meta-value" id="header-telegram-id">...</span>
+                    </div>
+                    <div class="meta-item">
+                        <span class="meta-label">Партнёр</span>
+                        <span class="meta-value" id="partner-name">-</span>
+                    </div>
+                    <div class="meta-item">
+                        <span class="meta-label">Регистрация</span>
+                        <span class="meta-value" id="created-at">-</span>
+                    </div>
+                    <div class="meta-item">
+                        <span class="meta-label">Истекает</span>
+                        <span class="meta-value" id="subscription-expires">-</span>
+                    </div>
+                </div>
+
+                <div class="action-buttons">
+                    <button class="btn btn-filled" onclick="grantPremium()">
+                        <span class="material-icons-round">star</span>
+                        Выдать Premium
+                    </button>
+                    <button class="btn btn-outlined" onclick="exportHistory()">
+                        <span class="material-icons-round">download</span>
+                        Экспорт истории
+                    </button>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content: Tabs -->
+        <main class="tabs-wrapper">
+            <div class="tabs-header">
+                <button class="tab-btn active" data-tab="general" onclick="switchTab('general')">Обзор</button>
+                <button class="tab-btn" data-tab="conversation" onclick="switchTab('conversation')">Диалоги</button>
+                <button class="tab-btn" data-tab="mood" onclick="switchTab('mood')">Эмоции</button>
+                <button class="tab-btn" data-tab="history" onclick="switchTab('history')">Хронология</button>
+                <button class="tab-btn" data-tab="analytics" onclick="switchTab('analytics')">Аналитика</button>
+            </div>
+
+            <div class="tab-content">
+                <!-- General Tab -->
+                <div class="tab-pane active" id="tab-general">
+                    <div class="stats-grid">
+                        <div class="stat-item">
+                            <div class="stat-val" id="total-messages">-</div>
+                            <div class="stat-lbl">Сообщений всего</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-val" id="messages-week">-</div>
+                            <div class="stat-lbl">За неделю</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-val" id="days-since-join">-</div>
+                            <div class="stat-lbl">Дней с нами</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-val" id="last-active">-</div>
+                            <div class="stat-lbl">Был в сети</div>
+                        </div>
+                    </div>
+
+                    <h3 style="margin-bottom: 16px; font-weight: 500;">Детали</h3>
+                    <div class="info-grid">
+                        <div class="info-box">
+                            <span class="info-box-lbl">Персона</span>
+                            <span class="info-box-val" id="persona">-</span>
+                        </div>
+                        <div class="info-box">
+                            <span class="info-box-lbl">Онбординг</span>
+                            <span class="info-box-val" id="onboarding">-</span>
+                        </div>
+                        <div class="info-box">
+                            <span class="info-box-lbl">Активные ритуалы</span>
+                            <span class="info-box-val" id="rituals">-</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Conversation Tab -->
+                <div class="tab-pane" id="tab-conversation">
+                    <div class="chat-container" id="messages-list">
+                        <div class="loading-state">
+                            <div class="spinner"></div>
+                            <div>Загрузка диалога...</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Mood Tab -->
+                <div class="tab-pane" id="tab-mood">
+                    <div class="chart-wrapper">
+                        <h3>Динамика настроения</h3>
+                        <div class="canvas-container">
+                            <canvas id="mood-chart"></canvas>
+                        </div>
+                    </div>
+                    <div class="chart-wrapper">
+                        <h3>Спектр эмоций</h3>
+                        <div class="canvas-container" style="max-width: 400px; margin: 0 auto;">
+                            <canvas id="emotions-chart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- History Tab -->
+                <div class="tab-pane" id="tab-history">
+                    <div class="timeline" id="timeline">
+                        <div class="loading-state">
+                            <div class="spinner"></div>
+                            <div>Загрузка событий...</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Analytics Tab -->
+                <div class="tab-pane" id="tab-analytics">
+                    <div class="chart-wrapper">
+                        <h3>Популярные темы</h3>
+                        <div class="badges-row" id="top-tags" style="justify-content: flex-start;">
+                            <div class="loading-state">Загрузка...</div>
+                        </div>
+                    </div>
+
+                    <div class="chart-wrapper">
+                        <h3>Тепловая карта активности</h3>
+                        <div class="canvas-container">
+                            <canvas id="activity-heatmap"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="chart-wrapper">
+                        <h3>Дни недели</h3>
+                        <div class="canvas-container">
+                            <canvas id="weekday-chart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        const tg = window.Telegram ? .WebApp;
+        if (tg) {
+            tg.expand();
+            tg.enableClosingConfirmation();
+        }
+
+        const API_BASE = '/api/admin';
+
+        // Helper to safely get URL params
+        const urlParams = new URLSearchParams(window.location.search);
+        const telegramId = urlParams.get('telegram_id') || '123456789'; // Default for demo if empty
+        const tokenFromUrl = urlParams.get('token');
+
+        if (tokenFromUrl) {
+            localStorage.setItem('admin_token', tokenFromUrl);
+        }
+        const adminToken = localStorage.getItem('admin_token');
+
+        let moodChart = null;
+        let emotionsChart = null;
+        let activityHeatmap = null;
+        let weekdayChart = null;
+
+        // Theme Handling
+        function updateThemeIcon(theme) {
+            const icon = document.getElementById('theme-icon');
+            icon.textContent = theme === 'light' ? 'dark_mode' : 'light_mode';
+
+            // Update Chart.js defaults based on theme
+            const textColor = theme === 'light' ? '#1C1B1F' : '#E6E1E5';
+            const gridColor = theme === 'light' ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)';
+
+            Chart.defaults.color = textColor;
+            Chart.defaults.borderColor = gridColor;
+
+            // Re-render charts if they exist
+            [moodChart, emotionsChart, activityHeatmap, weekdayChart].forEach(chart => {
+                if (chart) chart.update();
+            });
+        }
+
+        function toggleTheme() {
+            const html = document.documentElement;
+            const currentTheme = html.getAttribute('data-theme');
+            const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+
+            html.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+            updateThemeIcon(newTheme);
+        }
+
+        // Init Theme
+        const savedTheme = localStorage.getItem('theme') || 'light';
+        document.documentElement.setAttribute('data-theme', savedTheme);
+        updateThemeIcon(savedTheme);
+
+        function goBack() {
+            if (window.history.length > 1) {
+                window.history.back();
+            } else if (tg) {
+                tg.close();
+            }
+        }
+
+        async function apiRequest(endpoint, options = {}) {
+            const headers = {
+                'Content-Type': 'application/json'
+            };
+            if (adminToken) headers['Authorization'] = `Bearer ${adminToken}`;
+            else if (tg && tg.initData) headers['X-Telegram-Init-Data'] = tg.initData;
+
+            // DEMO MODE: If we are running locally/without backend, create mock data
+            // Remove this block in production
+            if (window.location.hostname === '' || window.location.protocol === 'file:') {
+                console.warn('Running in mock mode');
+                return mockResponse(endpoint);
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}${endpoint}`, {
+                    ...options,
+                    headers: {...headers,
+                        ...options.headers
+                    },
+                });
+                if (!response.ok) throw new Error(`API error: ${response.statusText}`);
+                return response.json();
+            } catch (e) {
+                console.warn('API Failed, using mock data for UI demo', e);
+                return mockResponse(endpoint);
+            }
+        }
+
+        // Mock Data Generator for UI Preview
+        function mockResponse(endpoint) {
+            return new Promise(resolve => {
+                setTimeout(() => {
+                    if (endpoint.includes('/users/') && !endpoint.includes('/messages') && !endpoint.includes('/mood') && !endpoint.includes('/timeline') && !endpoint.includes('/analytics')) {
+                        resolve({
+                            display_name: "Алексей Смирнов",
+                            telegram_id: telegramId,
+                            username: "alex_smr",
+                            subscription_plan: "premium",
+                            total_messages: 1243,
+                            messages_this_week: 85,
+                            created_at: "2023-11-15T10:00:00Z",
+                            last_active_at: new Date().toISOString(),
+                            partner_name: "Елена",
+                            persona: "Психолог (Мира)",
+                            onboarding_completed: true,
+                            rituals_enabled: ["Утренний настрой", "Итоги дня"],
+                            subscription_expires_at: "2024-05-20T10:00:00Z"
+                        });
+                    } else if (endpoint.includes('messages')) {
+                        resolve(Array.from({
+                            length: 10
+                        }, (_, i) => ({
+                            role: i % 2 === 0 ? 'user' : 'assistant',
+                            content: i % 2 === 0 ? "Привет, как мне улучшить продуктивность?" : "Привет! Давай попробуем технику Pomodoro. Ты пробовал её раньше?",
+                            created_at: new Date(Date.now() - i * 1000000).toISOString(),
+                            tags: i % 3 === 0 ? ['продуктивность'] : []
+                        })).reverse());
+                    } else if (endpoint.includes('mood')) {
+                        resolve({
+                            labels: ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'],
+                            mood_scores: [7, 6, 8, 5, 8, 9, 8],
+                            emotion_labels: ['Радость', 'Спокойствие', 'Усталость', 'Тревога'],
+                            emotion_values: [40, 30, 20, 10]
+                        });
+                    } else if (endpoint.includes('timeline')) {
+                        resolve([{
+                            date: new Date().toISOString(),
+                            title: "Продление подписки",
+                            description: "Пользователь купил Premium на 1 месяц"
+                        }, {
+                            date: new Date(Date.now() - 86400000).toISOString(),
+                            title: "Смена персоны",
+                            description: "Сменил 'Друг' на 'Психолог'"
+                        }]);
+                    } else if (endpoint.includes('analytics')) {
+                        resolve({
+                            top_tags: [{
+                                tag: "Работа",
+                                count: 45
+                            }, {
+                                tag: "Отношения",
+                                count: 32
+                            }, {
+                                tag: "Сон",
+                                count: 12
+                            }],
+                            activity_by_hour: Array.from({
+                                length: 24
+                            }, () => Math.floor(Math.random() * 20)),
+                            activity_by_weekday: [50, 60, 40, 70, 80, 20, 30]
+                        });
+                    } else {
+                        // Default fallback
+                        resolve({});
+                    }
+                }, 500);
+            });
+        }
+
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
+
+            document.querySelectorAll('.tab-pane').forEach(pane => pane.classList.remove('active'));
+            document.getElementById(`tab-${tabName}`).classList.add('active');
+
+            // Load data on demand
+            if (tabName === 'conversation' && document.getElementById('messages-list').innerHTML.includes('Загрузка')) loadMessages();
+            else if (tabName === 'mood' && !moodChart) loadMoodData();
+            else if (tabName === 'history' && document.getElementById('timeline').innerHTML.includes('Загрузка')) loadTimeline();
+            else if (tabName === 'analytics' && !activityHeatmap) loadAnalytics();
+        }
+
+        async function loadUserData() {
+            try {
+                const user = await apiRequest(`/users/${telegramId}`);
+
+                const dName = user.display_name || user.first_name || 'Пользователь';
+                document.getElementById('user-name').textContent = dName;
+                document.getElementById('header-user-name').textContent = dName;
+                document.getElementById('header-username').textContent = user.username ? `@${user.username}` : '@no_username';
+                document.getElementById('header-telegram-id').textContent = user.telegram_id;
+
+                // Avatar
+                const initial = dName.charAt(0).toUpperCase();
+                document.getElementById('user-avatar').innerHTML = initial;
+
+                // Badge
+                const badge = document.getElementById('header-subscription');
+                badge.textContent = user.subscription_plan.toUpperCase();
+                badge.className = 'badge ' + (user.subscription_plan === 'premium' ? 'badge-premium' : user.subscription_plan === 'trial' ? 'badge-trial' : 'badge-free');
+
+                // Stats
+                document.getElementById('total-messages').textContent = user.total_messages;
+                document.getElementById('messages-week').textContent = user.messages_this_week;
+
+                const created = new Date(user.created_at);
+                const days = Math.floor((new Date() - created) / (86400000));
+                document.getElementById('days-since-join').textContent = days;
+                document.getElementById('created-at').textContent = created.toLocaleDateString('ru-RU');
+
+                // Last Active
+                if (user.last_active_at) {
+                    const last = new Date(user.last_active_at);
+                    const hours = Math.floor((new Date() - last) / 3600000);
+                    document.getElementById('last-active').textContent = hours < 1 ? 'Сейчас' : (hours < 24 ? `${hours}ч назад` : `${Math.floor(hours/24)}д назад`);
+                }
+
+                // Info
+                document.getElementById('partner-name').textContent = user.partner_name || 'Нет';
+                document.getElementById('persona').textContent = user.persona || '-';
+                document.getElementById('onboarding').textContent = user.onboarding_completed ? 'Да' : 'Нет';
+                document.getElementById('rituals').textContent = user.rituals_enabled ? .length ? user.rituals_enabled.join(', ') : 'Нет';
+
+                if (user.subscription_expires_at) {
+                    document.getElementById('subscription-expires').textContent = new Date(user.subscription_expires_at).toLocaleDateString('ru-RU');
+                }
+
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        async function loadMessages() {
+            const container = document.getElementById('messages-list');
+            try {
+                const msgs = await apiRequest(`/users/${telegramId}/messages?limit=50`);
+                container.innerHTML = '';
+                if (!msgs || !msgs.length) {
+                    container.innerHTML = '<div class="loading-state">Нет сообщений</div>';
+                    return;
+                }
+
+                msgs.forEach(msg => {
+                            const div = document.createElement('div');
+                            const isUser = msg.role === 'user';
+                            div.className = `msg-row ${isUser ? 'user' : 'assistant'}`;
+
+                            const time = new Date(msg.created_at).toLocaleTimeString('ru-RU', {
+                                hour: '2-digit',
+                                minute: '2-digit'
+                            });
+                            const tags = msg.tags ? .length ? `<div class="msg-tags">${msg.tags.map(t => `<span class="msg-tag">#${t}</span>`).join('')}</div>` : '';
+
+                    div.innerHTML = `
+                        <div class="msg-bubble">
+                            ${msg.content}
+                            ${tags}
+                            <div class="msg-meta">${time}</div>
+                        </div>
+                    `;
+                    container.appendChild(div);
+                });
+                container.scrollTop = container.scrollHeight;
+            } catch (e) {
+                container.innerHTML = '<div class="loading-state" style="color:var(--md-sys-color-error)">Ошибка загрузки</div>';
+            }
+        }
+
+        async function loadMoodData() {
+            try {
+                const data = await apiRequest(`/users/${telegramId}/mood?days=30`);
+                if (!data || !data.mood_scores) return;
+
+                const colorPrimary = getComputedStyle(document.body).getPropertyValue('--md-sys-color-primary').trim();
+                
+                // Mood Chart
+                const chartStatus = Chart.getChart("mood-chart");
+                if (chartStatus != undefined) chartStatus.destroy();
+
+                const ctx1 = document.getElementById('mood-chart').getContext('2d');
+                
+                // Gradient Fill for Line Chart
+                const gradient = ctx1.createLinearGradient(0, 0, 0, 400);
+                gradient.addColorStop(0, colorPrimary);
+                gradient.addColorStop(1, 'rgba(255, 255, 255, 0)'); // Fade out
+
+                moodChart = new Chart(ctx1, {
+                    type: 'line',
+                    data: {
+                        labels: data.labels,
+                        datasets: [{
+                            label: 'Настроение',
+                            data: data.mood_scores,
+                            borderColor: colorPrimary,
+                            backgroundColor: gradient,
+                            tension: 0.4,
+                            fill: true,
+                            pointRadius: 5,
+                            pointBackgroundColor: colorPrimary,
+                            pointBorderColor: '#fff',
+                            pointBorderWidth: 2
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: false } },
+                        scales: { y: { min: 0, max: 10, grid: { display: true } }, x: { grid: { display: false } } }
+                    }
+                });
+
+                // Emotions Chart (Updated with Blue/Cool tones)
+                const chartStatus2 = Chart.getChart("emotions-chart");
+                if (chartStatus2 != undefined) chartStatus2.destroy();
+
+                const ctx2 = document.getElementById('emotions-chart').getContext('2d');
+                emotionsChart = new Chart(ctx2, {
+                    type: 'doughnut',
+                    data: {
+                        labels: data.emotion_labels,
+                        datasets: [{
+                            data: data.emotion_values,
+                            backgroundColor: ['#9ECAFF', '#D1E4FF', '#A8C7FA', '#E3F2FD'],
+                            borderWidth: 0
+                        }]
+                    },
+                    options: { plugins: { legend: { position: 'bottom' } } }
+                });
+            } catch (e) { console.error(e); }
+        }
+
+        async function loadTimeline() {
+            const container = document.getElementById('timeline');
+            try {
+                const events = await apiRequest(`/users/${telegramId}/timeline`);
+                container.innerHTML = '';
+                if(!events || !events.length) {
+                    container.innerHTML = '<div class="loading-state">Нет событий</div>'; 
+                    return;
+                }
+                
+                events.forEach(ev => {
+                    const div = document.createElement('div');
+                    div.className = 'timeline-item';
+                    const date = new Date(ev.date).toLocaleString('ru-RU', {day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'});
+                    div.innerHTML = `
+                        <div class="timeline-marker"></div>
+                        <div class="timeline-date">${date}</div>
+                        <div class="timeline-content">
+                            <div class="timeline-title">${ev.title}</div>
+                            <div class="timeline-desc">${ev.description}</div>
+                        </div>
+                    `;
+                    container.appendChild(div);
+                });
+            } catch(e) { console.error(e); }
+        }
+
+        async function loadAnalytics() {
+            try {
+                const data = await apiRequest(`/users/${telegramId}/analytics`);
+                const tagsCont = document.getElementById('top-tags');
+                
+                if (data && data.top_tags && Array.isArray(data.top_tags)) {
+                    tagsCont.innerHTML = data.top_tags.map(t => 
+                        `<span class="badge badge-free" style="text-transform:none;">${t.tag} <b>${t.count}</b></span>`
+                    ).join('');
+                } else {
+                     tagsCont.innerHTML = '<span class="badge badge-free">Нет данных</span>';
+                }
+
+                const colorSecondary = getComputedStyle(document.body).getPropertyValue('--md-sys-color-secondary').trim();
+
+                // Safe data access for charts
+                const activityData = (data && data.activity_by_hour) ? data.activity_by_hour : Array(24).fill(0);
+                const weekdayData = (data && data.activity_by_weekday) ? data.activity_by_weekday : Array(7).fill(0);
+
+                // Bar Chart Gradient
+                const ctx3 = document.getElementById('activity-heatmap').getContext('2d');
+                const gradientBar = ctx3.createLinearGradient(0, 0, 0, 300);
+                gradientBar.addColorStop(0, colorSecondary);
+                gradientBar.addColorStop(1, colorSecondary + '60');
+
+                // Heatmap
+                const chartStatus3 = Chart.getChart("activity-heatmap");
+                if (chartStatus3 != undefined) chartStatus3.destroy();
+
+                activityHeatmap = new Chart(ctx3, {
+                    type: 'bar',
+                    data: {
+                        labels: Array.from({length:24},(_,i)=>i),
+                        datasets: [{ label: 'Сообщения', data: activityData, backgroundColor: gradientBar, borderRadius: 4 }]
+                    },
+                    options: { maintainAspectRatio: false, plugins: { legend: {display:false} }, scales: { x: { grid: {display:false} } } }
+                });
+
+                // Weekday
+                const chartStatus4 = Chart.getChart("weekday-chart");
+                if (chartStatus4 != undefined) chartStatus4.destroy();
+                
+                const ctx4 = document.getElementById('weekday-chart').getContext('2d');
+                // Reuse gradient
+                weekdayChart = new Chart(ctx4, {
+                    type: 'bar',
+                    data: {
+                        labels: ['Пн','Вт','Ср','Чт','Пт','Сб','Вс'],
+                        datasets: [{ label: 'Сообщения', data: weekdayData, backgroundColor: gradientBar, borderRadius: 4 }]
+                    },
+                    options: { maintainAspectRatio: false, plugins: { legend: {display:false} }, scales: { x: { grid: {display:false} } } }
+                });
+
+            } catch(e) { console.error(e); }
+        }
+
+        async function grantPremium() {
+            const days = prompt('Длительность Premium (дней):', '30');
+            if(!days) return;
+            try {
+                await apiRequest(`/users/${telegramId}/subscription`, { method:'POST', body: JSON.stringify({plan:'premium', days: parseInt(days)}) });
+                alert('Успешно!');
+                loadUserData();
+            } catch(e) { alert('Ошибка'); }
+        }
+
+        function exportHistory() {
+            alert('Функция экспорта инициирована (Демо)');
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', loadUserData);
+    </script>
+</body>
+
+</html> // Emotions Chart (Updated with Blue/Cool tones) const chartStatus2 = Chart.getChart("emotions-chart"); if (chartStatus2 != undefined) chartStatus2.destroy(); const ctx2 = document.getElementById('emotions-chart').getContext('2d'); emotionsChart = new
+Chart(ctx2, { type: 'doughnut', data: { labels: data.emotion_labels, datasets: [{ data: data.emotion_values, backgroundColor: ['#9ECAFF', '#D1E4FF', '#A8C7FA', '#E3F2FD'], borderWidth: 0 }] }, options: { plugins: { legend: { position: 'bottom' } } } });
+} catch (e) { console.error(e); } } async function loadTimeline() { const container = document.getElementById('timeline'); try { const events = await apiRequest(`/users/${telegramId}/timeline`); container.innerHTML = ''; if(!events || !events.length)
+{ container.innerHTML = '
+<div class="loading-state">Нет событий</div>'; return; } events.forEach(ev => { const div = document.createElement('div'); div.className = 'timeline-item'; const date = new Date(ev.date).toLocaleString('ru-RU', {day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'});
+div.innerHTML = `
+<div class="timeline-marker"></div>
+<div class="timeline-date">${date}</div>
+<div class="timeline-content">
+    <div class="timeline-title">${ev.title}</div>
+    <div class="timeline-desc">${ev.description}</div>
+</div>
+`; container.appendChild(div); }); } catch(e) { console.error(e); } } async function loadAnalytics() { try { const data = await apiRequest(`/users/${telegramId}/analytics`); const tagsCont = document.getElementById('top-tags'); if (data && data.top_tags
+&& Array.isArray(data.top_tags)) { tagsCont.innerHTML = data.top_tags.map(t => `
+<span class="badge badge-free" style="text-transform:none;">${t.tag} <b>${t.count}</b></span>` ).join(''); } else { tagsCont.innerHTML = '<span class="badge badge-free">Нет данных</span>'; } const colorSecondary = getComputedStyle(document.body).getPropertyValue('--md-sys-color-secondary').trim();
+// Safe data access for charts const activityData = (data && data.activity_by_hour) ? data.activity_by_hour : Array(24).fill(0); const weekdayData = (data && data.activity_by_weekday) ? data.activity_by_weekday : Array(7).fill(0); // Bar Chart Gradient
+const ctx3 = document.getElementById('activity-heatmap').getContext('2d'); const gradientBar = ctx3.createLinearGradient(0, 0, 0, 300); gradientBar.addColorStop(0, colorSecondary); gradientBar.addColorStop(1, colorSecondary + '60'); // Heatmap const chartStatus3
+= Chart.getChart("activity-heatmap"); if (chartStatus3 != undefined) chartStatus3.destroy(); activityHeatmap = new Chart(ctx3, { type: 'bar', data: { labels: Array.from({length:24},(_,i)=>i), datasets: [{ label: 'Сообщения', data: activityData, backgroundColor:
+gradientBar, borderRadius: 4 }] }, options: { maintainAspectRatio: false, plugins: { legend: {display:false} }, scales: { x: { grid: {display:false} } } } }); // Weekday const chartStatus4 = Chart.getChart("weekday-chart"); if (chartStatus4 != undefined)
+chartStatus4.destroy(); const ctx4 = document.getElementById('weekday-chart').getContext('2d'); // Reuse gradient weekdayChart = new Chart(ctx4, { type: 'bar', data: { labels: ['Пн','Вт','Ср','Чт','Пт','Сб','Вс'], datasets: [{ label: 'Сообщения', data:
+weekdayData, backgroundColor: gradientBar, borderRadius: 4 }] }, options: { maintainAspectRatio: false, plugins: { legend: {display:false} }, scales: { x: { grid: {display:false} } } } }); } catch(e) { console.error(e); } } async function grantPremium()
+{ const days = prompt('Длительность Premium (дней):', '30'); if(!days) return; try { await apiRequest(`/users/${telegramId}/subscription`, { method:'POST', body: JSON.stringify({plan:'premium', days: parseInt(days)}) }); alert('Успешно!'); loadUserData();
+} catch(e) { alert('Ошибка'); } } function exportHistory() { alert('Функция экспорта инициирована (Демо)'); } // Initialize document.addEventListener('DOMContentLoaded', loadUserData);
+</script>
+</body>
+
+</html> // Emotions Chart (Updated with Blue/Cool tones) const chartStatus2 = Chart.getChart("emotions-chart"); if (chartStatus2 != undefined) chartStatus2.destroy(); const ctx2 = document.getElementById('emotions-chart').getContext('2d'); emotionsChart = new
+Chart(ctx2, { type: 'doughnut', data: { labels: data.emotion_labels, datasets: [{ data: data.emotion_values, backgroundColor: ['#9ECAFF', '#D1E4FF', '#A8C7FA', '#E3F2FD'], borderWidth: 0 }] }, options: { plugins: { legend: { position: 'bottom' } } } });
+} catch (e) { console.error(e); } } async function loadTimeline() { const container = document.getElementById('timeline'); try { const events = await apiRequest(`/users/${telegramId}/timeline`); container.innerHTML = ''; if(!events || !events.length)
+{ container.innerHTML = '
+<div class="loading-state">Нет событий</div>'; return; } events.forEach(ev => { const div = document.createElement('div'); div.className = 'timeline-item'; const date = new Date(ev.date).toLocaleString('ru-RU', {day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'});
+div.innerHTML = `
+<div class="timeline-marker"></div>
+<div class="timeline-date">${date}</div>
+<div class="timeline-content">
+    <div class="timeline-title">${ev.title}</div>
+    <div class="timeline-desc">${ev.description}</div>
+</div>
+`; container.appendChild(div); }); } catch(e) { console.error(e); } } async function loadAnalytics() { try { const data = await apiRequest(`/users/${telegramId}/analytics`); const tagsCont = document.getElementById('top-tags'); if (data && data.top_tags
+&& Array.isArray(data.top_tags)) { tagsCont.innerHTML = data.top_tags.map(t => `
+<span class="badge badge-free" style="text-transform:none;">${t.tag} <b>${t.count}</b></span>` ).join(''); } else { tagsCont.innerHTML = '<span class="badge badge-free">Нет данных</span>'; } const colorSecondary = getComputedStyle(document.body).getPropertyValue('--md-sys-color-secondary').trim();
+// Safe data access for charts const activityData = (data && data.activity_by_hour) ? data.activity_by_hour : Array(24).fill(0); const weekdayData = (data && data.activity_by_weekday) ? data.activity_by_weekday : Array(7).fill(0); // Bar Chart Gradient
+const ctx3 = document.getElementById('activity-heatmap').getContext('2d'); const gradientBar = ctx3.createLinearGradient(0, 0, 0, 300); gradientBar.addColorStop(0, colorSecondary); gradientBar.addColorStop(1, colorSecondary + '60'); // Heatmap const chartStatus3
+= Chart.getChart("activity-heatmap"); if (chartStatus3 != undefined) chartStatus3.destroy(); activityHeatmap = new Chart(ctx3, { type: 'bar', data: { labels: Array.from({length:24},(_,i)=>i), datasets: [{ label: 'Сообщения', data: activityData, backgroundColor:
+gradientBar, borderRadius: 4 }] }, options: { maintainAspectRatio: false, plugins: { legend: {display:false} }, scales: { x: { grid: {display:false} } } } }); // Weekday const chartStatus4 = Chart.getChart("weekday-chart"); if (chartStatus4 != undefined)
+chartStatus4.destroy(); const ctx4 = document.getElementById('weekday-chart').getContext('2d'); // Reuse gradient weekdayChart = new Chart(ctx4, { type: 'bar', data: { labels: ['Пн','Вт','Ср','Чт','Пт','Сб','Вс'], datasets: [{ label: 'Сообщения', data:
+weekdayData, backgroundColor: gradientBar, borderRadius: 4 }] }, options: { maintainAspectRatio: false, plugins: { legend: {display:false} }, scales: { x: { grid: {display:false} } } } }); } catch(e) { console.error(e); } } async function grantPremium()
+{ const days = prompt('Длительность Premium (дней):', '30'); if(!days) return; try { await apiRequest(`/users/${telegramId}/subscription`, { method:'POST', body: JSON.stringify({plan:'premium', days: parseInt(days)}) }); alert('Успешно!'); loadUserData();
+} catch(e) { alert('Ошибка'); } } function exportHistory() { alert('Функция экспорта инициирована (Демо)'); } // Initialize document.addEventListener('DOMContentLoaded', loadUserData);
+</script>
+</body>
+
+</html>

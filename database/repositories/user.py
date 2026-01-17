@@ -503,3 +503,28 @@ class UserRepository:
 
             return list(result.scalars().all())
 
+    async def get_incomplete_onboarding_users(self, hours_since_start: int = 24) -> List[User]:
+        """
+        Получить пользователей, которые начали, но не завершили онбординг.
+
+        Args:
+            hours_since_start: Минимальное количество часов с момента начала онбординга
+
+        Returns:
+            Список пользователей с незавершённым онбордингом
+        """
+        async with get_session_context() as session:
+            cutoff = datetime.now() - timedelta(hours=hours_since_start)
+
+            result = await session.execute(
+                select(User).where(
+                    and_(
+                        User.onboarding_completed == False,
+                        User.created_at <= cutoff,  # Зарегистрировались давно
+                        User.deletion_scheduled_at.is_(None),  # Не в корзине
+                    )
+                )
+            )
+
+            return list(result.scalars().all())
+

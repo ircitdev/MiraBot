@@ -31,17 +31,22 @@ body {
     padding-bottom: 20px;
     width: 100%;
     overflow-x: hidden;
+    position: relative;
 }
+
+/* Close Button - REMOVED (not needed in Telegram miniapp) */
 
 /* Tabs */
 .tabs {
     display: flex;
     background: var(--tg-theme-secondary-bg-color);
-    padding: 8px;
-    gap: 8px;
+    padding: 12px 12px 8px 12px;
+    gap: 6px;
     position: sticky;
     top: 0;
     z-index: 10;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
 
 .tab {
@@ -49,15 +54,16 @@ body {
     align-items: center;
     justify-content: center;
     gap: 6px;
-    padding: 12px 16px;
+    padding: 10px 14px;
     border: none;
     background: transparent;
     color: var(--tg-theme-hint-color);
-    font-size: 15px;
+    font-size: 14px;
     font-weight: 500;
     cursor: pointer;
-    border-radius: 8px;
-    transition: all 0.3s;
+    border-radius: 10px;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
 }
 
 /* Icon in tab */
@@ -78,17 +84,34 @@ body {
     background: var(--tg-theme-button-color);
     color: var(--tg-theme-button-text-color);
     flex: 1;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.tab.active::before {
+    content: '';
+    position: absolute;
+    bottom: -8px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 24px;
+    height: 3px;
+    background: var(--tg-theme-button-color);
+    border-radius: 2px 2px 0 0;
 }
 
 /* Privacy tab - always icon only, no flex */
 .tab.tab-privacy {
     flex: 0;
-    padding: 12px;
-    min-width: 44px;
+    padding: 10px;
+    min-width: 40px;
 }
 
 .tab:hover:not(.active) {
-    background: rgba(0, 0, 0, 0.05);
+    background: rgba(0, 0, 0, 0.06);
+}
+
+.tab:active {
+    transform: scale(0.96);
 }
 
 .tab-content {
@@ -106,19 +129,23 @@ body {
 
 /* Sections */
 .section {
-    padding: 12px;
-    margin-bottom: 12px;
-}
-
-h2 {
-    font-size: 24px;
+    padding: 20px 16px;
     margin-bottom: 16px;
 }
 
+h2 {
+    font-size: 22px;
+    font-weight: 600;
+    margin-bottom: 20px;
+    line-height: 1.3;
+    color: var(--tg-theme-text-color);
+}
+
 h3 {
-    font-size: 18px;
+    font-size: 17px;
+    font-weight: 600;
     margin-bottom: 12px;
-    color: var(--tg-theme-hint-color);
+    color: var(--tg-theme-text-color);
 }
 
 /* Stats */
@@ -131,29 +158,51 @@ h3 {
 
 .stat-card {
     background: var(--tg-theme-secondary-bg-color);
-    padding: 20px;
-    border-radius: 12px;
+    padding: 20px 16px;
+    border-radius: 14px;
     text-align: center;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    border: 1px solid rgba(0, 0, 0, 0.04);
+}
+
+.stat-card:active {
+    transform: scale(0.96);
+    box-shadow: 0 0 0 rgba(0, 0, 0, 0.06);
 }
 
 .stat-value {
-    font-size: 32px;
+    font-size: 36px;
     font-weight: 700;
     color: var(--tg-theme-button-color);
+    line-height: 1;
+    margin-bottom: 8px;
 }
 
 .stat-label {
-    font-size: 13px;
+    font-size: 14px;
     color: var(--tg-theme-hint-color);
-    margin-top: 4px;
+    line-height: 1.3;
 }
 
 .subscription-card {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: white;
-    padding: 20px;
-    border-radius: 12px;
-    margin-bottom: 12px;
+    padding: 24px 20px;
+    border-radius: 16px;
+    margin-bottom: 16px;
+    box-shadow: 0 4px 16px rgba(102, 126, 234, 0.3);
+}
+
+.subscription-card h3 {
+    color: white;
+    font-weight: 600;
+    font-size: 20px;
+}
+
+.subscription-card p {
+    opacity: 0.95;
+    line-height: 1.5;
 }
 
 .invite-friends-btn {
@@ -245,14 +294,24 @@ h3 {
 .setting-group input[type="time"],
 .setting-group select {
     width: 100%;
-    padding: 10px 8px;
-    border: 1px solid #e0e0e0;
-    border-radius: 8px;
-    font-size: 14px;
+    padding: 12px 14px;
+    border: 1.5px solid rgba(0, 0, 0, 0.12);
+    border-radius: 10px;
+    font-size: 15px;
     background: var(--tg-theme-bg-color);
     color: var(--tg-theme-text-color);
     margin-bottom: 8px;
     box-sizing: border-box;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.setting-group input[type="text"]:focus,
+.setting-group input[type="date"]:focus,
+.setting-group input[type="time"]:focus,
+.setting-group select:focus {
+    outline: none;
+    border-color: var(--tg-theme-button-color);
+    box-shadow: 0 0 0 3px rgba(36, 129, 204, 0.1);
 }
 
 .checkbox-group {
@@ -283,35 +342,42 @@ h3 {
 /* Accordion */
 .accordion-item {
     background: var(--tg-theme-secondary-bg-color);
-    border-radius: 12px;
-    margin-bottom: 12px;
+    border-radius: 14px;
+    margin: 0 12px 14px 12px;
     overflow: hidden;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-    transition: all 0.3s ease;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    border: 1px solid rgba(0, 0, 0, 0.04);
 }
 
 .accordion-item:hover {
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
 .accordion-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 12px;
+    padding: 16px 18px;
     cursor: pointer;
     user-select: none;
     background: var(--tg-theme-secondary-bg-color);
     border-bottom: 1px solid transparent;
-    transition: all 0.3s ease;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    font-size: 15px;
+    font-weight: 500;
 }
 
 .accordion-header:hover {
-    background: var(--tg-theme-bg-color);
+    background: rgba(0, 0, 0, 0.02);
 }
 
 .accordion-header:active {
     transform: scale(0.98);
+}
+
+.accordion-header.active {
+    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
 }
 
 .accordion-header span:first-child {
@@ -334,12 +400,15 @@ h3 {
     max-height: 0;
     overflow: hidden;
     transition: max-height 0.3s ease, padding 0.3s ease;
-    padding: 0 12px;
+    padding: 0 18px;
+    background: var(--tg-theme-bg-color);
 }
 
 .accordion-content.active {
-    max-height: 2000px;
-    padding: 12px;
+    max-height: 3000px;
+    padding: 18px;
+    padding-top: 14px;
+    overflow: visible;
 }
 
 /* Improved inputs */
@@ -417,10 +486,18 @@ h3 {
     font-weight: 600;
     cursor: pointer;
     margin-top: 20px;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.btn-primary:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    transform: translateY(-1px);
 }
 
 .btn-primary:active {
-    opacity: 0.8;
+    transform: translateY(0) scale(0.98);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
 }
 
 /* Loading */
@@ -1111,4 +1188,183 @@ textarea {
 
 .tab.tab-privacy.active .tab-text {
     display: inline;
+}
+
+/* ==================== New Privacy Section Styles ==================== */
+
+/* Privacy info grid */
+.privacy-info-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 12px;
+    margin: 20px 0;
+}
+
+.privacy-info-card {
+    background: var(--tg-theme-secondary-bg-color);
+    border-radius: 12px;
+    padding: 16px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    transition: all 0.2s ease;
+}
+
+.privacy-info-card:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    transform: translateY(-2px);
+}
+
+.privacy-info-icon {
+    font-size: 32px;
+    margin-bottom: 8px;
+}
+
+.privacy-info-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--tg-theme-text-color);
+    margin-bottom: 8px;
+}
+
+.privacy-info-text {
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--tg-theme-hint-color);
+}
+
+/* Encryption notice */
+.privacy-encryption-notice {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: linear-gradient(135deg, rgba(76, 175, 80, 0.1), rgba(46, 125, 50, 0.1));
+    border: 1px solid rgba(76, 175, 80, 0.3);
+    border-radius: 12px;
+    padding: 16px;
+    margin: 20px 0;
+}
+
+.encryption-icon {
+    flex-shrink: 0;
+    color: #4CAF50;
+}
+
+.encryption-text {
+    flex: 1;
+}
+
+.encryption-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--tg-theme-text-color);
+    margin-bottom: 4px;
+}
+
+.encryption-subtitle {
+    font-size: 12px;
+    color: var(--tg-theme-hint-color);
+}
+
+/* Danger zone */
+.danger-zone {
+    background: rgba(244, 67, 54, 0.05);
+    border: 1px solid rgba(244, 67, 54, 0.2);
+    border-radius: 12px;
+    padding: 16px;
+    margin: 24px 0;
+}
+
+.danger-zone h3 {
+    font-size: 16px;
+    color: #F44336;
+    margin: 0 0 12px 0;
+}
+
+.btn-danger {
+    width: 100%;
+    padding: 14px 20px;
+    font-size: 15px;
+    font-weight: 500;
+    border-radius: 10px;
+    border: none;
+    background: #F44336;
+    color: white;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    margin-bottom: 8px;
+}
+
+.btn-danger:hover {
+    background: #D32F2F;
+}
+
+.btn-danger:active {
+    transform: scale(0.98);
+}
+
+.danger-hint {
+    color: #F44336;
+    font-size: 12px;
+    margin-top: 8px;
+}
+
+/* Export data section */
+.export-data-section {
+    background: var(--tg-theme-secondary-bg-color);
+    border-radius: 12px;
+    padding: 16px;
+    margin: 20px 0;
+}
+
+.export-data-section h3 {
+    font-size: 16px;
+    color: var(--tg-theme-text-color);
+    margin: 0 0 8px 0;
+}
+
+.export-data-section .btn-secondary {
+    width: 100%;
+    margin-top: 12px;
+}
+
+/* Support section */
+.support-section {
+    background: linear-gradient(135deg, rgba(33, 150, 243, 0.1), rgba(21, 101, 192, 0.1));
+    border: 1px solid rgba(33, 150, 243, 0.3);
+    border-radius: 12px;
+    padding: 16px;
+    margin: 20px 0;
+}
+
+.support-section h3 {
+    font-size: 16px;
+    color: var(--tg-theme-text-color);
+    margin: 0 0 8px 0;
+}
+
+.support-section .btn-primary {
+    width: 100%;
+    margin-top: 12px;
+}
+
+/* ==================== Premium Badge for Buttons ==================== */
+
+.btn-with-badge {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: relative;
+}
+
+.premium-badge {
+    background: linear-gradient(135deg, #FFD700, #FFA500);
+    color: #000;
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 8px;
+    margin-left: 8px;
+    white-space: nowrap;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    box-shadow: 0 2px 4px rgba(255, 165, 0, 0.3);
 }

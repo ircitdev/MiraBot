@@ -45,3 +45,6 @@ temp/
 *.tmp
 nul
 tgbots-google-cloud.json
+
+# Google Analytics credentials
+config/google_analytics_credentials.json

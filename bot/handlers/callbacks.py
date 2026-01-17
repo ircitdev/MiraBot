@@ -64,6 +64,9 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     elif data.startswith("music_another:"):
         await _handle_music_another(query, data, context)
 
+    elif data.startswith("deletedata:"):
+        await _handle_deletedata(query, data)
+
     else:
         logger.warning(f"Unknown callback: {data}")
 
@@ -792,3 +795,84 @@ async def _handle_music_another(query, data: str, context: ContextTypes.DEFAULT_
         await query.message.chat.send_message(
             "Хм, больше треков этого жанра не нашла... Попробуй выбрать другой жанр 💛"
         )
+
+
+async def _handle_deletedata(query, data: str) -> None:
+    """
+    Обработка запроса на удаление аккаунта.
+
+    Callbacks:
+    - deletedata:confirm - подтвердить удаление
+    - deletedata:cancel - отменить удаление
+    """
+    from datetime import datetime, timedelta
+    from database.repositories.admin_log import AdminLogRepository
+
+    action = data.split(":")[1]
+    user = await user_repo.get_by_telegram_id(query.from_user.id)
+
+    if not user:
+        await query.edit_message_text("Пользователь не найден.")
+        return
+
+    if action == "confirm":
+        # Помечаем аккаунт на удаление через 3 дня
+        deletion_date = datetime.utcnow() + timedelta(days=3)
+
+        await user_repo.update(
+            user.id,
+            deletion_requested_at=datetime.utcnow(),
+            deletion_scheduled_for=deletion_date,
+        )
+
+        await query.edit_message_text(
+            "🗑 *Аккаунт перемещен в корзину*\n\n"
+            f"Аккаунт будет *полностью удален через 3 дня* ({deletion_date.strftime('%d.%m.%Y')}).\n\n"
+            "Если ты решишь восстановить его, просто напиши мне любое сообщение.\n\n"
+            "_Для очистки чата перейди в мой профиль, нажми \"еще\" и выбери \"Удалить переписку\"_",
+            parse_mode="Markdown"
+        )
+
+        logger.info(f"User {user.telegram_id} requested account deletion, scheduled for {deletion_date}")
+
+        # Логируем в admin logs
+        try:
+            admin_log_repo = AdminLogRepository()
+            await admin_log_repo.create(
+                admin_user_id=1,  # Системное событие
+                action="account_deletion_request",
+                resource_type="user",
+                resource_id=user.telegram_id,
+                details={
+                    "deletion_scheduled_for": deletion_date.isoformat(),
+                    "requested_via": "bot_command",
+                    "username": user.username,
+                    "first_name": user.first_name,
+                },
+                success=True,
+            )
+        except Exception as e:
+            logger.warning(f"Failed to log account deletion request: {e}")
+
+    elif action == "cancel":
+        # Отменяем запланированное удаление
+        if user.deletion_scheduled_for:
+            await user_repo.update(
+                user.id,
+                deletion_requested_at=None,
+                deletion_scheduled_for=None,
+            )
+
+            await query.edit_message_text(
+                "💛 *Рада, что ты остаёшься!*\n\n"
+                "Удаление аккаунта отменено.\n\n"
+                "Я всегда рядом, когда тебе нужна поддержка 🌸",
+                parse_mode="Markdown"
+            )
+
+            logger.info(f"User {user.telegram_id} cancelled account deletion")
+        else:
+            await query.edit_message_text(
+                "Операция удаления не запланирована.",
+                parse_mode="Markdown"
+            )

@@ -32,8 +32,7 @@ from bot.handlers.music import (
     detect_music_request,
 )
 from ai.hint_generator import hint_generator
-from utils.text_parser import extract_name_from_text
-from utils.sanitizer import sanitize_text, sanitize_name, validate_message
+from utils.sanitizer import sanitize_text, validate_message
 from services.sticker_sender import maybe_send_sticker
 from services.music_forwarder import music_forwarder
 from bot.handlers.payments import handle_promo_code_input
@@ -172,47 +171,6 @@ async def _get_fresh_user_data(user) -> dict:
     }
 
 
-def _get_opening_question() -> str:
-    """
-    Возвращает приветственный вопрос в зависимости от времени суток.
-    Добавляет разнообразие и делает общение более естественным.
-    """
-    from datetime import datetime
-
-    hour = datetime.now().hour
-
-    # Утро (6:00 - 11:59)
-    if 6 <= hour < 12:
-        questions = [
-            "Как начался день?",
-            "Как утро?",
-            "Что на душе сегодня?",
-        ]
-    # День (12:00 - 17:59)
-    elif 12 <= hour < 18:
-        questions = [
-            "Как дела?",
-            "Как день проходит?",
-            "Что у тебя на душе?",
-        ]
-    # Вечер (18:00 - 22:59)
-    elif 18 <= hour < 23:
-        questions = [
-            "Как прошёл день?",
-            "Как дела сегодня?",
-            "О чём думаешь?",
-        ]
-    # Ночь (23:00 - 5:59)
-    else:
-        questions = [
-            "Не спится?",
-            "Что не даёт уснуть?",
-            "О чём думаешь?",
-        ]
-
-    return random.choice(questions)
-
-
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Основной обработчик текстовых сообщений."""
 
@@ -249,8 +207,13 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
             return
 
         # 3. Проверяем онбординг
+        # Онбординг теперь обрабатывается только через ConversationHandler в bot/handlers/onboarding.py
+        # Если пользователь не завершил онбординг и пишет сюда - он вне ConversationHandler
+        # Направляем его на /start чтобы запустить ConversationHandler заново
         if not user.onboarding_completed:
-            await _handle_onboarding(update, context, user, message_text)
+            await update.message.reply_text(
+                "Давай начнём сначала! Нажми /start чтобы я могла познакомиться с тобой 💛"
+            )
             return
 
         # 3.5. Проверяем запрос на фотографии
@@ -671,224 +634,6 @@ async def _generate_and_stream_response(
         raise
 
 
-async def _handle_onboarding(
-    update: Update,
-    context: ContextTypes.DEFAULT_TYPE,
-    user,
-    message_text: str,
-) -> None:
-    """Обработка сообщений во время онбординга."""
-
-    step = user.onboarding_step
-
-    if step == 1:
-        # Ожидаем имя пользователя
-        display_name = extract_name_from_text(message_text)
-
-        if not display_name:
-            await update.message.reply_text(
-                "Как мне к тебе обращаться? Напиши своё имя 💛"
-            )
-            return
-
-        # Санитизируем имя
-        display_name = sanitize_name(display_name, max_length=50)
-
-        if not display_name:
-            await update.message.reply_text(
-                "Как мне к тебе обращаться? Напиши своё имя 💛"
-            )
-            return
-
-        await user_repo.update(
-            user.id,
-            display_name=display_name,
-            onboarding_step=2,
-        )
-
-        # Проверяем, был ли пользователь приглашён по реферальной ссылке
-        # Если да - отправляем уведомление рефереру
-        try:
-            from database.repositories.referral import ReferralRepository
-            from services.referral import ReferralService
-
-            referral_repo = ReferralRepository()
-            referral_service = ReferralService()
-
-            # Проверяем есть ли реферал для этого пользователя
-            referral = await referral_repo.get_by_referred(user.id)
-            if referral and referral.referrer_id:
-                # Отправляем уведомление рефереру
-                await referral_service.notify_referrer_about_friend(
-                    referrer_id=referral.referrer_id,
-                    friend_name=display_name
-                )
-        except Exception as e:
-            logger.error(f"Failed to notify referrer: {e}")
-
-        text = f"""{display_name}, очень приятно 💛
-
-Можешь рассказать немного о себе? Есть ли у тебя партнёр/муж?
-
-Если хочешь — напиши его имя. Или напиши "пропустить", если не хочешь об этом сейчас."""
-
-        await update.message.reply_text(text)
-
-    elif step == 2:
-        # Ожидаем имя партнёра или "пропустить"
-        text_lower = message_text.strip().lower()
-
-        # Проверяем пропуск
-        skip_words = ["пропустить", "пропуск", "skip", "нет", "не хочу", "-"]
-        if any(word in text_lower for word in skip_words):
-            await user_repo.update(
-                user.id,
-                onboarding_step=3,
-                onboarding_completed=True,
-            )
-
-            # Логируем завершение онбоардинга
-            try:
-                # Получаем информацию о реферале
-                from database.repositories.referral import ReferralRepository
-                referral_repo = ReferralRepository()
-                referral = await referral_repo.get_by_referred_id(user.id)
-
-                referrer_telegram_id = None
-                referrer_username = None
-                if referral and referral.referrer:
-                    referrer_telegram_id = referral.referrer.telegram_id
-                    referrer_username = referral.referrer.username
-
-                await system_logger.log_user_onboarding_completed(
-                    user_id=user.id,
-                    telegram_id=user.telegram_id,
-                    username=user.username,
-                    first_name=user.first_name or "Unknown",
-                    referrer_telegram_id=referrer_telegram_id,
-                    referrer_username=referrer_username,
-                )
-            except Exception as e:
-                logger.warning(f"Failed to log onboarding completion for user {user.telegram_id}: {e}")
-
-            display_name = user.display_name or "дорогая"
-            opening_question = _get_opening_question()
-
-            text = f"""Хорошо, {display_name} 💛
-
-Просто буду рядом. Можешь писать или отправлять голосовые 🎤
-
-{opening_question}"""
-
-            await update.message.reply_text(text)
-            return
-
-        # Извлекаем имя партнёра
-        partner_name = extract_name_from_text(message_text)
-
-        if not partner_name:
-            # Попробуем взять текст как есть, если он короткий
-            if len(message_text.strip()) <= 20 and message_text.strip().isalpha():
-                partner_name = message_text.strip().capitalize()
-            else:
-                await update.message.reply_text(
-                    "Как зовут твоего партнёра? Напиши имя или \"пропустить\" 💛"
-                )
-                return
-
-        # Санитизируем имя партнёра
-        partner_name = sanitize_name(partner_name, max_length=50)
-
-        if not partner_name:
-            await update.message.reply_text(
-                "Как зовут твоего партнёра? Напиши имя или \"пропустить\" 💛"
-            )
-            return
-
-        # Определяем пол по имени (эвристика для русских имён)
-        partner_gender = _detect_gender_by_name(partner_name)
-
-        await user_repo.update(
-            user.id,
-            partner_name=partner_name,
-            partner_gender=partner_gender,
-            onboarding_step=3,
-            onboarding_completed=True,
-        )
-
-        # Логируем завершение онбоардинга
-        try:
-            # Получаем информацию о реферале
-            from database.repositories.referral import ReferralRepository
-            referral_repo = ReferralRepository()
-            referral = await referral_repo.get_by_referred_id(user.id)
-
-            referrer_telegram_id = None
-            referrer_username = None
-            if referral and referral.referrer:
-                referrer_telegram_id = referral.referrer.telegram_id
-                referrer_username = referral.referrer.username
-
-            await system_logger.log_user_onboarding_completed(
-                user_id=user.id,
-                telegram_id=user.telegram_id,
-                username=user.username,
-                first_name=user.first_name or "Unknown",
-                referrer_telegram_id=referrer_telegram_id,
-                referrer_username=referrer_username,
-            )
-        except Exception as e:
-            logger.warning(f"Failed to log onboarding completion for user {user.telegram_id}: {e}")
-
-        display_name = user.display_name or "дорогая"
-        opening_question = _get_opening_question()
-
-        text = f"""{display_name}, спасибо что поделилась 💛
-
-Просто буду рядом. Можешь писать или отправлять голосовые 🎤
-
-{opening_question}"""
-
-        await update.message.reply_text(text)
-
-    else:
-        # Неожиданное состояние — отправляем на выбор персоны
-        from bot.handlers.start import _start_onboarding
-        await _start_onboarding(update, user)
-
-
-def _detect_gender_by_name(name: str) -> str:
-    """
-    Определяет пол по русскому имени.
-    Эвристика: имена на -а/-я обычно женские (кроме исключений).
-    """
-    name_lower = name.lower().strip()
-
-    # Явно мужские имена (исключения на -а/-я)
-    male_names = {
-        "саша", "женя", "никита", "илья", "данила", "лёша", "лёня",
-        "ваня", "коля", "толя", "митя", "гоша", "паша", "миша", "гриша",
-        "костя", "петя", "федя", "серёжа", "вова", "дима", "лёва",
-    }
-
-    # Явно женские имена
-    female_names = {
-        "оля", "катя", "маша", "даша", "наташа", "таня", "аня", "юля",
-        "света", "лена", "ира", "вика", "настя", "кристина", "марина",
-    }
-
-    if name_lower in male_names:
-        return "male"
-
-    if name_lower in female_names:
-        return "female"
-
-    # Общая эвристика: окончание на -а/-я = женское
-    if name_lower.endswith(("а", "я")):
-        return "female"
-
-    # По умолчанию — мужское
-    return "male"
 
 
 async def _send_limit_reached(update: Update) -> None:

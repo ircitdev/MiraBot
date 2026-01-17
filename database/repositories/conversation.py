@@ -96,7 +96,7 @@ class ConversationRepository:
             query = (
                 select(Message)
                 .where(Message.user_id == user_id)
-                .order_by(Message.created_at.desc())
+                .order_by(Message.created_at.asc())
                 .offset(offset)
                 .limit(per_page)
             )
@@ -358,5 +358,28 @@ class ConversationRepository:
             
             result = await session.execute(delete_query)
             await session.commit()
-            
+
+            return result.rowcount
+
+    async def delete_all_user_conversations(self, user_id: int) -> int:
+        """
+        Удалить все сообщения пользователя.
+
+        Args:
+            user_id: ID пользователя
+
+        Returns:
+            Количество удалённых сообщений
+        """
+        async with get_session_context() as session:
+            from sqlalchemy import delete
+
+            delete_query = (
+                Message.__table__.delete()
+                .where(Message.user_id == user_id)
+            )
+
+            result = await session.execute(delete_query)
+            await session.commit()
+
             return result.rowcount

@@ -23,6 +23,23 @@ from loguru import logger
 from config.settings import settings
 from database import init_db, close_db
 from bot.handlers.start import start_command, help_command
+from bot.handlers.onboarding import (
+    start_onboarding,
+    receive_name,
+    handle_name_confirmation,
+    handle_problem_selection,
+    receive_social_portrait,
+    handle_family_status,
+    receive_family_details,
+    handle_skip_details,
+    cancel_onboarding,
+    WAITING_NAME,
+    CONFIRMING_NAME,
+    SELECTING_PROBLEM,
+    SOCIAL_PORTRAIT,
+    FAMILY_STATUS,
+    FAMILY_DETAILS,
+)
 from bot.handlers.message import handle_message, handle_photo
 from bot.handlers.voice import handle_voice
 from bot.handlers.commands import (
@@ -34,6 +51,7 @@ from bot.handlers.commands import (
     goals_command,
     plans_command,
     support_command,
+    deletedata_command,
 )
 from bot.handlers.programs import programs_command, program_callback
 from bot.handlers.callbacks import handle_callback
@@ -150,16 +168,13 @@ async def post_init(app: Application) -> None:
     try:
         from telegram import BotCommand
         commands = [
-            BotCommand("start", "Начать общение с Мирой"),
-            BotCommand("help", "Что я умею и как мне пользоваться"),
-            BotCommand("programs", "Программы: 7 дней заботы о себе"),
-            BotCommand("exercises", "Упражнения: дыхание, релаксация, заземление"),
-            BotCommand("affirmation", "Получить аффирмацию дня"),
-            BotCommand("meditation", "Медитации и практики осознанности"),
-            BotCommand("settings", "Настройки бота и персоны"),
-            BotCommand("subscription", "Информация о подписке и Premium"),
-            BotCommand("referral", "Пригласить подругу и получить бонусы"),
-            BotCommand("rituals", "Настроить ежедневные ритуалы"),
+            BotCommand("start", "Начать сначала"),
+            BotCommand("help", "Справка и команды"),
+            BotCommand("privacy", "Соглашение о неразглашении"),
+            BotCommand("programs", "Программы заботы о себе"),
+            BotCommand("settings", "Настройки"),
+            BotCommand("subscription", "Подписка Premium"),
+            BotCommand("referral", "Пригласить подругу"),
         ]
         await app.bot.set_my_commands(commands)
         logger.info("Bot commands menu configured")
@@ -288,8 +303,41 @@ def create_application() -> Application:
         .build()
     )
     
-    # Регистрируем обработчики команд
-    application.add_handler(CommandHandler("start", start_command))
+    # Онбординг с ConversationHandler (новая версия с 4 касаниями)
+    onboarding_conv_handler = ConversationHandler(
+        entry_points=[
+            CommandHandler("start", start_onboarding),
+        ],
+        states={
+            WAITING_NAME: [
+                MessageHandler(filters.TEXT & ~filters.COMMAND, receive_name),
+            ],
+            CONFIRMING_NAME: [
+                CallbackQueryHandler(handle_name_confirmation, pattern=r"^confirm_name:"),
+            ],
+            SELECTING_PROBLEM: [
+                CallbackQueryHandler(handle_problem_selection, pattern=r"^pain_"),
+            ],
+            SOCIAL_PORTRAIT: [
+                MessageHandler(filters.TEXT & ~filters.COMMAND, receive_social_portrait),
+            ],
+            FAMILY_STATUS: [
+                CallbackQueryHandler(handle_family_status, pattern=r"^(status_|skip_family)"),
+            ],
+            FAMILY_DETAILS: [
+                MessageHandler(filters.TEXT & ~filters.COMMAND, receive_family_details),
+                CallbackQueryHandler(handle_skip_details, pattern=r"^skip_details"),
+            ],
+        },
+        fallbacks=[
+            CommandHandler("cancel", cancel_onboarding),
+        ],
+        per_chat=True,
+        per_user=True,
+    )
+    application.add_handler(onboarding_conv_handler)
+
+    # Остальные команды
     application.add_handler(CommandHandler("help", help_command))
     application.add_handler(CommandHandler("settings", settings_command))
     application.add_handler(CommandHandler("subscription", subscription_command))
@@ -299,6 +347,7 @@ def create_application() -> Application:
     application.add_handler(CommandHandler("goals", goals_command))
     application.add_handler(CommandHandler("plans", plans_command))
     application.add_handler(CommandHandler("support", support_command))
+    application.add_handler(CommandHandler("deletedata", deletedata_command))
     application.add_handler(CommandHandler("programs", programs_command))
     application.add_handler(CommandHandler("exercises", exercises_command))
     application.add_handler(CommandHandler("affirmation", affirmation_command))
@@ -402,6 +451,7 @@ def create_application() -> Application:
         handle_message
     ))
 
+    logger.info("All handlers registered, application ready")
     return application
 
 
@@ -438,14 +488,18 @@ def main() -> None:
         logger.info("Signal handler registered (SIGINT)")
 
     # Создаём и запускаем приложение
+    logger.info("Creating application...")
     app = create_application()
+    logger.info("Application created successfully")
 
     try:
         # Запускаем polling
+        logger.info("Starting polling...")
         app.run_polling(
             allowed_updates=Update.ALL_TYPES,
             drop_pending_updates=True,
         )
+        logger.info("Polling started")
     except KeyboardInterrupt:
         logger.info("KeyboardInterrupt received, shutting down...")
     except Exception as e:

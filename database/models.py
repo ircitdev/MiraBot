@@ -111,6 +111,9 @@ class User(Base):
     quiet_hours_start: Mapped[Optional[datetime]] = mapped_column(Time, nullable=True)
     quiet_hours_end: Mapped[Optional[datetime]] = mapped_column(Time, nullable=True)
 
+    # Удаление аккаунта
+    deletion_scheduled_for: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+
     # Метаданные
     created_at: Mapped[datetime] = mapped_column(DateTime, default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=func.now(), onupdate=func.now())
@@ -140,6 +143,11 @@ class User(Base):
     )
     reports: Mapped[List["UserReport"]] = relationship(
         "UserReport",
+        back_populates="user",
+        lazy="selectin"
+    )
+    onboarding_events: Mapped[List["OnboardingEvent"]] = relationship(
+        "OnboardingEvent",
         back_populates="user",
         lazy="selectin"
     )
@@ -1267,3 +1275,32 @@ class SupportReview(Base):
 
     def __repr__(self) -> str:
         return f"<SupportReview(id={self.id}, user_id={self.user_id}, permission={self.permission_to_publish})>"
+
+
+class OnboardingEvent(Base):
+    """Событие в процессе онбординга пользователя."""
+
+    __tablename__ = "onboarding_events"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    user_id: Mapped[int] = mapped_column(
+        BigInteger,
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True
+    )
+    event_name: Mapped[str] = mapped_column(String(100), nullable=False, index=True)
+    event_data: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), nullable=False, index=True)
+
+    # Связи
+    user: Mapped["User"] = relationship("User", back_populates="onboarding_events")
+
+    # Индексы
+    __table_args__ = (
+        Index("ix_onboarding_events_user_id", "user_id"),
+        Index("ix_onboarding_events_created_at", "created_at"),
+    )
+
+    def __repr__(self) -> str:
+        return f"<OnboardingEvent(id={self.id}, user_id={self.user_id}, event={self.event_name})>"

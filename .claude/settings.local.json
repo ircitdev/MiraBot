@@ -111,7 +111,19 @@
       "Bash(copy webappapiroutesapi_costs.py backups20251230_phase10 )",
       "Bash(copy:*)",
       "Bash(mode=block\" always;\n    add_header Referrer-Policy no-referrer-when-downgrade always;\n}\n\n# Старый домен - редирект на новый\nserver {\n    listen 80;\n    server_name mira.uspeshnyy.ru;\n    return 301 https://miradrug.ru$request_uri;\n}\n\nserver {\n    listen 443 ssl http2;\n    server_name mira.uspeshnyy.ru;\n\n    ssl_certificate /etc/letsencrypt/live/mira.uspeshnyy.ru/fullchain.pem;\n    ssl_certificate_key /etc/letsencrypt/live/mira.uspeshnyy.ru/privkey.pem;\n\n    return 301 https://miradrug.ru$request_uri;\n}\nNGINX_EOF\")",
-      "Bash(curl -s \"http://31.44.7.144:8081/api/support/public/reviews?limit=2\")"
+      "Bash(curl -s \"http://31.44.7.144:8081/api/support/public/reviews?limit=2\")",
+      "Bash(git mv:*)",
+      "Bash(move \"docs\\\\onboarding\\\\TESTING_GUIDE.md\" \"docs\\\\onboarding\\\\ONBOARDING_TESTING_GUIDE.md\")",
+      "Bash(ssh -o StrictHostKeyChecking=no root@31.44.7.144 \"cd /root/mira_bot && sudo systemctl restart mira_bot && sleep 3 && sudo systemctl status mira_bot --no-pager -l\")",
+      "Bash(ssh -o StrictHostKeyChecking=no root@31.44.7.144 \"ps aux | grep -E ''python.*bot|python.*main'' | grep -v grep\")",
+      "Bash(ssh -o StrictHostKeyChecking=no root@31.44.7.144 \"cd /root/mira_bot && ls -lt logs/bot_*.log | head -1 | awk ''{print $NF}'' | xargs tail -30\")",
+      "Bash(ssh -o StrictHostKeyChecking=no root@31.44.7.144 \"cd /root/mira_bot && nohup /root/mira_bot/venv/bin/python -m bot.main > /tmp/mira_bot_start.log 2>&1 &\")",
+      "Bash(ssh -o StrictHostKeyChecking=no root@31.44.7.144 \"pkill -f ''python -m bot.main'' && sleep 2 && cd /root/mira_bot && /root/mira_bot/venv/bin/python -m bot.main > /tmp/mira_bot_start.log 2>&1 &\")",
+      "Bash(ssh -o StrictHostKeyChecking=no root@31.44.7.144 \"lsof /tmp/mira_bot.lock 2>/dev/null || echo ''No process holds the lock''\")",
+      "Bash(ssh -o StrictHostKeyChecking=no root@31.44.7.144 \"cd /root/mira_bot && /root/mira_bot/venv/bin/python -c \"\"import asyncio; from database.repositories.onboarding_event import OnboardingEventRepository; repo = OnboardingEventRepository\\(\\); result = asyncio.run\\(repo.get_onboarding_funnel_stats\\(\\)\\); print\\(''Funnel stats:'', result\\)\"\"\")",
+      "Bash(ssh -o StrictHostKeyChecking=no root@31.44.7.144 \"cd /root/mira_bot && /root/mira_bot/venv/bin/python << ''EOF''\nimport asyncio\nfrom database.session import get_session_context\nfrom sqlalchemy import text\n\nasync def check\\(\\):\n    async with get_session_context\\(\\) as session:\n        result = await session.execute\\(text\\(''SELECT COUNT\\(*\\) FROM onboarding_events''\\)\\)\n        count = result.scalar\\(\\)\n        print\\(f''Total onboarding events: {count}''\\)\n        \n        result2 = await session.execute\\(text\\(''SELECT event_type, COUNT\\(*\\) as cnt FROM onboarding_events GROUP BY event_type''\\)\\)\n        rows = result2.fetchall\\(\\)\n        print\\(''Events by type:''\\)\n        for row in rows:\n            print\\(f''  {row[0]}: {row[1]}''\\)\n\nasyncio.run\\(check\\(\\)\\)\nEOF\n\")",
+      "Bash(ssh -o StrictHostKeyChecking=no root@31.44.7.144 \"cd /root/mira_bot && /root/mira_bot/venv/bin/python << ''EOF''\nimport asyncio\nfrom database.session import get_session_context\nfrom sqlalchemy import text\n\nasync def check\\(\\):\n    async with get_session_context\\(\\) as session:\n        result = await session.execute\\(text\\(''PRAGMA table_info\\(onboarding_events\\)''\\)\\)\n        rows = result.fetchall\\(\\)\n        print\\(''onboarding_events table structure:''\\)\n        for row in rows:\n            print\\(f''  {row[1]} \\({row[2]}\\)''\\)\n\nasyncio.run\\(check\\(\\)\\)\nEOF\n\")",
+      "Bash(ssh -o StrictHostKeyChecking=no root@31.44.7.144 \"ls -la /root/mira_bot/database/migrations/versions/ | grep onboarding\")"
     ]
   }
 }

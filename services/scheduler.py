@@ -109,6 +109,14 @@ def start_scheduler(application: Application) -> None:
         replace_existing=True,
     )
 
+    # Напоминания о незавершённом онбординге — каждый час
+    scheduler.add_job(
+        send_onboarding_reminders,
+        trigger=IntervalTrigger(hours=1),
+        id="onboarding_reminders",
+        replace_existing=True,
+    )
+
     scheduler.start()
     logger.info("Scheduler started")
 
@@ -920,3 +928,81 @@ async def cleanup_expired_files() -> None:
 
     except Exception as e:
         logger.error(f"GCS cleanup job failed: {e}")
+
+
+async def send_onboarding_reminders() -> None:
+    """
+    Отправляет напоминания пользователям, которые не завершили онбординг.
+    Запускается каждый час.
+    """
+    global app
+
+    if not app:
+        return
+
+    from database.repositories.user import UserRepository
+    from database.repositories.onboarding_event import OnboardingEventRepository
+
+    user_repo = UserRepository()
+    onboarding_event_repo = OnboardingEventRepository()
+
+    # Получаем пользователей которые начали, но не завершили онбординг
+    users_needing_reminder = await user_repo.get_incomplete_onboarding_users(
+        hours_since_start=24
+    )
+
+    reminders_sent = 0
+
+    for user in users_needing_reminder:
+        try:
+            # Проверяем что пользователь действительно начал онбординг
+            events = await onboarding_event_repo.get_by_user(user.id)
+
+            if not events:
+                continue
+
+            # Проверяем что уже прошло 24 часа
+            started_event = next((e for e in events if e.event_name == "onboarding_started"), None)
+
+            if not started_event:
+                continue
+
+            hours_since_start = (datetime.utcnow() - started_event.created_at).total_seconds() / 3600
+
+            if hours_since_start < 24:
+                continue
+
+            # Проверяем что напоминание ещё не отправлялось
+            reminder_sent = next((e for e in events if e.event_name == "onboarding_reminder_sent"), None)
+
+            if reminder_sent:
+                # Уже отправляли напоминание
+                continue
+
+            # Формируем напоминание
+            user_name = user.display_name or "дорогая"
+            reminder_text = f"Привет, {user_name}! 💛 Это Мира.\n\n" \
+                          f"Мы не закончили знакомство. Готова продолжить?\n\n" \
+                          f"Просто напиши /start и продолжим с того места, где остановились."
+
+            # Отправляем напоминание
+            await app.bot.send_message(
+                chat_id=user.telegram_id,
+                text=reminder_text,
+            )
+
+            # Логируем отправку напоминания
+            await onboarding_event_repo.log_event(
+                user_id=user.id,
+                event_name="onboarding_reminder_sent",
+                event_data={"hours_since_start": int(hours_since_start)}
+            )
+
+            reminders_sent += 1
+            logger.info(f"Sent onboarding reminder to user {user.id}")
+
+        except Exception as e:
+            logger.error(f"Failed to send onboarding reminder to user {user.id}: {e}")
+
+    if reminders_sent > 0:
+        logger.info(f"Onboarding reminders job complete: {reminders_sent} reminders sent")

@@ -226,6 +226,18 @@ class Settings(BaseSettings):
     )
 
     # =====================================
+    # GOOGLE ANALYTICS
+    # =====================================
+    GOOGLE_ANALYTICS_PROPERTY_ID: str = Field(
+        default="",
+        description="Google Analytics 4 Property ID"
+    )
+    GOOGLE_ANALYTICS_CREDENTIALS_PATH: str = Field(
+        default="config/google_analytics_credentials.json",
+        description="Путь к JSON credentials для GA4 API"
+    )
+
+    # =====================================
     # SUPPORT BOT
     # =====================================
     SUPPORT_BOT_TOKEN: str = Field(

@@ -23,22 +23,50 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     Начинает онбординг или приветствует возвращающегося пользователя.
     """
     user_tg = update.effective_user
-    
+
     # Проверяем реферальный код
     referral_code = None
     if context.args:
         referral_code = context.args[0]
-    
+
     # Получаем или создаём пользователя
     user, created = await user_repo.get_or_create(
         telegram_id=user_tg.id,
         username=user_tg.username,
         first_name=user_tg.first_name,
     )
-    
+
     # Обрабатываем реферальный код
+    referrer_telegram_id = None
     if referral_code and created:
-        await _process_referral(user.id, referral_code)
+        referrer_telegram_id = await _process_referral(user.id, referral_code)
+
+    # Логируем регистрацию нового пользователя в admin logs
+    if created:
+        try:
+            from database.repositories.admin_log import AdminLogRepository
+            admin_log_repo = AdminLogRepository()
+
+            details = {
+                "telegram_id": user_tg.id,
+                "username": user_tg.username,
+                "first_name": user_tg.first_name,
+            }
+
+            if referral_code and referrer_telegram_id:
+                details["referral_code"] = referral_code
+                details["referrer_telegram_id"] = referrer_telegram_id
+
+            await admin_log_repo.create(
+                admin_user_id=1,  # Системное событие
+                action="new_user_registration",
+                resource_type="user",
+                resource_id=user_tg.id,
+                details=details,
+                success=True,
+            )
+        except Exception as e:
+            logger.warning(f"Failed to log new user registration: {e}")
 
     # Загружаем аватарку если её нет
     if not user.avatar_url:
@@ -59,13 +87,17 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     else:
         # Возвращающийся пользователь
         await _welcome_back(update, user)
-    
+
     logger.info(f"User {user_tg.id} started bot (created={created})")
 
 
 async def _start_onboarding(update: Update, user) -> None:
-    """Начинает процесс онбординга."""
+    """
+    Начинает процесс онбординга.
 
+    Примечание: Фактический онбординг теперь обрабатывается через ConversationHandler
+    в bot/handlers/onboarding.py. Эта функция вызывается для совместимости.
+    """
     # Устанавливаем Миру по умолчанию и переходим к шагу 1 (ввод имени)
     await user_repo.update(
         user.id,
@@ -73,15 +105,9 @@ async def _start_onboarding(update: Update, user) -> None:
         onboarding_step=1,
     )
 
-    text = """Привет 💛
-
-Я Мира. Мне 42, замужем 18 лет, двое детей. Я прошла через кризис в браке, выгорание — и нашла путь обратно.
-
-Я здесь, чтобы слушать. Не как психолог — а как подруга, которая не осудит и не будет учить жить.
-
-Как тебя зовут?"""
-
-    await update.message.reply_text(text)
+    # Старый текст закомментирован - теперь используется ConversationHandler
+    # который отправляет сообщения постепенно с паузами
+    pass
 
 
 async def _welcome_back(update: Update, user) -> None:
@@ -98,20 +124,28 @@ async def _welcome_back(update: Update, user) -> None:
     await update.message.reply_text(text)
 
 
-async def _process_referral(user_id: int, code: str) -> None:
-    """Обрабатывает реферальный код."""
+async def _process_referral(user_id: int, code: str) -> int | None:
+    """
+    Обрабатывает реферальный код.
+
+    Returns:
+        telegram_id реферера если успешно, иначе None
+    """
     from services.referral import ReferralService
-    
+
     referral_service = ReferralService()
     result = await referral_service.apply_referral(user_id, code)
-    
+
     if result.get("success"):
         logger.info(f"Referral {code} applied for user {user_id}")
+        return result.get("referrer_telegram_id")
+
+    return None
 
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Обработчик команды /help."""
-    
+
     text = """**Что я умею** 💛
 
 Я — твой друг. Не психолог, не терапевт — просто тот, кто выслушает и поддержит.
@@ -122,16 +156,6 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
 • Самореализация
 • Усталость и выгорание
 • Всё, что на душе
-
-**Команды:**
-/exercises — упражнения (дыхание, релаксация, заземление)
-/affirmation — аффирмация дня
-/meditation — медитации (тексты для практики)
-/settings — настройки бота
-/subscription — твоя подписка
-/referral — пригласи подругу
-/rituals — настрой ритуалы
-/privacy — соглашение о неразглашении
 
 **Голосовые сообщения:**
 Можешь говорить — я пойму! Отправь голосовое сообщение, я его расшифрую и отвечу 🎤
@@ -144,6 +168,8 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
 
 Телефон доверия: 8-800-2000-122 (бесплатно, круглосуточно)
 
-Просто напиши или скажи — я слушаю 💛"""
-    
+Просто напиши или скажи — я слушаю 💛
+
+_Подсказка: все команды находятся в меню бота (кнопка слева от строки ввода) ⌨️_"""
+
     await update.message.reply_text(text, parse_mode="Markdown")

@@ -833,6 +833,61 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    // Анализ личности
+    document.getElementById('personality-analysis').addEventListener('click', async () => {
+        try {
+            // Показываем индикатор загрузки
+            const button = document.getElementById('personality-analysis');
+            const originalText = button.innerHTML;
+            button.innerHTML = '<span>⏳ Создаю анализ...</span><span class="premium-badge">Premium</span>';
+            button.disabled = true;
+
+            const response = await fetch('/api/personality/analysis', {
+                method: 'POST',
+                headers: {
+                    'X-Telegram-Init-Data': tg.initData,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.detail || 'Ошибка создания анализа');
+            }
+
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'mira_personality_analysis.md';
+            a.click();
+
+            tg.showAlert('Анализ личности готов! Следующий анализ будет доступен через месяц.');
+
+            // Восстанавливаем кнопку
+            button.innerHTML = originalText;
+            button.disabled = false;
+        } catch (error) {
+            console.error('Personality analysis failed:', error);
+
+            // Восстанавливаем кнопку
+            const button = document.getElementById('personality-analysis');
+            button.innerHTML = '<span>🧠 Анализ личности</span><span class="premium-badge">Premium</span>';
+            button.disabled = false;
+
+            // Показываем ошибку
+            if (error.message.includes('доступен')) {
+                tg.showAlert(error.message);
+            } else if (error.message.includes('Premium')) {
+                tg.showAlert('Анализ личности доступен только для Premium пользователей');
+            } else if (error.message.includes('недостаточно')) {
+                tg.showAlert('Недостаточно данных для анализа. Пообщайся со мной больше!');
+            } else {
+                tg.showAlert('Ошибка создания анализа: ' + error.message);
+            }
+        }
+    });
+
     // Копировать реферальную ссылку
     document.getElementById('copy-referral').addEventListener('click', async () => {
         const link = document.getElementById('referral-link').value;
@@ -945,8 +1000,100 @@ document.addEventListener('DOMContentLoaded', () => {
     const accordionHeaders = document.querySelectorAll('.accordion-header');
     console.log('Found accordion headers:', accordionHeaders.length);
 
-    // Setup Telegram button
-    tg.MainButton.setText('Закрыть');
-    tg.MainButton.onClick(() => tg.close());
-    tg.MainButton.show();
+    // ==================== Privacy Tab Handlers ====================
+
+    // Delete account button
+    const deleteAccountBtn = document.getElementById('delete-account-btn');
+    if (deleteAccountBtn) {
+        deleteAccountBtn.addEventListener('click', async () => {
+            const confirmed = confirm(
+                'Ты уверена, что хочешь удалить аккаунт?\n\n' +
+                'У тебя будет 3 дня, чтобы восстановить его. ' +
+                'После этого все данные будут удалены навсегда.'
+            );
+
+            if (!confirmed) return;
+
+            try {
+                const response = await fetch('/api/settings/delete', {
+                    method: 'POST',
+                    headers: {
+                        'X-Telegram-Init-Data': tg.initData,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    tg.showPopup({
+                        title: 'Аккаунт перемещен в корзину',
+                        message: 'Аккаунт будет полностью удален через 3 дня. Если ты решишь восстановить его, просто напиши любое сообщение Мире.\n\nДля очистки чата перейди в профиль Миры, нажми "еще" и выбери "Удалить переписку"',
+                        buttons: [{type: 'close'}]
+                    });
+                    setTimeout(() => tg.close(), 3000);
+                } else {
+                    tg.showAlert(data.message || 'Ошибка удаления аккаунта');
+                }
+            } catch (error) {
+                console.error('Delete account error:', error);
+                tg.showAlert('Ошибка. Напиши /deletedata в боте');
+            }
+        });
+    }
+
+    // Export all data button
+    const exportAllDataBtn = document.getElementById('export-all-data-btn');
+    if (exportAllDataBtn) {
+        exportAllDataBtn.addEventListener('click', async () => {
+            try {
+                const response = await fetch('/api/export/all', {
+                    headers: {
+                        'X-Telegram-Init-Data': tg.initData
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error('Export failed');
+                }
+
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'mira_data_export.zip';
+                a.click();
+
+                tg.showAlert('Данные экспортированы');
+            } catch (error) {
+                console.error('Export all data error:', error);
+                tg.showAlert('Ошибка экспорта. Попробуй скачать историю в настройках.');
+            }
+        });
+    }
+
+    // Contact support button
+    const contactSupportBtn = document.getElementById('contact-support-btn');
+    if (contactSupportBtn) {
+        contactSupportBtn.addEventListener('click', () => {
+            const supportUrl = 'https://t.me/MiraDrugSupport_bot';
+
+            if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.openTelegramLink) {
+                window.Telegram.WebApp.openTelegramLink(supportUrl);
+            } else {
+                window.open(supportUrl, '_blank');
+            }
+        });
+    }
+
+    // Setup close button (крестик)
+    const closeBtn = document.getElementById('close-btn');
+    if (closeBtn) {
+        closeBtn.addEventListener('click', () => {
+            tg.close();
+        });
+    }
+
+    // Hide Telegram MainButton (больше не нужна)
+    tg.MainButton.hide();
 });

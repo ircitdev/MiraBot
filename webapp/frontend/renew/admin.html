@@ -1,0 +1,1406 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Админ-панель - Мира</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+
+    <!-- Material Design 3 Icons & Fonts -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+    <style>
+        /* =========================================
+           THEME VARIABLES (BLUE PALETTE + GRADIENTS)
+           ========================================= */
+        
+         :root {
+            /* Light Theme Colors */
+            --md-sys-color-primary: #0061A4;
+            --md-sys-color-on-primary: #FFFFFF;
+            --md-sys-color-primary-container: #D1E4FF;
+            --md-sys-color-on-primary-container: #001D36;
+            --md-sys-color-secondary: #535F70;
+            --md-sys-color-on-secondary: #FFFFFF;
+            --md-sys-color-secondary-container: #D7E3F7;
+            --md-sys-color-on-secondary-container: #101C2B;
+            --md-sys-color-tertiary: #6B5778;
+            --md-sys-color-error: #BA1A1A;
+            --md-sys-color-on-error: #FFFFFF;
+            --md-sys-color-error-container: #FFDAD6;
+            /* Neutral Surfaces */
+            --md-sys-color-background: #F8F9FA;
+            /* Slightly darker than pure white for contrast */
+            --md-sys-color-on-background: #1A1C1E;
+            --md-sys-color-surface: #FFFFFF;
+            --md-sys-color-surface-container: #F0F4F9;
+            --md-sys-color-surface-container-high: #EAEFF5;
+            --md-sys-color-on-surface: #1A1C1E;
+            --md-sys-color-on-surface-variant: #43474E;
+            --md-sys-color-outline: #73777F;
+            --md-sys-color-outline-variant: #C3C7CF;
+            /* Gradients (Light) - Fresh Blue Vibe */
+            --gradient-primary: linear-gradient(135deg, #0061A4 0%, #2196F3 100%);
+            --gradient-primary-hover: linear-gradient(135deg, #005088 0%, #1976D2 100%);
+            --gradient-accent: linear-gradient(135deg, #6200EA 0%, #B388FF 100%);
+            --gradient-success: linear-gradient(135deg, #2E7D32 0%, #66BB6A 100%);
+            --gradient-warning: linear-gradient(135deg, #EF6C00 0%, #FFA726 100%);
+            /* Body Background Gradient (Subtle) */
+            --body-bg-gradient: linear-gradient(180deg, #EFF4F9 0%, #F8F9FA 100%);
+            /* Glassmorphism (Light) */
+            --glass-bg: rgba(255, 255, 255, 0.7);
+            --glass-border: 1px solid rgba(255, 255, 255, 0.6);
+            --glass-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
+            --backdrop-blur: blur(12px);
+            --radius-s: 8px;
+            --radius-m: 12px;
+            --radius-l: 16px;
+            --radius-xl: 28px;
+            --shadow-1: 0 2px 8px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+            --shadow-2: 0 8px 24px rgba(0, 0, 0, 0.12), 0 2px 6px rgba(0, 0, 0, 0.08);
+            --shadow-glow: 0 4px 14px rgba(0, 97, 164, 0.25);
+        }
+        
+        [data-theme="dark"] {
+            /* Dark Theme Colors */
+            --md-sys-color-primary: #9ECAFF;
+            --md-sys-color-on-primary: #003258;
+            --md-sys-color-primary-container: #00497D;
+            --md-sys-color-on-primary-container: #D1E4FF;
+            --md-sys-color-secondary: #BBC7DB;
+            --md-sys-color-on-secondary: #253140;
+            --md-sys-color-secondary-container: #3B4858;
+            --md-sys-color-on-secondary-container: #D7E3F7;
+            --md-sys-color-tertiary: #D7BEE4;
+            --md-sys-color-error: #FFB4AB;
+            --md-sys-color-on-error: #690005;
+            --md-sys-color-error-container: #93000A;
+            --md-sys-color-background: #0E1012;
+            --md-sys-color-on-background: #E2E2E6;
+            --md-sys-color-surface: #16181C;
+            --md-sys-color-surface-container: #1C1F24;
+            --md-sys-color-surface-container-high: #282B30;
+            --md-sys-color-on-surface: #E2E2E6;
+            --md-sys-color-on-surface-variant: #C3C7CF;
+            --md-sys-color-outline: #8D9199;
+            --md-sys-color-outline-variant: #43474E;
+            /* Gradients (Dark) - Deep Neon Vibe */
+            --gradient-primary: linear-gradient(135deg, #64B5F6 0%, #1E88E5 100%);
+            --gradient-primary-hover: linear-gradient(135deg, #90CAF9 0%, #42A5F5 100%);
+            --gradient-accent: linear-gradient(135deg, #B388FF 0%, #7C4DFF 100%);
+            /* Body Background Gradient (Subtle Dark) */
+            --body-bg-gradient: linear-gradient(180deg, #13161A 0%, #0E1012 100%);
+            /* Glassmorphism (Dark) */
+            --glass-bg: rgba(22, 24, 28, 0.75);
+            --glass-border: 1px solid rgba(255, 255, 255, 0.1);
+            --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+            --shadow-1: 0 2px 8px rgba(0, 0, 0, 0.4);
+            --shadow-2: 0 8px 24px rgba(0, 0, 0, 0.5);
+            --shadow-glow: 0 4px 14px rgba(100, 181, 246, 0.2);
+        }
+        /* =========================================
+           RESET & BASE
+           ========================================= */
+        
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Roboto', sans-serif;
+            background: var(--body-bg-gradient);
+            background-attachment: fixed;
+            /* Keep gradient fixed on scroll */
+            color: var(--md-sys-color-on-background);
+            transition: background 0.3s, color 0.3s;
+            padding-bottom: 90px;
+            /* Space for mobile nav */
+            min-height: 100vh;
+        }
+        
+        @media (min-width: 900px) {
+            body {
+                padding-bottom: 0;
+            }
+        }
+        
+        a {
+            text-decoration: none;
+            color: inherit;
+        }
+        /* Scrollbar */
+        
+         ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        
+         ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        
+         ::-webkit-scrollbar-thumb {
+            background: var(--md-sys-color-outline-variant);
+            border-radius: 3px;
+        }
+        /* =========================================
+           GLASSMORPHISM PANELS
+           ========================================= */
+        
+        .glass-panel {
+            background: var(--glass-bg);
+            backdrop-filter: var(--backdrop-blur);
+            -webkit-backdrop-filter: var(--backdrop-blur);
+            box-shadow: var(--glass-shadow);
+            border-bottom: var(--glass-border);
+        }
+        
+        .app-bar {
+            /* Glassmorphism applied directly */
+            background: var(--glass-bg);
+            backdrop-filter: var(--backdrop-blur);
+            -webkit-backdrop-filter: var(--backdrop-blur);
+            border-bottom: var(--glass-border);
+            box-shadow: var(--shadow-1);
+            padding: 12px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        
+        .app-title {
+            font-size: 20px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            /* Gradient Text for Logo */
+            background: var(--gradient-primary);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            /* Fallback */
+            color: var(--md-sys-color-primary);
+            margin: 0;
+        }
+        /* Fix icon color for gradient text context */
+        
+        .app-title .material-icons {
+            background: var(--gradient-primary);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            /* Ensure icon renders as a block for gradient to work */
+            display: inline-block;
+        }
+        
+        .container {
+            max-width: 1440px;
+            margin: 0 auto;
+            padding: 24px;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                padding: 16px;
+            }
+            .app-bar {
+                padding: 12px 16px;
+            }
+        }
+        /* Desktop Nav - Floating Glass Pills */
+        
+        .main-nav {
+            display: flex;
+            gap: 8px;
+            flex: 1;
+            justify-content: center;
+            overflow-x: auto;
+            scrollbar-width: none;
+        }
+        
+        .main-nav-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 20px;
+            background: transparent;
+            border: none;
+            border-radius: 24px;
+            color: var(--md-sys-color-on-surface-variant);
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            white-space: nowrap;
+        }
+        
+        .main-nav-item:hover {
+            background: rgba(var(--md-sys-color-primary), 0.08);
+            color: var(--md-sys-color-primary);
+        }
+        
+        .main-nav-item.active {
+            background: var(--gradient-primary);
+            color: var(--md-sys-color-on-primary);
+            box-shadow: var(--shadow-glow);
+        }
+        
+        @media (max-width: 900px) {
+            .main-nav {
+                display: none;
+            }
+        }
+        /* Sub Nav (Sticky Glass below App Bar) */
+        
+        .sub-nav {
+            background: var(--glass-bg);
+            backdrop-filter: var(--backdrop-blur);
+            -webkit-backdrop-filter: var(--backdrop-blur);
+            border-bottom: var(--glass-border);
+            padding: 10px 24px;
+            display: none;
+            justify-content: center;
+            gap: 8px;
+            overflow-x: auto;
+            position: sticky;
+            top: 61px;
+            z-index: 90;
+            /* Remove default scrollbar */
+            scrollbar-width: none;
+        }
+        
+        .sub-nav::-webkit-scrollbar {
+            display: none;
+        }
+        
+        .sub-nav.visible {
+            display: flex;
+        }
+        
+        .sub-nav-section {
+            display: none;
+            gap: 8px;
+        }
+        
+        .sub-nav-section.active {
+            display: flex;
+        }
+        
+        .sub-nav-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 16px;
+            background: transparent;
+            border: 1px solid var(--md-sys-color-outline-variant);
+            border-radius: 20px;
+            color: var(--md-sys-color-on-surface-variant);
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: 0.2s;
+        }
+        
+        .sub-nav-item:hover {
+            border-color: var(--md-sys-color-primary);
+            color: var(--md-sys-color-primary);
+            background: rgba(var(--md-sys-color-primary), 0.04);
+        }
+        
+        .sub-nav-item.active {
+            background: var(--md-sys-color-secondary-container);
+            color: var(--md-sys-color-on-secondary-container);
+            border-color: transparent;
+            font-weight: 600;
+        }
+        
+        .sub-nav-item.active .material-icons {
+            color: var(--md-sys-color-primary);
+        }
+        /* Mobile Bottom Nav (Frosted Glass) */
+        
+        .mobile-bottom-nav {
+            display: none;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px) saturate(180%);
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
+            border-top: var(--glass-border);
+            box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.1);
+            padding: 10px 0 30px 0;
+            /* Extra padding for iOS Home Indicator */
+            z-index: 999;
+            justify-content: space-around;
+        }
+        
+        @media (max-width: 900px) {
+            .mobile-bottom-nav {
+                display: flex;
+            }
+        }
+        
+        .mobile-nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: none;
+            border: none;
+            color: var(--md-sys-color-on-surface-variant);
+            width: 64px;
+            gap: 4px;
+            cursor: pointer;
+            opacity: 0.6;
+            transition: 0.3s;
+        }
+        
+        .mobile-nav-item.active {
+            color: var(--md-sys-color-primary);
+            opacity: 1;
+        }
+        
+        .mobile-nav-item.active .material-icons {
+            /* Active indicator pill with gradient */
+            background: var(--gradient-primary);
+            color: #FFFFFF;
+            padding: 4px 20px;
+            border-radius: 16px;
+            box-shadow: var(--shadow-glow);
+            margin-bottom: 2px;
+        }
+        
+        .mobile-nav-label {
+            font-size: 11px;
+            font-weight: 500;
+        }
+        /* =========================================
+           UI ELEMENTS
+           ========================================= */
+        /* Cards */
+        
+        .card,
+        .stat-card,
+        .analytics-section,
+        .settings-card,
+        .config-card,
+        .report-card {
+            background: var(--md-sys-color-surface);
+            border: 1px solid var(--md-sys-color-outline-variant);
+            border-radius: var(--radius-l);
+            padding: 20px;
+            box-shadow: var(--shadow-1);
+            margin-bottom: 16px;
+            transition: transform 0.2s, box-shadow 0.2s;
+            position: relative;
+            overflow: hidden;
+        }
+        /* Interactive Cards Hover Effect */
+        
+        .stat-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-2);
+        }
+        /* Stats Grid */
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 16px;
+        }
+        
+        .stat-value {
+            font-size: 32px;
+            font-weight: 600;
+            color: var(--md-sys-color-on-surface);
+            margin: 8px 0;
+        }
+        
+        .stat-label {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--md-sys-color-primary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            opacity: 0.8;
+        }
+        /* Gradient Icons in Stats */
+        
+        .stat-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 12px;
+            /* Subtle glass background for icon */
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0.4));
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+        }
+        /* Override specific icon backgrounds in HTML with classes if needed, or use inline styles carefully */
+        /* Buttons */
+        
+        .md-button {
+            height: 42px;
+            padding: 0 24px;
+            border-radius: 21px;
+            border: none;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: 0.3s;
+            letter-spacing: 0.3px;
+        }
+        /* Filled Button with Gradient */
+        
+        .md-button-filled {
+            background: var(--gradient-primary);
+            color: var(--md-sys-color-on-primary);
+            box-shadow: var(--shadow-glow);
+        }
+        
+        .md-button-filled:hover {
+            background: var(--gradient-primary-hover);
+            box-shadow: 0 6px 20px rgba(0, 97, 164, 0.4);
+            transform: translateY(-1px);
+        }
+        
+        .md-button-outlined {
+            background: transparent;
+            border: 1px solid var(--md-sys-color-outline);
+            color: var(--md-sys-color-primary);
+        }
+        
+        .md-button-outlined:hover {
+            background: rgba(var(--md-sys-color-primary), 0.04);
+            border-color: var(--md-sys-color-primary);
+        }
+        
+        .icon-button {
+            background: transparent;
+            border: none;
+            color: var(--md-sys-color-on-surface-variant);
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        
+        .icon-button:hover {
+            background: var(--md-sys-color-surface-container-high);
+            color: var(--md-sys-color-primary);
+        }
+        /* Forms */
+        
+        .search-field {
+            position: relative;
+            flex: 1;
+        }
+        
+        .search-field input,
+        .md-input,
+        textarea,
+        select {
+            width: 100%;
+            padding: 12px 16px 12px 48px;
+            background: var(--md-sys-color-surface-container);
+            border: 1px solid transparent;
+            border-radius: 24px;
+            color: var(--md-sys-color-on-surface);
+            font-size: 15px;
+            transition: 0.2s;
+            box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.03);
+        }
+        
+        .search-field input:focus,
+        .md-input:focus,
+        textarea:focus,
+        select:focus {
+            background: var(--md-sys-color-surface);
+            border-color: var(--md-sys-color-primary);
+            outline: none;
+            box-shadow: 0 0 0 4px rgba(0, 97, 164, 0.1);
+        }
+        
+        .search-field .material-icons {
+            position: absolute;
+            left: 16px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--md-sys-color-on-surface-variant);
+        }
+        /* Tables */
+        
+        .table-container {
+            overflow-x: auto;
+            background: var(--md-sys-color-surface);
+            border-radius: var(--radius-l);
+            border: 1px solid var(--md-sys-color-outline-variant);
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            white-space: nowrap;
+        }
+        
+        th {
+            text-align: left;
+            padding: 16px;
+            color: var(--md-sys-color-on-surface-variant);
+            font-size: 13px;
+            font-weight: 600;
+            border-bottom: 1px solid var(--md-sys-color-outline-variant);
+            background: var(--md-sys-color-surface-container);
+        }
+        
+        td {
+            padding: 16px;
+            color: var(--md-sys-color-on-surface);
+            font-size: 14px;
+            border-bottom: 1px solid var(--md-sys-color-outline-variant);
+        }
+        
+        tbody tr:hover {
+            background: var(--md-sys-color-surface-container-high);
+        }
+        /* Badges */
+        
+        .badge {
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        
+        .badge-premium {
+            background: linear-gradient(135deg, #FFD700, #FFA500);
+            color: #000;
+            box-shadow: 0 2px 8px rgba(255, 165, 0, 0.25);
+            border: none;
+        }
+        
+        .badge-free {
+            background: var(--md-sys-color-surface-container-high);
+            color: var(--md-sys-color-on-surface-variant);
+            border: 1px solid var(--md-sys-color-outline-variant);
+        }
+        /* Avatars */
+        
+        .user-avatar,
+        .moderator-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid var(--md-sys-color-surface);
+            box-shadow: var(--shadow-1);
+        }
+        
+        .user-avatar-placeholder {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 14px;
+            color: #FFF;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+            box-shadow: var(--shadow-1);
+        }
+        /* Toolbar */
+        
+        .toolbar {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+        }
+        /* =========================================
+           SPECIFIC COMPONENTS
+           ========================================= */
+        /* Chat */
+        
+        .chat-dialog {
+            display: flex;
+            flex-direction: column;
+            height: 75vh;
+        }
+        
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            background: var(--md-sys-color-surface-container-high);
+            border-radius: 12px;
+            border: 1px solid var(--md-sys-color-outline-variant);
+        }
+        
+        .chat-message {
+            max-width: 75%;
+            padding: 12px 16px;
+            border-radius: 18px;
+            margin-bottom: 12px;
+            line-height: 1.5;
+            font-size: 14px;
+            box-shadow: var(--shadow-1);
+        }
+        
+        .message-user {
+            background: var(--gradient-primary);
+            color: #FFFFFF;
+            align-self: flex-end;
+            margin-left: auto;
+            border-bottom-right-radius: 2px;
+        }
+        
+        .message-assistant {
+            background: var(--md-sys-color-surface);
+            color: var(--md-sys-color-on-surface);
+            align-self: flex-start;
+            margin-right: auto;
+            border-bottom-left-radius: 2px;
+        }
+        
+        .message-text {
+            color: inherit;
+        }
+        /* Fix text color inheritance */
+        /* Legend */
+        
+        .legend-card {
+            background: var(--md-sys-color-surface);
+            border-left: 4px solid var(--md-sys-color-primary);
+        }
+        
+        .trait-tag {
+            display: inline-block;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            margin: 2px;
+            font-weight: 500;
+        }
+        
+        .trait-tag.positive {
+            background: #E6F4EA;
+            color: #137333;
+            border: 1px solid #C6E7D2;
+        }
+        
+        .trait-tag.negative {
+            background: #FCE8E6;
+            color: #C5221F;
+            border: 1px solid #F5C2C0;
+        }
+        
+        .trait-tag.neutral {
+            background: #F1F3F4;
+            color: #5F6368;
+            border: 1px solid #E0E0E0;
+        }
+        /* Photos */
+        
+        .photos-gallery {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            gap: 12px;
+        }
+        
+        .photo-card {
+            padding: 0;
+            overflow: hidden;
+            position: relative;
+            border-radius: 16px;
+            aspect-ratio: 1;
+            cursor: pointer;
+            box-shadow: var(--shadow-1);
+        }
+        
+        .photo-preview {
+            width: 100%;
+            height: 100%;
+        }
+        
+        .photo-preview img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.5s;
+        }
+        
+        .photo-card:hover img {
+            transform: scale(1.1);
+        }
+        
+        .photo-info {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(to top, rgba(0, 0, 0, 0.8) 0%, rgba(0, 0, 0, 0) 100%);
+            padding: 24px 12px 12px;
+            color: white;
+        }
+        /* Modals */
+        
+        .dialog-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(8px);
+            z-index: 2000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .dialog-overlay.show {
+            display: flex;
+            animation: fadeIn 0.2s;
+        }
+        
+        .dialog {
+            background: var(--md-sys-color-surface);
+            width: 90%;
+            max-width: 600px;
+            max-height: 90vh;
+            overflow-y: auto;
+            border-radius: 28px;
+            padding: 24px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            border: 1px solid var(--md-sys-color-outline-variant);
+        }
+        /* Tabs within Dialogs */
+        
+        .user-dialog-tabs {
+            display: flex;
+            gap: 8px;
+            overflow-x: auto;
+            padding-bottom: 4px;
+            margin-bottom: 16px;
+            border-bottom: 1px solid var(--md-sys-color-outline-variant);
+        }
+        
+        .user-tab {
+            padding: 8px 16px;
+            border-radius: 20px;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            color: var(--md-sys-color-on-surface-variant);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+            transition: 0.2s;
+        }
+        
+        .user-tab:hover {
+            background: var(--md-sys-color-surface-container);
+        }
+        
+        .user-tab.active {
+            background: var(--gradient-primary);
+            color: #FFFFFF;
+            font-weight: 500;
+            box-shadow: var(--shadow-glow);
+        }
+        
+        .tab-content {
+            display: none;
+            animation: fadeIn 0.3s;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        /* Utilities */
+        
+        .hidden {
+            display: none !important;
+        }
+        
+        .loading {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 40px;
+            color: var(--md-sys-color-secondary);
+        }
+        
+        .spinner {
+            width: 32px;
+            height: 32px;
+            border: 3px solid var(--md-sys-color-primary-container);
+            border-top-color: var(--md-sys-color-primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 10px;
+        }
+        
+        @keyframes spin {
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+        
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .access-denied-page {
+            position: fixed;
+            inset: 0;
+            background: var(--md-sys-color-background);
+            z-index: 9999;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+        }
+        
+        .access-denied-page.visible {
+            display: flex;
+        }
+    </style>
+</head>
+
+<body data-theme="light">
+    <!-- Access Denied Page -->
+    <div class="access-denied-page" id="access-denied-page">
+        <span class="material-icons" style="font-size: 64px; color: var(--md-sys-color-error); margin-bottom: 16px;">lock</span>
+        <span style="font-size: 24px; font-weight: 500;">Доступ запрещён</span>
+        <p style="color: var(--md-sys-color-on-surface-variant);">У вас нет прав для просмотра этой страницы.</p>
+    </div>
+
+    <!-- Initialization Script -->
+    <script>
+        // Check authorization immediately
+        (function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const tokenFromUrl = urlParams.get('token');
+            if (tokenFromUrl) {
+                localStorage.setItem('admin_token', tokenFromUrl);
+                window.history.replaceState({}, document.title, window.location.pathname);
+            }
+            const adminToken = localStorage.getItem('admin_token');
+            // Allow bypassing for demo purposes if needed
+            // if (!adminToken) { document.getElementById('access-denied-page').classList.add('visible'); document.body.style.overflow = 'hidden'; }
+        })();
+    </script>
+
+    <!-- App Bar with Main Navigation -->
+    <div class="app-bar admin-content">
+        <h1 class="app-title">
+            <span class="material-icons">admin_panel_settings</span>
+            <span class="title-text">MIRA ADMIN</span>
+        </h1>
+
+        <!-- Desktop Nav -->
+        <nav class="main-nav">
+            <button class="main-nav-item active" data-tab="overview" onclick="switchAdminTab('overview')">
+                <span class="material-icons">dashboard</span>
+                <span class="nav-label">Обзор</span>
+            </button>
+            <button class="main-nav-item" data-tab="users" onclick="switchAdminTab('users')">
+                <span class="material-icons">people</span>
+                <span class="nav-label">Пользователи</span>
+            </button>
+            <button class="main-nav-item" data-tab="support" onclick="switchAdminTab('support')">
+                <span class="material-icons">support_agent</span>
+                <span class="nav-label">Поддержка</span>
+            </button>
+            <button class="main-nav-item" data-tab="analytics" onclick="switchAdminTab('analytics')">
+                <span class="material-icons">analytics</span>
+                <span class="nav-label">Аналитика</span>
+            </button>
+            <button class="main-nav-item" data-tab="payments" onclick="switchAdminTab('payments')">
+                <span class="material-icons">payments</span>
+                <span class="nav-label">Платежи</span>
+            </button>
+            <button class="main-nav-item" data-tab="broadcast" onclick="switchAdminTab('broadcast')">
+                <span class="material-icons">campaign</span>
+                <span class="nav-label">Рассылка</span>
+            </button>
+            <button class="main-nav-item" data-tab="context" onclick="switchAdminTab('context')">
+                <span class="material-icons">psychology</span>
+                <span class="nav-label">Контекст</span>
+            </button>
+            <button class="main-nav-item" data-tab="config" onclick="switchAdminTab('config')">
+                <span class="material-icons">settings</span>
+                <span class="nav-label">Конфиг</span>
+            </button>
+        </nav>
+
+        <div style="display: flex; align-items: center; gap: 12px;">
+            <button class="icon-button" onclick="toggleTheme()" title="Сменить тему">
+                <span class="material-icons">dark_mode</span>
+            </button>
+            <!-- Moderator Profile -->
+            <div class="moderator-profile" id="moderator-profile" onclick="openModeratorProfile(event)" style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                <img id="moderator-avatar" class="moderator-avatar" src="https://ui-avatars.com/api/?name=Admin&background=0061A4&color=fff" alt="Avatar">
+            </div>
+        </div>
+    </div>
+
+    <!-- Sub Navigation -->
+    <nav class="sub-nav admin-content" id="sub-nav">
+        <!-- Submenu: Context -->
+        <div class="sub-nav-section" data-parent="context">
+            <button class="sub-nav-item active" data-section="emotions" onclick="switchContextSection('emotions')">
+                <span class="material-icons">mood</span> Эмоции
+            </button>
+            <button class="sub-nav-item" data-section="legend" onclick="switchContextSection('legend')">
+                <span class="material-icons">person</span> Легенда
+            </button>
+            <button class="sub-nav-item" data-section="system-prompt" onclick="switchContextSection('system-prompt')">
+                <span class="material-icons">code</span> PROMPT
+            </button>
+        </div>
+        <!-- Submenu: Support -->
+        <div class="sub-nav-section" data-parent="support">
+            <button class="sub-nav-item active" data-section="questions" onclick="switchSupportSection('questions')">
+                <span class="material-icons">question_answer</span> Вопросы
+            </button>
+            <button class="sub-nav-item" data-section="reviews" onclick="switchSupportSection('reviews')">
+                <span class="material-icons">rate_review</span> Отзывы
+            </button>
+        </div>
+        <!-- Submenu: Payments -->
+        <div class="sub-nav-section" data-parent="payments">
+            <button class="sub-nav-item active" data-section="payment-settings" onclick="switchPaymentsSection('payment-settings')">
+                <span class="material-icons">settings</span> Настройки
+            </button>
+            <button class="sub-nav-item" data-section="tariffs" onclick="switchPaymentsSection('tariffs')">
+                <span class="material-icons">sell</span> Тарифы
+            </button>
+            <button class="sub-nav-item" data-section="promotions" onclick="switchPaymentsSection('promotions')">
+                <span class="material-icons">local_offer</span> Акции
+            </button>
+            <button class="sub-nav-item" data-section="promo-codes" onclick="switchPaymentsSection('promo-codes')">
+                <span class="material-icons">confirmation_number</span> Промо-коды
+            </button>
+            <button class="sub-nav-item" data-section="payment-stats" onclick="switchPaymentsSection('payment-stats')">
+                <span class="material-icons">bar_chart</span> Статистика
+            </button>
+        </div>
+        <!-- Submenu: Config -->
+        <div class="sub-nav-section" data-parent="config">
+            <button class="sub-nav-item active" data-section="config-api" onclick="switchConfigSection('config-api')">
+                <span class="material-icons">vpn_key</span> API
+            </button>
+            <button class="sub-nav-item" data-section="config-prices" onclick="switchConfigSection('config-prices')">
+                <span class="material-icons">attach_money</span> Цены
+            </button>
+            <button class="sub-nav-item" data-section="config-limits" onclick="switchConfigSection('config-limits')">
+                <span class="material-icons">tune</span> Лимиты
+            </button>
+            <button class="sub-nav-item" data-section="config-logs" onclick="switchConfigSection('config-logs')">
+                <span class="material-icons">history</span> Логи
+            </button>
+        </div>
+    </nav>
+
+    <!-- CONTENT CONTAINER -->
+    <div class="container admin-content">
+
+        <!-- TAB: Overview -->
+        <div id="tab-overview" class="tab-content active">
+            <!-- Stats Grid -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon" style="background: rgba(0, 97, 164, 0.1);"><span class="material-icons" style="color: #0061A4">group</span></div>
+                    <div class="stat-label">Пользователей</div>
+                    <div class="stat-value" id="total-users">12,450</div>
+                    <div style="font-size: 12px; color: #137333;">+125 за неделю</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon" style="background: rgba(46, 125, 50, 0.1);"><span class="material-icons" style="color: #2E7D32">show_chart</span></div>
+                    <div class="stat-label">Активных сегодня</div>
+                    <div class="stat-value" id="active-today">1,203</div>
+                    <div style="font-size: 12px; color: var(--md-sys-color-on-surface-variant);">12% от базы</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon" style="background: rgba(103, 80, 164, 0.1);"><span class="material-icons" style="color: #6750A4">message</span></div>
+                    <div class="stat-label">Сообщений</div>
+                    <div class="stat-value" id="messages-today">45,302</div>
+                    <div style="font-size: 12px; color: var(--md-sys-color-on-surface-variant);">За сегодня</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon" style="background: rgba(239, 108, 0, 0.1);"><span class="material-icons" style="color: #EF6C00">attach_money</span></div>
+                    <div class="stat-label">API Расходы</div>
+                    <div class="stat-value" id="api-cost-today">$4.50</div>
+                    <div style="font-size: 12px; color: var(--md-sys-color-on-surface-variant);">За сегодня</div>
+                </div>
+            </div>
+
+            <!-- Retention -->
+            <div class="analytics-section">
+                <h2 class="app-title" style="margin-bottom: 16px;">Retention Метрики</h2>
+                <div class="stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));">
+                    <div class="stat-card" style="padding: 16px;">
+                        <div class="stat-label">DAU</div>
+                        <div class="stat-value" style="font-size: 24px;">850</div>
+                    </div>
+                    <div class="stat-card" style="padding: 16px;">
+                        <div class="stat-label">WAU</div>
+                        <div class="stat-value" style="font-size: 24px;">3,200</div>
+                    </div>
+                    <div class="stat-card" style="padding: 16px;">
+                        <div class="stat-label">MAU</div>
+                        <div class="stat-value" style="font-size: 24px;">8,500</div>
+                    </div>
+                    <div class="stat-card" style="padding: 16px;">
+                        <div class="stat-label">Stickiness</div>
+                        <div class="stat-value" style="font-size: 24px;">26%</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Logs Preview -->
+            <div class="analytics-section" style="margin-top: 24px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+                    <h2 class="app-title">Последние операции</h2>
+                    <button class="md-button md-button-outlined" style="height: 32px; font-size: 12px;">Все логи</button>
+                </div>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Время</th>
+                                <th>Админ</th>
+                                <th>Действие</th>
+                                <th>Статус</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>10:42</td>
+                                <td>Admin</td>
+                                <td>Блокировка пользователя #123</td>
+                                <td><span style="color: #137333; font-weight: 500;">Успешно</span></td>
+                            </tr>
+                            <tr>
+                                <td>09:15</td>
+                                <td>Support</td>
+                                <td>Ответ на тикет #402</td>
+                                <td><span style="color: #137333; font-weight: 500;">Успешно</span></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB: Users -->
+        <div id="tab-users" class="tab-content">
+            <div class="card" style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+                <div class="search-field" style="min-width: 200px;">
+                    <span class="material-icons">search</span>
+                    <input type="text" placeholder="Поиск пользователя..." id="search-input">
+                </div>
+                <button class="md-button md-button-filled">Поиск</button>
+                <button class="md-button md-button-outlined">Фильтры</button>
+            </div>
+
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th style="width: 40px;"><input type="checkbox"></th>
+                            <th>ID</th>
+                            <th>Имя</th>
+                            <th>Подписка</th>
+                            <th>Сообщений</th>
+                            <th>Расходы</th>
+                            <th>Действия</th>
+                        </tr>
+                    </thead>
+                    <tbody id="users-table-body">
+                        <!-- Demo Data -->
+                        <tr>
+                            <td><input type="checkbox"></td>
+                            <td>
+                                <div style="display:flex; align-items:center; gap:8px;"><span class="user-avatar-placeholder" style="background:#0061A4; width:24px; height:24px; font-size:10px;">1</span>123456</div>
+                            </td>
+                            <td>Alex Ivanov <span style="color: var(--md-sys-color-primary); font-size: 12px;">@alex</span></td>
+                            <td><span class="badge badge-premium">Premium</span></td>
+                            <td>1,240</td>
+                            <td>$5.20</td>
+                            <td>
+                                <div style="display:flex; gap: 4px;">
+                                    <button class="icon-button" style="width:28px; height:28px;"><span class="material-icons" style="font-size: 16px;">visibility</span></button>
+                                    <button class="icon-button" style="width:28px; height:28px;"><span class="material-icons" style="font-size: 16px;">chat</span></button>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="pagination-container" style="margin-top: 16px; display: flex; justify-content: space-between; align-items: center;">
+                <span style="font-size: 13px; color: var(--md-sys-color-on-surface-variant);">Показано 1-1 из 1</span>
+                <div style="display: flex; gap: 8px;">
+                    <button class="md-button md-button-outlined" disabled>Назад</button>
+                    <button class="md-button md-button-outlined" disabled>Вперед</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- OTHER TABS (Placeholders for logic) -->
+        <div id="tab-support" class="tab-content">
+            <div id="support-section-questions" class="context-section active">
+                <h2 class="app-title" style="margin-bottom: 16px;">Обращения</h2>
+                <div class="card">
+                    <div style="padding: 40px; text-align: center; color: var(--md-sys-color-on-surface-variant);">
+                        Загрузка обращений...
+                    </div>
+                </div>
+            </div>
+            <div id="support-section-reviews" class="context-section">
+                <h2 class="app-title">Отзывы</h2>
+                <div class="card">
+                    <div style="padding: 40px; text-align: center; color: var(--md-sys-color-on-surface-variant);">
+                        Загрузка отзывов...
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="tab-analytics" class="tab-content">
+            <div class="card">
+                <h3>График активности</h3>
+                <div class="chart-container" style="height: 300px; margin-top: 16px;">
+                    <canvas id="activity-chart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div id="tab-config" class="tab-content">
+            <div id="config-section-api" class="config-section active">
+                <h3 style="margin-bottom: 16px;">API Настройки</h3>
+                <div class="config-grid">
+                    <div class="config-card">
+                        <h4>Telegram</h4>
+                        <div class="config-field">
+                            <label>Bot Token</label>
+                            <input type="password" value="***">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="tab-payments" class="tab-content">
+            <div id="payments-payment-settings" class="payment-section">
+                <h2 class="app-title">Настройки платежей</h2>
+                <div class="settings-card">
+                    <h3>YooKassa</h3>
+                    <div class="config-field">
+                        <label>Shop ID</label>
+                        <input type="text" placeholder="ID магазина">
+                    </div>
+                </div>
+            </div>
+            <div id="payments-tariffs" class="payment-section" style="display: none;">
+                <h2 class="app-title">Тарифы</h2>
+                <div class="card">
+                    Настройки тарифов...
+                </div>
+            </div>
+            <div id="payments-promotions" class="payment-section" style="display: none;">
+                <h2 class="app-title">Акции</h2>
+            </div>
+            <div id="payments-promo-codes" class="payment-section" style="display: none;">
+                <h2 class="app-title">Промо-коды</h2>
+            </div>
+            <div id="payments-payment-stats" class="payment-section" style="display: none;">
+                <h2 class="app-title">Статистика платежей</h2>
+            </div>
+        </div>
+
+        <div id="tab-broadcast" class="tab-content">
+            <div class="card">
+                <h3>Рассылка</h3>
+                <div class="config-field">
+                    <label>Сообщение</label>
+                    <textarea rows="4"></textarea>
+                </div>
+                <button class="md-button md-button-filled">Отправить</button>
+            </div>
+        </div>
+
+        <div id="tab-context" class="tab-content">
+            <div id="context-emotions" class="active">
+                <h2 class="app-title">Эмоции</h2>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Mobile Bottom Navigation -->
+    <nav class="mobile-bottom-nav">
+        <button class="mobile-nav-item active" onclick="switchAdminTab('overview')">
+            <span class="material-icons">dashboard</span>
+            <span class="mobile-nav-label">Обзор</span>
+        </button>
+        <button class="mobile-nav-item" onclick="switchAdminTab('users')">
+            <span class="material-icons">people</span>
+            <span class="mobile-nav-label">Люди</span>
+        </button>
+        <button class="mobile-nav-item" onclick="switchAdminTab('support')">
+            <span class="material-icons">support_agent</span>
+            <span class="mobile-nav-label">Саппорт</span>
+        </button>
+        <button class="mobile-nav-item" onclick="switchAdminTab('config')">
+            <span class="material-icons">settings</span>
+            <span class="mobile-nav-label">Конфиг</span>
+        </button>
+    </nav>
+
+    <!-- JS Logic -->
+    <script>
+        // Theme Management
+        function toggleTheme() {
+            const body = document.body;
+            const currentTheme = body.getAttribute('data-theme');
+            const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+            body.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+        }
+
+        // Tab Navigation Logic
+        function switchAdminTab(tabName) {
+            document.querySelectorAll('.main-nav-item').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.tab === tabName);
+            });
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            const target = document.getElementById('tab-' + tabName);
+            if (target) target.classList.add('active');
+
+            // Handle Sub-nav
+            const subNav = document.getElementById('sub-nav');
+            const subSections = document.querySelectorAll('.sub-nav-section');
+            let hasSub = false;
+            subSections.forEach(section => {
+                section.classList.remove('active');
+                if (section.dataset.parent === tabName) {
+                    section.classList.add('active');
+                    hasSub = true;
+                }
+            });
+            if (hasSub) subNav.classList.add('visible');
+            else subNav.classList.remove('visible');
+        }
+
+        function switchConfigSection(sectionName) {
+            document.querySelectorAll('.sub-nav-section[data-parent="config"] .sub-nav-item').forEach(btn => {
+                btn.classList.remove('active');
+                if (btn.dataset.section === sectionName) btn.classList.add('active');
+            });
+
+            document.querySelectorAll('.config-section').forEach(section => {
+                section.style.display = 'none';
+            });
+
+            const target = document.getElementById('config-section-' + sectionName.replace('config-', ''));
+            if (target) {
+                target.style.display = 'block';
+            }
+        }
+
+        function switchSupportSection(sectionName) {
+            document.querySelectorAll('.sub-nav-section[data-parent="support"] .sub-nav-item').forEach(btn => {
+                btn.classList.remove('active');
+                if (btn.dataset.section === sectionName) btn.classList.add('active');
+            });
+            document.querySelectorAll('#tab-support .context-section').forEach(el => el.classList.remove('active'));
+            const target = document.getElementById('support-section-' + sectionName);
+            if (target) target.classList.add('active');
+        }
+
+        function switchContextSection(sectionName) {
+            document.querySelectorAll('.sub-nav-section[data-parent="context"] .sub-nav-item').forEach(btn => {
+                btn.classList.remove('active');
+                if (btn.dataset.section === sectionName) btn.classList.add('active');
+            });
+            // Logic to show content would go here
+        }
+
+        function switchPaymentsSection(sectionName) {
+            document.querySelectorAll('.sub-nav-section[data-parent="payments"] .sub-nav-item').forEach(btn => {
+                btn.classList.remove('active');
+                if (btn.dataset.section === sectionName) {
+                    btn.classList.add('active');
+                }
+            });
+            document.querySelectorAll('.payment-section').forEach(section => {
+                section.style.display = 'none';
+            });
+            const section = document.getElementById('payments-' + sectionName);
+            if (section) section.style.display = 'block';
+        }
+
+        // Placeholder for Chart.js
+        document.addEventListener('DOMContentLoaded', () => {
+            const ctx = document.getElementById('activity-chart').getContext('2d');
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'],
+                    datasets: [{
+                        label: 'Активность',
+                        data: [120, 190, 300, 500, 200, 300, 450],
+                        borderColor: '#0061A4',
+                        backgroundColor: 'rgba(0, 97, 164, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false
+                }
+            });
+        });
+    </script>
+</body>
+
+</html>

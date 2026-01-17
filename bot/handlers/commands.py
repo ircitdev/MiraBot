@@ -463,3 +463,54 @@ async def support_command(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         reply_markup=keyboard,
         parse_mode="Markdown"
     )
+
+
+async def deletedata_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """
+    Обработчик команды /deletedata - запрос на удаление аккаунта.
+
+    Помечает аккаунт на удаление через 3 дня.
+    Пользователь может восстановить аккаунт в течение этого периода.
+    """
+    user = await user_repo.get_by_telegram_id(update.effective_user.id)
+
+    if not user:
+        await update.message.reply_text("Сначала напиши /start 💛")
+        return
+
+    # Проверяем, уже ли запланировано удаление
+    if user.deletion_scheduled_for:
+        keyboard = InlineKeyboardMarkup([
+            [InlineKeyboardButton("❌ Да, удалить", callback_data="deletedata:confirm")],
+            [InlineKeyboardButton("↩️ Отменить удаление", callback_data="deletedata:cancel")]
+        ])
+
+        days_left = (user.deletion_scheduled_for - datetime.utcnow()).days
+        await update.message.reply_text(
+            f"⚠️ *Твой аккаунт уже помечен на удаление*\n\n"
+            f"Удаление произойдёт через {days_left} дней.\n\n"
+            f"Хочешь отменить удаление?",
+            reply_markup=keyboard,
+            parse_mode="Markdown"
+        )
+        return
+
+    # Первичный запрос на удаление
+    keyboard = InlineKeyboardMarkup([
+        [InlineKeyboardButton("🗑️ Да, удалить аккаунт", callback_data="deletedata:confirm")],
+        [InlineKeyboardButton("↩️ Отмена", callback_data="deletedata:cancel")]
+    ])
+
+    await update.message.reply_text(
+        "⚠️ *Удаление аккаунта*\n\n"
+        "Ты уверена, что хочешь удалить аккаунт?\n\n"
+        "*Что будет удалено:*\n"
+        "• Вся история сообщений\n"
+        "• Твои настройки\n"
+        "• Данные о настроении и целях\n"
+        "• Premium подписка\n\n"
+        "*У тебя будет 3 дня*, чтобы восстановить аккаунт.\n"
+        "После этого все данные будут удалены навсегда.",
+        reply_markup=keyboard,
+        parse_mode="Markdown"
+    )

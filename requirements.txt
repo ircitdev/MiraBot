@@ -50,6 +50,9 @@ openpyxl==3.1.2
 # Logging
 loguru==0.7.2
 
+# Google Analytics Data API
+google-analytics-data==0.18.0
+
 # Testing
 pytest==7.4.4
 pytest-asyncio==0.23.3

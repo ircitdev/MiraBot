@@ -7,7 +7,7 @@ from pydantic import BaseModel
 from typing import Optional, List
 from datetime import datetime, timedelta
 from loguru import logger
-from sqlalchemy import select, func, desc
+from sqlalchemy import select, func, desc, and_
 
 from webapp.api.auth import get_current_user
 from webapp.api.middleware import get_current_admin
@@ -18,6 +18,8 @@ from database.repositories.mood import MoodRepository
 from database.repositories.subscription import SubscriptionRepository
 from database.repositories.promo import PromoRepository
 from database.repositories.profile import profile_repo
+from database.session import get_session_context
+from database.models import Message
 from config.settings import settings
 
 
@@ -360,6 +362,81 @@ async def delete_user(
     }
 
 
+@router.post("/users/{telegram_id}/reset")
+@log_critical_action(action="user_reset", resource_type="user")
+async def reset_user_data(
+    telegram_id: int,
+    admin_data: dict = Depends(get_current_admin),
+):
+    """
+    Сбросить все данные пользователя для повторного онбординга.
+
+    Очищает:
+    - Историю переписки
+    - Записи настроения
+    - Настройки онбординга
+    - Пользовательские настройки
+
+    Сохраняет:
+    - Telegram ID
+    - Username
+    - First name
+    - Дату регистрации
+    """
+    from database.session import get_session_context
+    from database.models import Message, MoodEntry, MemoryEntry, UserFile
+    from sqlalchemy import delete
+
+    user = await user_repo.get_by_telegram_id(telegram_id)
+
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    user_id = user.id
+
+    async with get_session_context() as session:
+        # Удаляем связанные данные
+        await session.execute(delete(Message).where(Message.user_id == user_id))
+        await session.execute(delete(MoodEntry).where(MoodEntry.user_id == user_id))
+        await session.execute(delete(MemoryEntry).where(MemoryEntry.user_id == user_id))
+        await session.execute(delete(UserFile).where(UserFile.user_id == user_id))
+
+        await session.commit()
+
+    # Сбрасываем настройки пользователя
+    await user_repo.update(
+        user_id,
+        display_name=None,
+        onboarding_completed=False,
+        onboarding_step=0,
+        partner_name=None,
+        kids_count=None,
+        kids_ages=None,
+        age=None,
+        city=None,
+        occupation=None,
+        hobbies=None,
+        topics_avoided=None,
+        ritual_morning=False,
+        ritual_evening=False,
+        ritual_weekly=False,
+        quiet_hours_start=None,
+        quiet_hours_end=None,
+        meditation_enabled=False,
+        affirmations_enabled=False,
+        voice_enabled=False,
+        premium_until=None,
+    )
+
+    logger.info(f"Admin {admin_data['telegram_id']} reset data for user {telegram_id}")
+
+    return {
+        "status": "ok",
+        "message": f"Данные пользователя {telegram_id} сброшены. При следующем /start начнёт заново.",
+        "resource_id": telegram_id,
+    }
+
+
 @router.post("/users/{telegram_id}/message")
 async def send_admin_message(
     telegram_id: int,
@@ -413,6 +490,74 @@ async def send_admin_message(
     return {
         "status": "ok",
         "message": f"Сообщение отправлено пользователю {telegram_id}",
+    }
+
+
+@router.post("/users/{telegram_id}/mira-message")
+async def send_mira_message(
+    telegram_id: int,
+    request: AdminMessageRequest,
+    _admin: dict = Depends(require_admin),
+):
+    """
+    Отправить сообщение от имени Миры (без пометки админа).
+
+    Сообщение будет сохранено в базу данных и проиндексировано в контексте,
+    как будто его написала сама Мира.
+    """
+    import httpx
+    from database.session import get_session_context
+    from database.models import Message
+    from datetime import datetime
+
+    user = await user_repo.get_by_telegram_id(telegram_id)
+
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    # Отправляем через Telegram API напрямую (без пометки админа)
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                f"https://api.telegram.org/bot{settings.TELEGRAM_BOT_TOKEN}/sendMessage",
+                json={
+                    "chat_id": telegram_id,
+                    "text": request.message,
+                },
+                timeout=10.0
+            )
+            result = response.json()
+
+            if not result.get("ok"):
+                error_desc = result.get("description", "Unknown error")
+                raise HTTPException(
+                    status_code=500,
+                    detail=f"Telegram API error: {error_desc}"
+                )
+    except httpx.RequestError as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Не удалось отправить сообщение: {str(e)}"
+        )
+
+    # Сохраняем сообщение в базу данных как сообщение от ассистента
+    try:
+        async with get_session_context() as session:
+            message = Message(
+                user_id=user.id,
+                role="assistant",
+                content=request.message,
+                created_at=datetime.utcnow(),
+            )
+            session.add(message)
+            await session.commit()
+    except Exception as e:
+        # Если не удалось сохранить - не критично, сообщение уже отправлено
+        print(f"Failed to save message to database: {e}")
+
+    return {
+        "status": "ok",
+        "message": f"Сообщение от имени Миры отправлено пользователю {telegram_id}",
     }
 
 
@@ -550,42 +695,41 @@ async def get_top_active_users(
         result = await session.execute(query)
         rows = result.all()
 
+        # Если нет активных пользователей, возвращаем пустой список
+        if not rows:
+            return []
+
         # Получаем активные подписки для этих пользователей
         user_ids = [row[0].id for row in rows]
-        subscriptions_result = await session.execute(
-            select(Subscription)
-            .where(Subscription.user_id.in_(user_ids))
-            .where(Subscription.is_active == True)
-            .where(Subscription.expires_at > datetime.now())
-        )
-        active_subs = {sub.user_id: sub for sub in subscriptions_result.scalars().all()}
 
-        # Получаем расходы API за неделю
-        from database.models import APIUsageLog
-        api_costs_result = await session.execute(
-            select(
-                APIUsageLog.user_id,
-                func.sum(APIUsageLog.cost_usd).label("total_cost")
+        active_subs = {}
+        if user_ids:
+            subscriptions_result = await session.execute(
+                select(Subscription)
+                .where(Subscription.user_id.in_(user_ids))
+                .where(Subscription.is_active == True)
+                .where(Subscription.expires_at > datetime.now())
             )
-            .where(APIUsageLog.user_id.in_(user_ids))
-            .where(APIUsageLog.timestamp >= week_ago)
-            .group_by(APIUsageLog.user_id)
-        )
-        api_costs = {row.user_id: float(row.total_cost or 0) for row in api_costs_result.all()}
+            active_subs = {sub.user_id: sub for sub in subscriptions_result.scalars().all()}
+
+        # TODO: Расходы API за неделю (модель APIUsageLog не существует)
+        # Временно отключено до создания модели
+        api_costs = {}
 
         # Получаем последние настроения пользователей
         from database.models import MoodEntry
-        moods_result = await session.execute(
-            select(MoodEntry)
-            .where(MoodEntry.user_id.in_(user_ids))
-            .order_by(MoodEntry.created_at.desc())
-        )
-
-        # Группируем по user_id, берём последнее
         last_moods = {}
-        for mood in moods_result.scalars().all():
-            if mood.user_id not in last_moods:
-                last_moods[mood.user_id] = mood
+        if user_ids:
+            moods_result = await session.execute(
+                select(MoodEntry)
+                .where(MoodEntry.user_id.in_(user_ids))
+                .order_by(MoodEntry.created_at.desc())
+            )
+
+            # Группируем по user_id, берём последнее
+            for mood in moods_result.scalars().all():
+                if mood.user_id not in last_moods:
+                    last_moods[mood.user_id] = mood
 
         # Маппинг эмоций на эмоджи
         emotion_emoji_map = {
@@ -688,7 +832,7 @@ class MessageItem(BaseModel):
 async def get_user_messages(
     telegram_id: int,
     _admin: dict = Depends(require_admin),
-    limit: int = Query(default=200, le=1000),
+    limit: int = Query(default=1000, le=5000),
 ):
     """Получить сообщения пользователя для просмотра."""
     from database.repositories.user_file import UserFileRepository
@@ -763,6 +907,7 @@ class UserFileItem(BaseModel):
     file_name: Optional[str]
     file_size: Optional[int]
     mime_type: Optional[str]
+    message_text: Optional[str] = None
     created_at: datetime
     expires_at: datetime
 
@@ -801,6 +946,41 @@ async def get_user_files(
                 # GCS недоступен - возвращаем None
                 file_url = None
 
+        # Ищем сообщение с подписью к файлу
+        message_text = None
+        try:
+            # Ищем сообщение в диапазоне ±2 минуты от времени создания файла
+            time_range_start = f.created_at - timedelta(minutes=2)
+            time_range_end = f.created_at + timedelta(minutes=2)
+
+            async with get_session_context() as session:
+                query = select(Message).where(
+                    and_(
+                        Message.user_id == user.id,
+                        Message.role == "user",
+                        Message.created_at >= time_range_start,
+                        Message.created_at <= time_range_end,
+                    )
+                ).order_by(Message.created_at.desc()).limit(1)
+
+                result_msg = await session.execute(query)
+                msg = result_msg.scalar_one_or_none()
+
+                if msg and msg.content:
+                    # Извлекаем подпись из контента
+                    content = msg.content
+
+                    # Паттерн: "[Пользователь отправил фото/видео/голосовое] с подписью: текст"
+                    if "с подписью: " in content:
+                        caption = content.split("с подписью: ", 1)[1]
+                        message_text = caption
+                    elif f.file_type == "voice":
+                        # Для голосовых сообщений весь контент это транскрипция
+                        if not content.startswith("[Пользователь"):
+                            message_text = content
+        except Exception as e:
+            logger.warning(f"Failed to get message text for file {f.id}: {e}")
+
         result.append({
             "id": f.id,
             "file_type": f.file_type,
@@ -809,6 +989,7 @@ async def get_user_files(
             "file_name": f.file_name,
             "file_size": f.file_size,
             "mime_type": f.mime_type,
+            "message_text": message_text,
             "created_at": f.created_at,
             "expires_at": f.expires_at,
         })
@@ -2572,6 +2753,35 @@ async def delete_user_profile(
     return {"success": True, "message": "Профиль очищен"}
 
 
+@router.post("/users/{telegram_id}/profile/parse")
+async def parse_user_profile_from_chat(
+    telegram_id: int,
+    _admin: dict = Depends(require_admin),
+):
+    """
+    Анализировать переписку и извлечь данные профиля с помощью AI.
+    """
+    from ai.profile_extractor import extract_and_save_profile
+
+    user = await user_repo.get_by_telegram_id(telegram_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="Пользователь не найден")
+
+    try:
+        # Извлекаем профиль из всей истории переписки
+        success = await extract_and_save_profile(user.id)
+
+        if success:
+            logger.info(f"Admin triggered profile parsing for user {telegram_id}")
+            return {"success": True, "message": "Профиль успешно обновлён на основе переписки"}
+        else:
+            return {"success": False, "message": "Не удалось извлечь данные профиля"}
+
+    except Exception as e:
+        logger.error(f"Error parsing profile for user {telegram_id}: {e}")
+        raise HTTPException(status_code=500, detail=f"Ошибка при анализе профиля: {str(e)}")
+
+
 # ============================================================================
 # User Topics (Memory Entries)
 # ============================================================================
@@ -3335,3 +3545,309 @@ async def get_documentation_file(
         "content": content,
         "size_kb": round(len(content.encode('utf-8')) / 1024, 2)
     }
+
+
+@router.get("/telegram/group/{group_id}/admins")
+async def get_group_admins(
+    group_id: int,
+    _admin: dict = Depends(require_admin)
+):
+    """
+    Получить список администраторов телеграм-группы.
+    """
+    from telegram import Bot
+
+    try:
+        bot = Bot(token=settings.TELEGRAM_BOT_TOKEN)
+        admins = await bot.get_chat_administrators(group_id)
+
+        admin_list = []
+        for admin in admins:
+            user = admin.user
+            admin_data = {
+                "user_id": user.id,
+                "first_name": user.first_name,
+                "last_name": user.last_name,
+                "username": user.username,
+                "status": admin.status,
+                "photo_url": None
+            }
+
+            # Пытаемся получить фото профиля
+            try:
+                photos = await bot.get_user_profile_photos(user.id, limit=1)
+                if photos.total_count > 0:
+                    photo = photos.photos[0][-1]  # Берём самое большое фото
+                    file = await bot.get_file(photo.file_id)
+                    admin_data["photo_url"] = file.file_path
+            except Exception as e:
+                logger.warning(f"Failed to get profile photo for user {user.id}: {e}")
+
+            admin_list.append(admin_data)
+
+        return {"admins": admin_list}
+
+    except Exception as e:
+        logger.error(f"Failed to get group admins: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ==================== Server Management Endpoints ====================
+
+@router.get("/server/bot-logs")
+async def get_bot_logs(
+    lines: int = 100,
+    _admin: dict = Depends(require_admin)
+):
+    """
+    Получить последние N строк логов бота.
+    """
+    import subprocess
+    from pathlib import Path
+    import glob
+
+    try:
+        # Путь к директории с логами
+        logs_dir = Path("/root/mira_bot/logs")
+
+        if not logs_dir.exists():
+            return {"logs": "Директория логов не найдена", "lines": 0}
+
+        # Находим последний файл лога бота
+        log_files = sorted(glob.glob(str(logs_dir / "bot_*.log")), reverse=True)
+
+        if not log_files:
+            return {"logs": "Файлы логов не найдены", "lines": 0}
+
+        latest_log = log_files[0]
+
+        # Читаем последние N строк
+        result = subprocess.run(
+            ["tail", "-n", str(lines), latest_log],
+            capture_output=True,
+            text=True,
+            timeout=5
+        )
+
+        log_name = Path(latest_log).name
+        logs_output = f"=== {log_name} ===\n\n{result.stdout if result.returncode == 0 else result.stderr}"
+
+        return {
+            "logs": logs_output,
+            "lines": len(result.stdout.split('\n')) if result.returncode == 0 else 0,
+            "file": log_name
+        }
+
+    except Exception as e:
+        logger.error(f"Failed to get bot logs: {e}")
+        return {"logs": f"Ошибка: {str(e)}", "lines": 0}
+
+
+@router.get("/server/web-logs")
+async def get_web_logs(
+    lines: int = 100,
+    _admin: dict = Depends(require_admin)
+):
+    """
+    Получить последние N строк логов WEB сервера.
+    """
+    import subprocess
+    from pathlib import Path
+
+    try:
+        # Сначала пытаемся получить логи из journalctl (systemd)
+        result = subprocess.run(
+            ["journalctl", "-u", "mira-web", "-n", str(lines), "--no-pager"],
+            capture_output=True,
+            text=True,
+            timeout=5
+        )
+
+        if result.returncode == 0 and result.stdout and "No entries" not in result.stdout:
+            return {
+                "logs": f"=== journalctl -u mira-web ===\n\n{result.stdout}",
+                "lines": len(result.stdout.split('\n')),
+                "source": "systemd"
+            }
+
+        # Если systemd логов нет, ищем файл логов
+        log_path = Path("/root/mira_bot/logs/web.log")
+
+        if log_path.exists():
+            result = subprocess.run(
+                ["tail", "-n", str(lines), str(log_path)],
+                capture_output=True,
+                text=True,
+                timeout=5
+            )
+            return {
+                "logs": f"=== web.log ===\n\n{result.stdout}",
+                "lines": len(result.stdout.split('\n')),
+                "source": "file"
+            }
+
+        # Если ничего не найдено
+        return {
+            "logs": "Логи WEB сервера не найдены.\n\nWEB сервер может быть запущен вручную или логирование не настроено.",
+            "lines": 0,
+            "source": "none"
+        }
+
+    except Exception as e:
+        logger.error(f"Failed to get web logs: {e}")
+        return {"logs": f"Ошибка: {str(e)}", "lines": 0}
+
+
+@router.get("/server/system-info")
+async def get_system_info(
+    _admin: dict = Depends(require_admin)
+):
+    """
+    Получить системную информацию (uptime, память, диск).
+    """
+    import subprocess
+    import psutil
+    from datetime import datetime, timedelta
+
+    try:
+        info = {}
+
+        # Uptime
+        boot_time = psutil.boot_time()
+        uptime = datetime.now() - datetime.fromtimestamp(boot_time)
+        info["uptime"] = str(timedelta(seconds=int(uptime.total_seconds())))
+
+        # Память
+        memory = psutil.virtual_memory()
+        info["memory"] = {
+            "total": f"{memory.total / (1024**3):.1f} GB",
+            "used": f"{memory.used / (1024**3):.1f} GB",
+            "percent": f"{memory.percent}%"
+        }
+
+        # Диск
+        disk = psutil.disk_usage('/')
+        info["disk"] = {
+            "total": f"{disk.total / (1024**3):.1f} GB",
+            "used": f"{disk.used / (1024**3):.1f} GB",
+            "percent": f"{disk.percent}%"
+        }
+
+        # CPU
+        info["cpu"] = {
+            "percent": f"{psutil.cpu_percent(interval=1)}%",
+            "cores": psutil.cpu_count()
+        }
+
+        # Процессы бота и web
+        bot_running = False
+        web_running = False
+
+        for proc in psutil.process_iter(['pid', 'name', 'cmdline']):
+            try:
+                cmdline = ' '.join(proc.info['cmdline'] or [])
+                if 'bot/main.py' in cmdline or 'python' in proc.info['name'] and 'bot' in cmdline:
+                    bot_running = True
+                    info["bot_pid"] = proc.info['pid']
+                if 'webapp/run_server.py' in cmdline or 'uvicorn' in cmdline:
+                    web_running = True
+                    info["web_pid"] = proc.info['pid']
+            except (psutil.NoSuchProcess, psutil.AccessDenied):
+                pass
+
+        info["bot_status"] = "running" if bot_running else "stopped"
+        info["web_status"] = "running" if web_running else "stopped"
+
+        return info
+
+    except Exception as e:
+        logger.error(f"Failed to get system info: {e}")
+        return {"error": str(e)}
+
+
+@router.post("/server/restart-bot")
+@log_critical_action
+async def restart_bot(
+    _admin: dict = Depends(require_admin)
+):
+    """
+    Перезапустить бота.
+    """
+    import subprocess
+
+    try:
+        # Перезапуск через systemd (если используется)
+        result = subprocess.run(
+            ["sudo", "systemctl", "restart", "mira-bot"],
+            capture_output=True,
+            text=True,
+            timeout=10
+        )
+
+        if result.returncode == 0:
+            logger.info("Bot restarted successfully via systemctl")
+            return {"success": True, "message": "Бот перезапущен через systemd"}
+        else:
+            # Попытка перезапустить через supervisorctl
+            result = subprocess.run(
+                ["supervisorctl", "restart", "mira-bot"],
+                capture_output=True,
+                text=True,
+                timeout=10
+            )
+
+            if result.returncode == 0:
+                logger.info("Bot restarted successfully via supervisorctl")
+                return {"success": True, "message": "Бот перезапущен через supervisor"}
+            else:
+                raise Exception(f"systemctl failed: {result.stderr}, supervisorctl failed: {result.stderr}")
+
+    except subprocess.TimeoutExpired:
+        return {"success": False, "message": "Timeout: команда перезапуска не завершилась"}
+    except Exception as e:
+        logger.error(f"Failed to restart bot: {e}")
+        return {"success": False, "message": f"Ошибка: {str(e)}"}
+
+
+@router.post("/server/restart-web")
+@log_critical_action
+async def restart_web(
+    _admin: dict = Depends(require_admin)
+):
+    """
+    Перезапустить WEB сервер.
+    """
+    import subprocess
+
+    try:
+        # Перезапуск через systemd
+        result = subprocess.run(
+            ["sudo", "systemctl", "restart", "mira-web"],
+            capture_output=True,
+            text=True,
+            timeout=10
+        )
+
+        if result.returncode == 0:
+            logger.info("Web server restarted successfully via systemctl")
+            return {"success": True, "message": "WEB сервер перезапущен через systemd"}
+        else:
+            # Попытка перезапустить через supervisorctl
+            result = subprocess.run(
+                ["supervisorctl", "restart", "mira-web"],
+                capture_output=True,
+                text=True,
+                timeout=10
+            )
+
+            if result.returncode == 0:
+                logger.info("Web server restarted successfully via supervisorctl")
+                return {"success": True, "message": "WEB сервер перезапущен через supervisor"}
+            else:
+                raise Exception(f"systemctl failed: {result.stderr}, supervisorctl failed: {result.stderr}")
+
+    except subprocess.TimeoutExpired:
+        return {"success": False, "message": "Timeout: команда перезапуска не завершилась"}
+    except Exception as e:
+        logger.error(f"Failed to restart web: {e}")
+        return {"success": False, "message": f"Ошибка: {str(e)}"}

@@ -9,7 +9,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from pathlib import Path
 
-from webapp.api.routes import settings, stats, referral, export, admin, programs, promo, moderators, admin_logs, reports, api_costs, system_prompt, support, reviews
+from webapp.api.routes import settings, stats, referral, export, admin, programs, promo, moderators, admin_logs, reports, api_costs, system_prompt, support, reviews, personality, analytics, funnel, onboarding
 
 app = FastAPI(title="Mira Bot WebApp")
 
@@ -46,6 +46,10 @@ app.include_router(api_costs.router, prefix="/api/admin", tags=["api-costs"])
 app.include_router(system_prompt.router, prefix="/api/admin", tags=["system-prompt"])
 app.include_router(support.router, prefix="/api/support", tags=["support"])
 app.include_router(reviews.router, prefix="/api/support", tags=["reviews"])
+app.include_router(personality.router, prefix="/api/personality", tags=["personality"])
+app.include_router(analytics.router, prefix="/api/admin", tags=["analytics"])
+app.include_router(funnel.router, prefix="/api/admin", tags=["funnel"])
+app.include_router(onboarding.router, prefix="/api/admin", tags=["onboarding"])
 
 # Static files
 webapp_dir = Path(__file__).parent.parent
@@ -54,29 +58,44 @@ app.mount("/static", StaticFiles(directory=str(webapp_dir / "frontend")), name="
 
 @app.get("/")
 async def index():
-    """Главная страница WebApp."""
-    return FileResponse(
-        webapp_dir / "frontend" / "index.html",
-        headers={
-            "Cache-Control": "no-cache, no-store, must-revalidate",
-            "Pragma": "no-cache",
-            "Expires": "0"
-        }
-    )
+    """Лендинг - главная страница."""
+    landing_path = Path(__file__).parent.parent.parent / "docs" / "landing" / "index.html"
+    if landing_path.exists():
+        return FileResponse(
+            landing_path,
+            media_type="text/html",
+            headers={
+                "Cache-Control": "no-cache, no-store, must-revalidate",
+                "Pragma": "no-cache",
+                "Expires": "0"
+            }
+        )
+    return {"error": "Landing page not found"}
 
 
 @app.get("/admin")
 async def admin_panel():
     """Админ-панель."""
     import time
+    import hashlib
+
+    # Генерируем уникальный ETag на основе времени модификации файла
+    admin_file = webapp_dir / "frontend" / "admin.html"
+    if admin_file.exists():
+        mtime = admin_file.stat().st_mtime
+        etag = hashlib.md5(f"{mtime}".encode()).hexdigest()
+    else:
+        etag = str(int(time.time()))
+
     return FileResponse(
         webapp_dir / "frontend" / "admin.html",
         headers={
-            "Cache-Control": "no-cache, no-store, must-revalidate, max-age=0",
+            "Cache-Control": "no-store, must-revalidate",
             "Pragma": "no-cache",
             "Expires": "0",
             "X-Content-Type-Options": "nosniff",
-            "ETag": f'"{int(time.time())}"'
+            "ETag": f'"{etag}"',
+            "Last-Modified": time.strftime('%a, %d %b %Y %H:%M:%S GMT', time.gmtime())
         }
     )
 
@@ -128,6 +147,37 @@ async def todo_plan_file(filename: str):
             }
         )
     return {"error": "File not found"}
+
+
+@app.get("/v2")
+@app.get("/v2/")
+async def landing_v2():
+    """Лендинг v2."""
+    landing_path = Path(__file__).parent.parent.parent / "docs" / "landing" / "index-v2.html"
+    if landing_path.exists():
+        return FileResponse(
+            landing_path,
+            media_type="text/html",
+            headers={
+                "Cache-Control": "no-cache, no-store, must-revalidate",
+                "Pragma": "no-cache",
+                "Expires": "0"
+            }
+        )
+    return {"error": "Landing page v2 not found"}
+
+
+@app.get("/webapp")
+async def webapp_index():
+    """WebApp для Telegram."""
+    return FileResponse(
+        webapp_dir / "frontend" / "index.html",
+        headers={
+            "Cache-Control": "no-cache, no-store, must-revalidate",
+            "Pragma": "no-cache",
+            "Expires": "0"
+        }
+    )
 
 
 @app.get("/health")

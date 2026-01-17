@@ -83,13 +83,15 @@ async def get_current_user(
             admins = await repo.list_all(role="admin", is_active=True)
 
             if admins:
-                # Берём первого активного админа
-                first_admin = admins[0]
-                return {
-                    "user_id": first_admin.telegram_id,
-                    "username": first_admin.username or "admin",
-                    "first_name": first_admin.first_name or "Admin",
-                }
+                # Берём первого активного админа с реальным telegram_id (не 0)
+                real_admins = [a for a in admins if a.telegram_id > 0]
+                if real_admins:
+                    first_admin = real_admins[0]
+                    return {
+                        "user_id": first_admin.telegram_id,
+                        "username": first_admin.username or "admin",
+                        "first_name": first_admin.first_name or "Admin",
+                    }
 
             # Fallback на дефолтные значения
             return {

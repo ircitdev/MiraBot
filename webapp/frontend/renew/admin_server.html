@@ -1,0 +1,1474 @@
+<!DOCTYPE html>
+<html lang="ru" data-theme="light">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Админ-панель - Мира</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+
+    <!-- Material Design 3 Fonts & Icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+    <style>
+         :root {
+            /* --- Color Tokens (Material 3 Blue Palette) --- */
+            --md-sys-color-primary: #0061A4;
+            --md-sys-color-on-primary: #FFFFFF;
+            --md-sys-color-primary-container: #D1E4FF;
+            --md-sys-color-on-primary-container: #001D36;
+            --md-sys-color-secondary: #535F70;
+            --md-sys-color-on-secondary: #FFFFFF;
+            --md-sys-color-secondary-container: #D7E3F7;
+            --md-sys-color-on-secondary-container: #101C2B;
+            --md-sys-color-tertiary: #6B5778;
+            --md-sys-color-on-tertiary: #FFFFFF;
+            --md-sys-color-tertiary-container: #F2DAFF;
+            --md-sys-color-on-tertiary-container: #251431;
+            /* Surface & Background */
+            --md-sys-color-background: #FDFCFF;
+            --md-sys-color-on-background: #1A1C1E;
+            --md-sys-color-surface: #FDFCFF;
+            --md-sys-color-surface-container-low: #F0F4F8;
+            --md-sys-color-surface-container: #EAEFF4;
+            --md-sys-color-surface-container-high: #E4E9EE;
+            --md-sys-color-on-surface: #1A1C1E;
+            --md-sys-color-surface-variant: #DFE2EB;
+            --md-sys-color-on-surface-variant: #43474E;
+            /* Error & Outline */
+            --md-sys-color-error: #BA1A1A;
+            --md-sys-color-on-error: #FFFFFF;
+            --md-sys-color-error-container: #FFDAD6;
+            --md-sys-color-on-error-container: #410002;
+            --md-sys-color-outline: #73777F;
+            --md-sys-color-outline-variant: #C3C7CF;
+            /* State Layers */
+            --md-sys-state-hover: 0.08;
+            --md-sys-state-focus: 0.12;
+            --md-sys-state-pressed: 0.12;
+            /* Elevation */
+            --md-sys-elevation-1: 0px 1px 2px 0px rgba(0, 0, 0, 0.3), 0px 1px 3px 1px rgba(0, 0, 0, 0.15);
+            --md-sys-elevation-2: 0px 1px 2px 0px rgba(0, 0, 0, 0.3), 0px 2px 6px 2px rgba(0, 0, 0, 0.15);
+            --md-sys-elevation-3: 0px 4px 8px 3px rgba(0, 0, 0, 0.15), 0px 1px 3px 0px rgba(0, 0, 0, 0.3);
+            /* Shape */
+            --md-sys-shape-corner-small: 8px;
+            --md-sys-shape-corner-medium: 12px;
+            --md-sys-shape-corner-large: 16px;
+            --md-sys-shape-corner-extra-large: 28px;
+            --md-sys-shape-corner-full: 9999px;
+        }
+        
+        [data-theme="dark"] {
+            --md-sys-color-primary: #9ECAFF;
+            --md-sys-color-on-primary: #003258;
+            --md-sys-color-primary-container: #00497D;
+            --md-sys-color-on-primary-container: #D1E4FF;
+            --md-sys-color-secondary: #BBC7DB;
+            --md-sys-color-on-secondary: #253140;
+            --md-sys-color-secondary-container: #3B4858;
+            --md-sys-color-on-secondary-container: #D7E3F7;
+            --md-sys-color-tertiary: #D7BEE4;
+            --md-sys-color-on-tertiary: #3B2948;
+            --md-sys-color-tertiary-container: #523F5F;
+            --md-sys-color-on-tertiary-container: #F2DAFF;
+            --md-sys-color-background: #1A1C1E;
+            --md-sys-color-on-background: #E2E2E6;
+            --md-sys-color-surface: #1A1C1E;
+            --md-sys-color-surface-container-low: #1A1C1E;
+            --md-sys-color-surface-container: #1E2022;
+            --md-sys-color-surface-container-high: #282A2D;
+            --md-sys-color-on-surface: #E2E2E6;
+            --md-sys-color-surface-variant: #43474E;
+            --md-sys-color-on-surface-variant: #C3C7CF;
+            --md-sys-color-error: #FFB4AB;
+            --md-sys-color-on-error: #690005;
+            --md-sys-color-error-container: #93000A;
+            --md-sys-color-on-error-container: #FFDAD6;
+            --md-sys-color-outline: #8D9199;
+            --md-sys-color-outline-variant: #43474E;
+        }
+        /* --- Base Styles --- */
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        body {
+            font-family: 'Roboto', sans-serif;
+            background: var(--md-sys-color-background);
+            color: var(--md-sys-color-on-background);
+            font-size: 14px;
+            line-height: 1.5;
+            transition: background 0.3s, color 0.3s;
+        }
+        /* --- Layout --- */
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 24px;
+        }
+        /* App Bar */
+        
+        .app-bar {
+            background: var(--md-sys-color-surface-container);
+            color: var(--md-sys-color-on-surface);
+            padding: 12px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: none;
+            /* Cleaner look */
+        }
+        
+        .app-bar h1 {
+            font-size: 22px;
+            font-weight: 400;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        /* Top Nav */
+        
+        .top-nav {
+            background: var(--md-sys-color-surface);
+            border-bottom: 1px solid var(--md-sys-color-outline-variant);
+            padding: 0 24px;
+            display: flex;
+            gap: 8px;
+            overflow-x: auto;
+            position: sticky;
+            top: 60px;
+            z-index: 99;
+            scrollbar-width: none;
+        }
+        
+        .top-nav::-webkit-scrollbar {
+            display: none;
+        }
+        
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 16px;
+            background: transparent;
+            border: none;
+            color: var(--md-sys-color-on-surface-variant);
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            white-space: nowrap;
+            border-radius: var(--md-sys-shape-corner-full);
+            /* Pill shape */
+            margin: 4px 0;
+            position: relative;
+        }
+        
+        .nav-item:hover {
+            background: var(--md-sys-color-surface-variant);
+            color: var(--md-sys-color-on-surface);
+        }
+        
+        .nav-item.active {
+            background: var(--md-sys-color-secondary-container);
+            color: var(--md-sys-color-on-secondary-container);
+        }
+        
+        .nav-item .material-icons {
+            font-size: 20px;
+        }
+        /* Tab Content */
+        
+        .tab-content {
+            display: none;
+            animation: fadeIn 0.3s ease;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(5px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        /* Stats Grid */
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 32px;
+        }
+        
+        .stat-card {
+            /* Gradient Background: Subtle tonal gradient */
+            background: linear-gradient(135deg, var(--md-sys-color-surface-container) 0%, var(--md-sys-color-surface-container-high) 100%);
+            border-radius: var(--md-sys-shape-corner-large);
+            padding: 20px;
+            position: relative;
+            overflow: hidden;
+            /* Border for definition */
+            border: 1px solid var(--md-sys-color-outline-variant);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        /* Subtle Glow Effect via Pseudo-element */
+        
+        .stat-card::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at top right, var(--md-sys-color-primary-container), transparent 60%);
+            opacity: 0.15;
+            /* Transparency for subtle tint */
+            pointer-events: none;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--md-sys-elevation-2);
+            /* Slightly shift gradient on hover */
+            background: linear-gradient(135deg, var(--md-sys-color-surface-container-high) 0%, var(--md-sys-color-surface-variant) 100%);
+        }
+        
+        .stat-value {
+            font-size: 32px;
+            font-weight: 400;
+            color: var(--md-sys-color-on-surface);
+            margin-bottom: 4px;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .stat-label {
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--md-sys-color-on-surface-variant);
+            position: relative;
+            z-index: 1;
+        }
+        
+        .stat-hint {
+            font-size: 11px;
+            color: var(--md-sys-color-outline);
+            margin-top: 4px;
+            position: relative;
+            z-index: 1;
+        }
+        /* Toolbar & Search */
+        
+        .toolbar {
+            background: var(--md-sys-color-surface-container-low);
+            border-radius: var(--md-sys-shape-corner-extra-large);
+            /* Fully rounded toolbar */
+            padding: 8px 16px;
+            margin-bottom: 24px;
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        
+        .search-field {
+            flex: 1;
+            min-width: 200px;
+            position: relative;
+        }
+        
+        .search-field input {
+            width: 100%;
+            padding: 10px 16px 10px 44px;
+            border: 1px solid transparent;
+            border-radius: var(--md-sys-shape-corner-full);
+            background: var(--md-sys-color-surface);
+            color: var(--md-sys-color-on-surface);
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+        
+        .search-field input:focus {
+            outline: none;
+            border-color: var(--md-sys-color-primary);
+            background: var(--md-sys-color-surface);
+        }
+        
+        .search-field .material-icons {
+            position: absolute;
+            left: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--md-sys-color-on-surface-variant);
+            pointer-events: none;
+        }
+        /* Buttons */
+        
+        .md-button {
+            padding: 0 24px;
+            height: 40px;
+            border: none;
+            border-radius: var(--md-sys-shape-corner-full);
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: all 0.2s;
+        }
+        
+        .md-button-filled {
+            background: var(--md-sys-color-primary);
+            color: var(--md-sys-color-on-primary);
+        }
+        
+        .md-button-filled:hover {
+            box-shadow: var(--md-sys-elevation-1);
+            opacity: 0.9;
+        }
+        
+        .md-button-outlined {
+            background: transparent;
+            color: var(--md-sys-color-primary);
+            border: 1px solid var(--md-sys-color-outline);
+        }
+        
+        .md-button-outlined:hover {
+            background: var(--md-sys-color-primary-container);
+            border-color: var(--md-sys-color-primary);
+        }
+        
+        .icon-button {
+            width: 36px;
+            height: 36px;
+            background: transparent;
+            border: none;
+            color: var(--md-sys-color-on-surface-variant);
+            cursor: pointer;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s;
+        }
+        
+        .icon-button:hover {
+            background: var(--md-sys-color-surface-variant);
+            color: var(--md-sys-color-on-surface);
+        }
+        /* Tables */
+        
+        .table-container {
+            background: var(--md-sys-color-surface);
+            border: 1px solid var(--md-sys-color-outline-variant);
+            border-radius: var(--md-sys-shape-corner-large);
+            overflow: hidden;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        thead {
+            background: var(--md-sys-color-surface-container);
+        }
+        
+        th {
+            padding: 14px 16px;
+            text-align: left;
+            font-weight: 500;
+            font-size: 13px;
+            color: var(--md-sys-color-on-surface-variant);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        th.sortable {
+            cursor: pointer;
+            user-select: none;
+            position: relative;
+        }
+        
+        th.sortable:hover {
+            background: var(--md-sys-color-surface-container-high);
+        }
+        
+        td {
+            padding: 14px 16px;
+            border-top: 1px solid var(--md-sys-color-outline-variant);
+            color: var(--md-sys-color-on-surface);
+            font-size: 14px;
+        }
+        
+        tbody tr:hover {
+            background: var(--md-sys-color-surface-container-low);
+        }
+        /* Badges */
+        
+        .badge {
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 500;
+            text-transform: uppercase;
+        }
+        
+        .badge-premium {
+            background: var(--md-sys-color-tertiary-container);
+            color: var(--md-sys-color-on-tertiary-container);
+        }
+        
+        .badge-trial {
+            background: var(--md-sys-color-secondary-container);
+            color: var(--md-sys-color-on-secondary-container);
+        }
+        
+        .badge-free {
+            background: var(--md-sys-color-surface-variant);
+            color: var(--md-sys-color-on-surface-variant);
+        }
+        
+        .badge-primary {
+            background: var(--md-sys-color-primary-container);
+            color: var(--md-sys-color-on-primary-container);
+        }
+        
+        .badge-secondary {
+            background: var(--md-sys-color-surface-variant);
+            color: var(--md-sys-color-on-surface-variant);
+        }
+        
+        .status-badge {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+        
+        .status-badge.active {
+            background: #E6F4EA;
+            color: #1E8E3E;
+        }
+        
+        [data-theme="dark"] .status-badge.active {
+            background: #137333;
+            color: #E6F4EA;
+        }
+        
+        .status-badge.inactive {
+            background: #FCE8E6;
+            color: #C5221F;
+        }
+        
+        [data-theme="dark"] .status-badge.inactive {
+            background: #C5221F;
+            color: #FCE8E6;
+        }
+        /* Analytics Section */
+        
+        .analytics-section {
+            background: var(--md-sys-color-surface);
+            border: 1px solid var(--md-sys-color-outline-variant);
+            border-radius: var(--md-sys-shape-corner-large);
+            padding: 24px;
+            margin-bottom: 24px;
+            /* Subtle section gradient */
+            background: linear-gradient(180deg, var(--md-sys-color-surface) 0%, var(--md-sys-color-surface-container-low) 100%);
+        }
+        
+        .analytics-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+        
+        .analytics-header h2 {
+            font-size: 20px;
+            font-weight: 400;
+            color: var(--md-sys-color-on-surface);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .analytics-controls {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        
+        .analytics-tab-button {
+            padding: 6px 16px;
+            border: 1px solid var(--md-sys-color-outline-variant);
+            border-radius: var(--md-sys-shape-corner-full);
+            background: transparent;
+            color: var(--md-sys-color-on-surface-variant);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .analytics-tab-button.active {
+            background: var(--md-sys-color-secondary-container);
+            color: var(--md-sys-color-on-secondary-container);
+            border-color: transparent;
+        }
+        /* Charts */
+        
+        .chart-container {
+            position: relative;
+            width: 100%;
+            height: 300px;
+        }
+        
+        .chart-controls {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+            justify-content: center;
+        }
+        
+        .chart-period-button {
+            padding: 4px 12px;
+            border: 1px solid var(--md-sys-color-outline-variant);
+            border-radius: 8px;
+            background: transparent;
+            color: var(--md-sys-color-on-surface);
+            font-size: 12px;
+            cursor: pointer;
+        }
+        
+        .chart-period-button.active {
+            background: var(--md-sys-color-primary);
+            color: var(--md-sys-color-on-primary);
+            border-color: var(--md-sys-color-primary);
+        }
+        /* Dialogs */
+        
+        .dialog-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+        
+        .dialog-overlay.active,
+        .dialog-overlay.show {
+            display: flex;
+            opacity: 1;
+        }
+        
+        .dialog {
+            background: var(--md-sys-color-surface-container-high);
+            border-radius: 28px;
+            padding: 24px;
+            max-width: 500px;
+            width: 90%;
+            box-shadow: var(--md-sys-elevation-3);
+            transform: scale(0.9);
+            transition: transform 0.2s;
+        }
+        
+        .dialog-overlay.active .dialog,
+        .dialog-overlay.show .dialog {
+            transform: scale(1);
+        }
+        
+        .dialog h2 {
+            margin-top: 0;
+            color: var(--md-sys-color-on-surface);
+        }
+        
+        .dialog-actions {
+            display: flex;
+            gap: 8px;
+            justify-content: flex-end;
+            margin-top: 24px;
+        }
+        /* Toasts */
+        
+        .toast-container {
+            position: fixed;
+            top: 24px;
+            right: 24px;
+            z-index: 2000;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .toast {
+            background: var(--md-sys-color-on-surface);
+            color: var(--md-sys-color-surface);
+            padding: 12px 16px;
+            border-radius: 4px;
+            min-width: 280px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            box-shadow: var(--md-sys-elevation-2);
+            animation: slideIn 0.3s;
+        }
+        
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+            }
+            to {
+                transform: translateX(0);
+            }
+        }
+        /* Loading Spinner */
+        
+        .spinner {
+            border: 3px solid var(--md-sys-color-surface-variant);
+            border-top: 3px solid var(--md-sys-color-primary);
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+        
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: var(--md-sys-color-on-surface-variant);
+        }
+        /* Chat */
+        
+        .chat-messages {
+            max-height: 400px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            padding: 10px;
+            background: var(--md-sys-color-surface-container-low);
+            border-radius: 12px;
+        }
+        
+        .message {
+            padding: 10px 14px;
+            border-radius: 16px;
+            max-width: 80%;
+            font-size: 14px;
+        }
+        
+        .message-user {
+            align-self: flex-end;
+            background: var(--md-sys-color-primary);
+            color: var(--md-sys-color-on-primary);
+            border-bottom-right-radius: 2px;
+        }
+        
+        .message-assistant {
+            align-self: flex-start;
+            background: var(--md-sys-color-secondary-container);
+            color: var(--md-sys-color-on-secondary-container);
+            border-bottom-left-radius: 2px;
+        }
+        
+        .message-header {
+            font-size: 11px;
+            opacity: 0.8;
+            margin-bottom: 4px;
+            display: flex;
+            justify-content: space-between;
+            gap: 8px;
+        }
+        /* Filters Panel */
+        
+        .filters-content {
+            display: none;
+            padding-top: 16px;
+            border-top: 1px solid var(--md-sys-color-outline-variant);
+            margin-top: 16px;
+        }
+        
+        .filters-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 16px;
+        }
+        
+        .filter-field {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        
+        .filter-field label {
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--md-sys-color-primary);
+        }
+        
+        .filter-field select {
+            padding: 8px;
+            border-radius: 8px;
+            border: 1px solid var(--md-sys-color-outline);
+            background: var(--md-sys-color-surface);
+            color: var(--md-sys-color-on-surface);
+        }
+        /* Bulk Actions */
+        
+        .bulk-actions-panel {
+            background: var(--md-sys-color-secondary-container);
+            color: var(--md-sys-color-on-secondary-container);
+            padding: 12px 24px;
+            border-radius: 12px;
+            margin-bottom: 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .bulk-actions-buttons {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .bulk-action-button {
+            background: var(--md-sys-color-primary);
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 13px;
+        }
+        
+        .bulk-action-button.cancel {
+            background: transparent;
+            color: inherit;
+            border: 1px solid currentColor;
+        }
+        /* Theme Toggle */
+        
+        .theme-toggle {
+            background: transparent;
+            border: none;
+            color: inherit;
+            cursor: pointer;
+        }
+    </style>
+</head>
+
+<body data-theme="light">
+    <!-- App Bar -->
+    <div class="app-bar">
+        <h1>
+            <span class="material-icons">dashboard</span> Админ-панель Мира
+        </h1>
+        <button class="theme-toggle" onclick="toggleTheme()">
+            <span class="material-icons">dark_mode</span>
+        </button>
+    </div>
+
+    <!-- Top Navigation -->
+    <nav class="top-nav">
+        <button class="nav-item active" data-tab="overview" onclick="switchAdminTab('overview')">
+            <span class="material-icons">dashboard</span> Обзор
+        </button>
+        <button class="nav-item" data-tab="users" onclick="switchAdminTab('users')">
+            <span class="material-icons">people</span> Пользователи
+        </button>
+        <button class="nav-item" data-tab="analytics" onclick="switchAdminTab('analytics')">
+            <span class="material-icons">analytics</span> Аналитика
+        </button>
+        <button class="nav-item" data-tab="promo" onclick="switchAdminTab('promo')">
+            <span class="material-icons">local_offer</span> Промо-коды
+        </button>
+        <button class="nav-item" data-tab="payments" onclick="switchAdminTab('payments')">
+            <span class="material-icons">payments</span> Платежи
+        </button>
+        <button class="nav-item" data-tab="broadcast" onclick="switchAdminTab('broadcast')">
+            <span class="material-icons">campaign</span> Рассылка
+        </button>
+    </nav>
+
+    <div class="container">
+        <!-- TAB: Overview -->
+        <div id="tab-overview" class="tab-content active">
+            <!-- Stats Grid -->
+            <div class="stats-grid" id="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-value" id="total-users">-</div>
+                    <div class="stat-label">Всего пользователей</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="active-today">-</div>
+                    <div class="stat-label">Активны сегодня</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="active-week">-</div>
+                    <div class="stat-label">Активны за неделю</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="total-messages">-</div>
+                    <div class="stat-label">Всего сообщений</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="premium-users">-</div>
+                    <div class="stat-label">Premium пользователей</div>
+                </div>
+            </div>
+
+            <!-- Retention Metrics Section -->
+            <div class="analytics-section">
+                <div class="analytics-header">
+                    <h2><span class="material-icons">trending_up</span> Retention Метрики</h2>
+                </div>
+                <div class="stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));">
+                    <div class="stat-card">
+                        <div class="stat-value" id="retention-dau">-</div>
+                        <div class="stat-label">DAU</div>
+                        <div class="stat-hint">Daily Active Users</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="retention-wau">-</div>
+                        <div class="stat-label">WAU</div>
+                        <div class="stat-hint">Weekly Active Users</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="retention-mau">-</div>
+                        <div class="stat-label">MAU</div>
+                        <div class="stat-hint">Monthly Active Users</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="retention-dau-wau">-</div>
+                        <div class="stat-label">DAU/WAU</div>
+                        <div class="stat-hint">Stickiness (дневная)</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB: Analytics -->
+        <div id="tab-analytics" class="tab-content">
+            <div class="analytics-section">
+                <div class="analytics-header">
+                    <h2><span class="material-icons">analytics</span> Аналитика</h2>
+                    <div class="analytics-controls">
+                        <button class="analytics-tab-button active" onclick="switchAnalyticsTab('activity')">Активность</button>
+                        <button class="analytics-tab-button" onclick="switchAnalyticsTab('subscriptions')">Подписки</button>
+                        <button class="analytics-tab-button" onclick="switchAnalyticsTab('mood')">Настроение</button>
+                    </div>
+                </div>
+
+                <div class="analytics-content">
+                    <div class="analytics-tab" id="analytics-activity">
+                        <div class="chart-container">
+                            <canvas id="activity-chart"></canvas>
+                        </div>
+                    </div>
+                    <div class="analytics-tab" id="analytics-subscriptions" style="display: none;">
+                        <div class="chart-container" style="max-width: 500px; margin: 0 auto;">
+                            <canvas id="subscriptions-chart"></canvas>
+                        </div>
+                    </div>
+                    <div class="analytics-tab" id="analytics-mood" style="display: none;">
+                        <div class="chart-container">
+                            <canvas id="mood-chart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB: Users -->
+        <div id="tab-users" class="tab-content">
+            <div class="toolbar">
+                <div class="search-field">
+                    <span class="material-icons">search</span>
+                    <input type="text" id="search-input" placeholder="Поиск по имени, username..." onkeypress="if(event.key==='Enter')searchUsers()">
+                </div>
+                <button class="md-button md-button-filled" onclick="searchUsers()">
+                    <span class="material-icons">search</span> Поиск
+                </button>
+                <button class="md-button md-button-outlined" onclick="loadUsers()">
+                    <span class="material-icons">refresh</span> Обновить
+                </button>
+            </div>
+
+            <!-- Filters -->
+            <div class="filters-container" style="background: var(--md-sys-color-surface); padding: 16px; border-radius: 12px; margin-bottom: 16px; border: 1px solid var(--md-sys-color-outline-variant);">
+                <div class="filters-header" style="display:flex; justify-content:space-between;">
+                    <button class="md-button md-button-outlined" onclick="toggleFilters()" style="border:none; padding-left:0; color: var(--md-sys-color-primary);">
+                        <span class="material-icons" id="filters-icon">expand_more</span> Фильтры
+                    </button>
+                    <button class="md-button md-button-outlined" onclick="clearFilters()" style="font-size: 12px; height: 32px;">Сбросить</button>
+                </div>
+                <div class="filters-content" id="filters-content">
+                    <div class="filters-grid">
+                        <div class="filter-field">
+                            <label>Подписка</label>
+                            <select id="filter-subscription">
+                                <option value="">Все</option>
+                                <option value="premium">Premium</option>
+                                <option value="trial">Trial</option>
+                                <option value="free">Free</option>
+                            </select>
+                        </div>
+                        <div class="filter-field">
+                            <label>Активность</label>
+                            <select id="filter-activity">
+                                <option value="">Все</option>
+                                <option value="today">Сегодня</option>
+                                <option value="week">За неделю</option>
+                                <option value="inactive">Неактивные >30 дней</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bulk Actions -->
+            <div class="bulk-actions-panel" id="bulk-actions-panel" style="display: none;">
+                <div>
+                    <span class="material-icons" style="vertical-align: bottom; font-size: 20px;">check_circle</span>
+                    <span id="selected-count">0</span> пользователей выбрано
+                </div>
+                <div class="bulk-actions-buttons">
+                    <button class="bulk-action-button" onclick="bulkGrantPremium()">Premium</button>
+                    <button class="bulk-action-button cancel" onclick="clearSelection()">Отмена</button>
+                </div>
+            </div>
+
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th style="width: 40px;"><input type="checkbox" id="select-all" onclick="toggleSelectAll()" style="accent-color: var(--md-sys-color-primary);"></th>
+                            <th>ID</th>
+                            <th>Имя</th>
+                            <th>Username</th>
+                            <th>Подписка</th>
+                            <th>Сообщений</th>
+                            <th>Действия</th>
+                        </tr>
+                    </thead>
+                    <tbody id="users-table-body">
+                        <!-- Populated by JS -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- TAB: Promo -->
+        <div id="tab-promo" class="tab-content">
+            <div class="analytics-section">
+                <div class="analytics-header">
+                    <h2><span class="material-icons">local_offer</span> Промо-коды</h2>
+                    <button class="md-button md-button-filled" onclick="openPromoDialog()">
+                        <span class="material-icons">add</span> Создать
+                    </button>
+                </div>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Код</th>
+                                <th>Тип</th>
+                                <th>Значение</th>
+                                <th>Использований</th>
+                                <th>Статус</th>
+                                <th>Действия</th>
+                            </tr>
+                        </thead>
+                        <tbody id="promo-table-body">
+                            <!-- Populated by JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB: Payments -->
+        <div id="tab-payments" class="tab-content">
+            <div class="analytics-section">
+                <h2><span class="material-icons">bar_chart</span> Статистика платежей</h2>
+                <div class="stats-grid" style="margin-top: 20px;">
+                    <div class="stat-card">
+                        <div class="stat-value" id="payment-stat-yookassa">0 ₽</div>
+                        <div class="stat-label">YooKassa</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="payment-stat-crypto">0 ₽</div>
+                        <div class="stat-label">CryptoBot</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="payment-stat-stars">0</div>
+                        <div class="stat-label">Stars</div>
+                    </div>
+                </div>
+                <div class="chart-container" style="margin-top: 20px;">
+                    <canvas id="payment-chart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB: Broadcast -->
+        <div id="tab-broadcast" class="tab-content">
+            <div class="analytics-section">
+                <h2><span class="material-icons">campaign</span> Массовая рассылка</h2>
+                <div style="margin-top: 20px; max-width: 600px;">
+                    <div style="margin-bottom: 16px;">
+                        <label style="display:block; margin-bottom:8px; color: var(--md-sys-color-primary);">Целевая аудитория</label>
+                        <select id="broadcast-target-inline" style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid var(--md-sys-color-outline); background: var(--md-sys-color-surface); color: var(--md-sys-color-on-surface);">
+                            <option value="all">Все пользователи</option>
+                            <option value="premium">Premium</option>
+                            <option value="free">Free</option>
+                        </select>
+                    </div>
+                    <div style="margin-bottom: 16px;">
+                        <label style="display:block; margin-bottom:8px; color: var(--md-sys-color-primary);">Сообщение</label>
+                        <textarea id="broadcast-message-inline" rows="6" style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid var(--md-sys-color-outline); background: var(--md-sys-color-surface); color: var(--md-sys-color-on-surface); font-family: inherit;"></textarea>
+                    </div>
+                    <button class="md-button md-button-filled" onclick="sendBroadcastInline()">
+                        <span class="material-icons">send</span> Отправить
+                    </button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Modals -->
+    <div class="dialog-overlay" id="promo-dialog">
+        <div class="dialog">
+            <h2 id="promo-dialog-title">Создать промо-код</h2>
+            <div class="filter-field" style="margin-bottom: 12px;">
+                <label>Код</label>
+                <input type="text" id="promo-code" style="padding: 10px; border-radius: 8px; border: 1px solid var(--md-sys-color-outline);">
+            </div>
+            <div class="filter-field" style="margin-bottom: 12px;">
+                <label>Значение (дни или %)</label>
+                <input type="number" id="promo-value" style="padding: 10px; border-radius: 8px; border: 1px solid var(--md-sys-color-outline);">
+            </div>
+            <div class="dialog-actions">
+                <button class="md-button md-button-outlined" onclick="closePromoDialog()">Отмена</button>
+                <button class="md-button md-button-filled" onclick="savePromoCode()">Сохранить</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast-container" id="toast-container"></div>
+
+    <script>
+        // --- Mock Data Service (For Preview Mode) ---
+        const MOCK_DATA = {
+            systemStats: {
+                total_users: 12543,
+                active_users_today: 452,
+                active_users_week: 3120,
+                total_messages: 154300,
+                premium_users: 210
+            },
+            retention: {
+                dau: 452,
+                wau: 3120,
+                mau: 8900,
+                dau_wau_ratio: 14.5,
+                wau_mau_ratio: 35.1
+            },
+            users: [{
+                telegram_id: 1001,
+                first_name: 'Alex',
+                username: 'alex_dev',
+                subscription_plan: 'premium',
+                total_messages: 1540,
+                last_active_at: new Date().toISOString()
+            }, {
+                telegram_id: 1002,
+                first_name: 'Maria',
+                username: 'mary_m',
+                subscription_plan: 'free',
+                total_messages: 45,
+                last_active_at: new Date(Date.now() - 86400000).toISOString()
+            }, {
+                telegram_id: 1003,
+                first_name: 'Dmitry',
+                username: 'dimon',
+                subscription_plan: 'trial',
+                total_messages: 320,
+                last_active_at: new Date(Date.now() - 10000000).toISOString()
+            }, {
+                telegram_id: 1004,
+                first_name: 'Elena',
+                username: 'elena_s',
+                subscription_plan: 'free',
+                total_messages: 12,
+                last_active_at: new Date(Date.now() - 500000000).toISOString()
+            }, {
+                telegram_id: 1005,
+                first_name: 'John',
+                username: 'john_doe',
+                subscription_plan: 'premium',
+                total_messages: 5000,
+                last_active_at: new Date().toISOString()
+            }, ],
+            promos: [{
+                id: 1,
+                code: 'WELCOME2024',
+                promo_type: 'discount_percent',
+                value: 20,
+                current_uses: 45,
+                max_uses: 100,
+                is_active: true
+            }, {
+                id: 2,
+                code: 'FREE3DAYS',
+                promo_type: 'free_days',
+                value: 3,
+                current_uses: 120,
+                max_uses: 500,
+                is_active: true
+            }, {
+                id: 3,
+                code: 'OLDPROMO',
+                promo_type: 'discount_amount',
+                value: 100,
+                current_uses: 50,
+                max_uses: 50,
+                is_active: false
+            }, ],
+            paymentSummary: {
+                yookassa_total: 154000,
+                yookassa_count: 150,
+                crypto_total: 45000,
+                crypto_count: 30,
+                stars_total: 5000,
+                new_subscriptions: 45,
+                renewals: 12
+            }
+        };
+
+        // --- Core Logic ---
+        async function apiRequest(endpoint) {
+            console.log(`[API] Request to ${endpoint}`);
+            // Simulate network delay
+            await new Promise(r => setTimeout(r, 300));
+
+            // Return Mock Data
+            if (endpoint === '/stats/system') return MOCK_DATA.systemStats;
+            if (endpoint === '/analytics/retention') return MOCK_DATA.retention;
+            if (endpoint.includes('/users')) return MOCK_DATA.users;
+            if (endpoint.includes('/promo-codes')) return MOCK_DATA.promos;
+            if (endpoint.includes('/payment-stats/summary')) return MOCK_DATA.paymentSummary;
+            if (endpoint.includes('/analytics/activity')) {
+                return {
+                    labels: ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'],
+                    active_users: [300, 450, 400, 500, 480, 350, 320],
+                    messages: [1000, 1500, 1200, 1800, 1600, 900, 800]
+                };
+            }
+            if (endpoint.includes('/analytics/mood')) {
+                return {
+                    labels: ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'],
+                    average_mood: [7.5, 6.8, 8.0, 7.2, 5.5, 8.5, 9.0]
+                };
+            }
+            if (endpoint.includes('/payment-stats/daily')) {
+                return Array(7).fill(0).map((_, i) => ({
+                    date: new Date(Date.now() - i * 86400000).toISOString(),
+                    yookassa_amount: Math.random() * 5000,
+                    crypto_amount: Math.random() * 2000,
+                    stars_amount: Math.floor(Math.random() * 500)
+                }));
+            }
+
+            return {};
+        }
+
+        // --- UI Functions ---
+        function switchAdminTab(tabName) {
+            document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+            document.querySelector(`.nav-item[data-tab="${tabName}"]`).classList.add('active');
+
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            document.getElementById(`tab-${tabName}`).classList.add('active');
+
+            if (tabName === 'promo') loadPromoCodes();
+            if (tabName === 'payments') loadPaymentStats();
+            if (tabName === 'users') loadUsers();
+        }
+
+        function toggleTheme() {
+            const html = document.documentElement;
+            const newTheme = html.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
+            html.setAttribute('data-theme', newTheme);
+            const icon = document.querySelector('.theme-toggle .material-icons');
+            icon.textContent = newTheme === 'light' ? 'dark_mode' : 'light_mode';
+        }
+
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            toast.innerHTML = `<span>${message}</span>`;
+            container.appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
+        }
+
+        // --- Data Loading ---
+        async function loadSystemStats() {
+            const data = await apiRequest('/stats/system');
+            document.getElementById('total-users').textContent = data.total_users;
+            document.getElementById('active-today').textContent = data.active_users_today;
+            document.getElementById('active-week').textContent = data.active_users_week;
+            document.getElementById('total-messages').textContent = data.total_messages;
+            document.getElementById('premium-users').textContent = data.premium_users;
+        }
+
+        async function loadRetention() {
+            const data = await apiRequest('/analytics/retention');
+            document.getElementById('retention-dau').textContent = data.dau;
+            document.getElementById('retention-wau').textContent = data.wau;
+            document.getElementById('retention-mau').textContent = data.mau;
+            document.getElementById('retention-dau-wau').textContent = data.dau_wau_ratio + '%';
+        }
+
+        async function loadUsers() {
+            const users = await apiRequest('/users');
+            const tbody = document.getElementById('users-table-body');
+            tbody.innerHTML = users.map(u => `
+                <tr>
+                    <td><input type="checkbox" class="user-checkbox" onclick="updateSelection()"></td>
+                    <td>${u.telegram_id}</td>
+                    <td>${u.first_name}</td>
+                    <td>@${u.username}</td>
+                    <td><span class="badge ${u.subscription_plan === 'premium' ? 'badge-premium' : 'badge-free'}">${u.subscription_plan}</span></td>
+                    <td>${u.total_messages}</td>
+                    <td>
+                        <button class="icon-button" title="Edit"><span class="material-icons">edit</span></button>
+                        <button class="icon-button" style="color: var(--md-sys-color-error);" title="Block"><span class="material-icons">block</span></button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        async function loadPromoCodes() {
+            const promos = await apiRequest('/promo-codes');
+            const tbody = document.getElementById('promo-table-body');
+            tbody.innerHTML = promos.map(p => `
+                <tr>
+                    <td><strong>${p.code}</strong></td>
+                    <td>${p.promo_type}</td>
+                    <td>${p.value}</td>
+                    <td>${p.current_uses}/${p.max_uses}</td>
+                    <td><span class="badge ${p.is_active ? 'badge-primary' : 'badge-secondary'}">${p.is_active ? 'Активен' : 'Неактивен'}</span></td>
+                    <td><button class="icon-button"><span class="material-icons">edit</span></button></td>
+                </tr>
+            `).join('');
+        }
+
+        async function loadPaymentStats() {
+            const summary = await apiRequest('/payment-stats/summary');
+            document.getElementById('payment-stat-yookassa').textContent = `${summary.yookassa_total} ₽`;
+            document.getElementById('payment-stat-crypto').textContent = `${summary.crypto_total} ₽`;
+            document.getElementById('payment-stat-stars').textContent = summary.stars_total;
+
+            const daily = await apiRequest('/payment-stats/daily');
+            renderPaymentChart(daily);
+        }
+
+        // --- Charts ---
+        let activityChart, moodChart, paymentChart;
+
+        async function initCharts() {
+            // Activity Chart
+            const activityData = await apiRequest('/analytics/activity');
+            const actCtx = document.getElementById('activity-chart').getContext('2d');
+            activityChart = new Chart(actCtx, {
+                type: 'line',
+                data: {
+                    labels: activityData.labels,
+                    datasets: [{
+                        label: 'Активные пользователи',
+                        data: activityData.active_users,
+                        borderColor: '#0061A4',
+                        backgroundColor: 'rgba(0, 97, 164, 0.1)',
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false
+                }
+            });
+
+            // Mood Chart
+            const moodData = await apiRequest('/analytics/mood');
+            const moodCtx = document.getElementById('mood-chart').getContext('2d');
+            moodChart = new Chart(moodCtx, {
+                type: 'bar',
+                data: {
+                    labels: moodData.labels,
+                    datasets: [{
+                        label: 'Среднее настроение',
+                        data: moodData.average_mood,
+                        backgroundColor: '#6B5778',
+                        borderRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false
+                }
+            });
+        }
+
+        function renderPaymentChart(data) {
+            const ctx = document.getElementById('payment-chart').getContext('2d');
+            if (paymentChart) paymentChart.destroy();
+            paymentChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: data.map(d => new Date(d.date).toLocaleDateString()),
+                    datasets: [{
+                        label: 'YooKassa',
+                        data: data.map(d => d.yookassa_amount),
+                        backgroundColor: '#0061A4'
+                    }, {
+                        label: 'CryptoBot',
+                        data: data.map(d => d.crypto_amount),
+                        backgroundColor: '#535F70'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            stacked: true
+                        },
+                        y: {
+                            stacked: true
+                        }
+                    }
+                }
+            });
+        }
+
+        function switchAnalyticsTab(tab) {
+            document.querySelectorAll('.analytics-tab').forEach(el => el.style.display = 'none');
+            document.getElementById(`analytics-${tab}`).style.display = 'block';
+            document.querySelectorAll('.analytics-tab-button').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+        }
+
+        // --- Bulk Actions ---
+        function toggleSelectAll() {
+            const checked = document.getElementById('select-all').checked;
+            document.querySelectorAll('.user-checkbox').forEach(cb => cb.checked = checked);
+            updateSelection();
+        }
+
+        function updateSelection() {
+            const count = document.querySelectorAll('.user-checkbox:checked').length;
+            const panel = document.getElementById('bulk-actions-panel');
+            document.getElementById('selected-count').textContent = count;
+            panel.style.display = count > 0 ? 'flex' : 'none';
+        }
+
+        function clearSelection() {
+            document.querySelectorAll('.user-checkbox').forEach(cb => cb.checked = false);
+            document.getElementById('select-all').checked = false;
+            updateSelection();
+        }
+
+        function bulkGrantPremium() {
+            const count = document.querySelectorAll('.user-checkbox:checked').length;
+            showToast(`Premium выдан для ${count} пользователей`, 'success');
+            clearSelection();
+        }
+
+        // --- Dialogs ---
+        function openPromoDialog() {
+            document.getElementById('promo-dialog').classList.add('active');
+        }
+
+        function closePromoDialog() {
+            document.getElementById('promo-dialog').classList.remove('active');
+        }
+
+        function savePromoCode() {
+            closePromoDialog();
+            showToast('Промо-код сохранен', 'success');
+            loadPromoCodes();
+        }
+
+        function sendBroadcastInline() {
+            const msg = document.getElementById('broadcast-message-inline').value;
+            if (!msg) return showToast('Введите сообщение', 'error');
+            showToast('Рассылка запущена', 'success');
+            document.getElementById('broadcast-message-inline').value = '';
+        }
+
+        function toggleFilters() {
+            const content = document.getElementById('filters-content');
+            content.style.display = content.style.display === 'block' ? 'none' : 'block';
+        }
+
+        function clearFilters() {
+            document.getElementById('filters-content').style.display = 'none';
+            loadUsers();
+        }
+
+        // --- Init ---
+        window.onload = function() {
+            loadSystemStats();
+            loadRetention();
+            loadUsers();
+            initCharts();
+        };
+    </script>
+</body>
+
+</html>

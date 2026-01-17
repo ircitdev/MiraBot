@@ -1,0 +1,2565 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <!-- Запрет масштабирования и горизонтальной прокрутки -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Mira — Скорая эмоциональная помощь</title>
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="Мира — Твой Друг для Душевного Равновесия">
+    <meta property="og:description" content="Мира — твой друг для эмоциональной поддержки. Конфиденциально, безопасно, всегда рядом.">
+    <meta property="og:image" content="https://storage.googleapis.com/tgbots-images/mira-landing/v2/ogimage.jpg">
+    <meta property="og:url" content="https://t.me/MiraDrug_bot">
+    <meta property="og:site_name" content="Мира">
+
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Мира — Твой Друг для Душевного Равновесия">
+    <meta name="twitter:description" content="Мира — твой друг для эмоциональной поддержки. Конфиденциально, безопасно, всегда рядом.">
+    <meta name="twitter:image" content="https://storage.googleapis.com/tgbots-images/mira-landing/v2/ogimage.jpg">
+
+    <!-- Иконки FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Шрифт Manrope -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- GSAP Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+
+    <style>
+        /* --- 1. Цветовая палитра и Темы --- */
+        :root {
+            /* --- Dark Theme (Default) --- */
+            --bg-deep: #0F172A;       
+            --text-cloud: #F8FAFC;    
+            --text-muted: #94A3B8;    
+            
+            /* Акценты */
+            --accent-safe: #10B981;   
+            --accent-warn: #EF4444;   
+            --accent-tech: #6366F1;   
+            
+            /* Стекломорфизм (Dark) */
+            --glass-bg: rgba(30, 41, 59, 0.4);
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --glass-highlight: rgba(255, 255, 255, 0.13);
+            
+            /* Фон и Оверлеи */
+            --overlay-color: rgba(15, 23, 42, 0.4);
+            --gradient-overlay-1: rgba(99, 102, 241, 0.15);
+            --gradient-overlay-2: rgba(16, 185, 129, 0.22);
+            
+            /* Паттерн сердечек (Белые контуры, 1 слой, разные размеры) */
+            --bg-hearts: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' stroke='white' stroke-opacity='0.03' stroke-width='1.5'%3E%3Cpath d='M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z' transform='translate(5, 5)'/%3E%3Cpath d='M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z' transform='translate(35, 30) scale(0.6)'/%3E%3C/g%3E%3C/svg%3E");
+            
+            /* Чат */
+            --chat-bubble-mira: #334155;
+            --chat-bg: rgba(15, 23, 42, 0.8);
+
+            /* Forms */
+            --input-bg: rgba(255, 255, 255, 0.05);
+            --input-border: rgba(255, 255, 255, 0.1);
+            --input-focus-bg: rgba(255, 255, 255, 0.1);
+            
+            /* Menu Overlay */
+            --menu-bg: rgba(15, 23, 42, 0.65);
+        }
+
+        /* --- Light Theme Overrides --- */
+        [data-theme="light"] {
+            --bg-deep: #F1F5F9;       /* Светлый серо-голубой */
+            --text-cloud: #1E293B;    /* Темный слейт */
+            --text-muted: #000000;    /* Средний серый */
+
+            /* Стекломорфизм (Light) - делаем более "молочным" */
+            --glass-bg: rgba(255, 255, 255, 0.65);
+            --glass-border: rgba(255, 255, 255, 0.4);
+            --glass-highlight: rgba(255, 255, 255, 0.8);
+
+            /* Фон и Оверлеи для светлой темы */
+            --overlay-color: rgba(255, 255, 255, 0.5); 
+            --gradient-overlay-1: rgba(99, 102, 241, 0.08);
+            --gradient-overlay-2: rgba(16, 185, 129, 0.48);
+            
+            /* Паттерн сердечек (Черные контуры) */
+            --bg-hearts: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' stroke='black' stroke-opacity='0.03' stroke-width='1.5'%3E%3Cpath d='M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z' transform='translate(5, 5)'/%3E%3Cpath d='M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z' transform='translate(35, 30) scale(0.6)'/%3E%3C/g%3E%3C/svg%3E");
+
+            /* Чат */
+            --chat-bubble-mira: #E2E8F0;
+            --chat-bg: rgba(255, 255, 255, 0.8);
+
+            /* Forms */
+            --input-bg: rgba(255, 255, 255, 0.5);
+            --input-border: rgba(0, 0, 0, 0.1);
+            --input-focus-bg: #FFFFFF;
+            
+            /* Menu Overlay (Semi-transparent for frosted glass) */
+            --menu-bg: rgba(241, 245, 249, 0.65);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+            /* Запрет горизонтальной прокрутки */
+            overflow-x: hidden;
+            width: 100%;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Manrope', -apple-system, sans-serif;
+            background-color: var(--bg-deep);
+            color: var(--text-cloud);
+            line-height: 1.6;
+            /* Запрет горизонтальной прокрутки */
+            overflow-x: hidden;
+            width: 100%;
+            transition: background-color 0.4s ease, color 0.4s ease;
+            
+            /* Фон: Только градиенты, паттерн вынесен в отдельный div */
+            background-image: 
+                radial-gradient(at 0% 0%, var(--gradient-overlay-1) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, var(--gradient-overlay-2) 0px, transparent 50%);
+                
+            background-size: 100% 100%, 100% 100%;
+            background-position: 0 0, 0 0;
+            background-attachment: fixed;
+            
+            /* Предотвращение зума на некоторых тач-устройствах */
+            touch-action: pan-x pan-y;
+        }
+
+        /* --- BACKGROUND PATTERN --- */
+        #bg-pattern {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: var(--bg-hearts);
+            background-size: 120px 120px;
+            opacity: 0.87;
+            z-index: -1;
+            pointer-events: none;
+            /* Анимация: Диагонально вверх и вправо */
+            animation: movePatternDiagonal 12s linear infinite;
+        }
+
+        /* Анимация движения фона (background-position) */
+        @keyframes movePatternDiagonal {
+            from { background-position: 0 0; }
+            to { background-position: 120px -120px; } /* Сдвиг на размер тайла по X (+) и Y (-) */
+        }
+
+        /* --- PRELOADER STYLES --- */
+        #preloader {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: var(--bg-deep);
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden; 
+        }
+
+        /* Отдельный фон для прелоадера */
+        .preloader-bg-pattern {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: var(--bg-hearts);
+            background-size: 120px 120px;
+            opacity: 0.5;
+            animation: movePatternDiagonal 20s linear infinite;
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        .preloader-content {
+            z-index: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+            text-align: center;
+        }
+
+        .preloader-logo {
+            font-size: 5rem; /* Увеличенный размер */
+            font-weight: 800;
+            color: var(--text-cloud);
+            text-transform: uppercase;
+            letter-spacing: 4px;
+            margin-bottom: 20px;
+            line-height: 1;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .loader-percentage {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            margin-top: 10px;
+            font-variant-numeric: tabular-nums;
+            font-family: 'Manrope', sans-serif;
+        }
+
+        .loader-bar-bg {
+            width: 240px;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        [data-theme="light"] .loader-bar-bg {
+             background: rgba(0, 0, 0, 0.1);
+        }
+
+        .loader-bar-fill {
+            height: 100%;
+            width: 0%;
+            background: var(--accent-safe);
+            border-radius: 4px;
+        }
+
+        h1, h2, h3 {
+            font-weight: 700;
+            margin-bottom: 1rem;
+            line-height: 1.25;
+            margin-top: 0;
+            letter-spacing: -0.02em;
+            transition: color 0.4s ease;
+        }
+
+        p {
+            margin-bottom: 1.5rem;
+            color: var(--text-muted);
+            font-size: 1.05rem;
+            transition: color 0.4s ease;
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 0 30px; 
+            position: relative;
+            z-index: 2;
+        }
+
+        /* --- Theme Toggle Switch --- */
+        .theme-toggle-container {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1000;
+            background: var(--glass-bg);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            padding: 8px 16px;
+            border-radius: 50px;
+            border: 1px solid var(--glass-border);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+            transition: background 0.3s, border 0.3s, box-shadow 0.3s; 
+        }
+
+        .theme-toggle-container:hover {
+            transform: translateX(-50%) translateY(2px);
+            box-shadow: 0 6px 25px rgba(0,0,0,0.15);
+        }
+
+        .theme-icon {
+            font-size: 1rem;
+            color: var(--text-muted);
+            transition: color 0.3s, transform 0.3s;
+        }
+
+        .theme-icon.active {
+            color: var(--accent-safe); 
+            transform: scale(1.2);
+        }
+
+        /* --- Header: Logo (Left) --- */
+        .logo-container {
+            position: fixed;
+            top: 25px;
+            left: 30px;
+            z-index: 1001;
+            font-size: 1.6rem;
+            font-weight: 800;
+            color: var(--text-cloud); 
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            transition: color 0.4s ease;
+        }
+        
+        .logo-container:hover {
+            opacity: 0.8;
+            transform: scale(1.05);
+            transition: opacity 0.3s, transform 0.3s;
+        }
+
+        .logo-part {
+            display: inline-block; /* Для анимации transform */
+        }
+
+        .logo-accent {
+            color: var(--accent-safe); 
+        }
+
+        /* Анимация мигания точки */
+        @keyframes blink-dot {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.2; }
+        }
+
+        .logo-dot.blinking {
+            animation: blink-dot 3s infinite ease-in-out;
+        }
+
+        /* --- Header: Menu Button (Right) --- */
+        .menu-btn-container {
+            position: fixed;
+            top: 20px;
+            right: 30px;
+            z-index: 1001;
+            background: var(--glass-bg);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            border: 1px solid var(--glass-border);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: background 0.3s, border 0.3s, box-shadow 0.3s;
+            color: var(--text-cloud);
+        }
+
+        .menu-btn-container:hover {
+            transform: translateY(2px);
+            background: var(--input-focus-bg);
+            transition: transform 0.3s, background 0.3s;
+        }
+
+        /* --- Sticky Header CTA (Desktop Only) --- */
+        .sticky-cta {
+            position: fixed;
+            top: 20px;
+            right: 90px;
+            z-index: 999;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: var(--accent-safe);
+            color: #FFFFFF;
+            text-decoration: none;
+            padding: 8px 20px; 
+            border-radius: 50px;
+            font-weight: 600;
+            font-size: 0.95rem; 
+            line-height: 1.5;
+            box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+            border: 1px solid rgba(255,255,255,0.1);
+            transform: translateY(-150%); 
+            opacity: 0;
+            visibility: hidden;
+            transition: background 0.3s ease;
+        }
+
+        .sticky-cta:hover {
+            background: #059669;
+            box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
+        }
+
+        .sticky-cta i {
+            font-size: 1.1rem;
+        }
+
+        /* --- Fullscreen Menu Overlay --- */
+        .menu-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--menu-bg);
+            z-index: 2000;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            
+            /* Initial State */
+            opacity: 0;
+            visibility: hidden;
+            
+            /* Frosted Glass Effect */
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+        }
+
+        .menu-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .menu-nav {
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+            text-align: center;
+            align-items: center; 
+        }
+
+        .menu-nav a:not(.cta-button) { 
+            font-size: 2rem;
+            color: var(--text-cloud);
+            text-decoration: none;
+            font-weight: 700;
+            transition: color 0.3s, transform 0.3s;
+            position: relative;
+        }
+
+        .menu-nav a:not(.cta-button):hover {
+            color: var(--accent-safe);
+            transform: scale(1.1);
+        }
+        
+        .menu-nav .cta-button {
+            font-size: 1.1rem;
+            margin-top: 20px;
+        }
+
+        .menu-close-btn {
+            position: absolute;
+            top: 30px;
+            right: 30px;
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            font-size: 2rem;
+            cursor: pointer;
+            transition: color 0.3s;
+        }
+
+        .menu-close-btn:hover {
+            color: var(--accent-warn);
+        }
+
+        /* --- Стекломорфизм --- */
+        .glass-card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.05);
+            transition: transform 0.3s ease, box-shadow 0.3s ease, background 0.4s ease, border-color 0.4s ease;
+        }
+
+        /* --- УЛУЧШЕННАЯ АНИМАЦИЯ КАРТОЧЕК (HOVER) --- */
+        .tech-card, .review-card, .privacy-card {
+            transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+            position: relative;
+            z-index: 1;
+        }
+
+        .tech-card:hover, .review-card:hover, .privacy-card:hover {
+            transform: translateY(-12px) scale(1.02); 
+            border-color: var(--accent-tech); 
+            z-index: 10; 
+        }
+
+        /* Эффекты для ТЕМНОЙ темы */
+        html:not([data-theme="light"]) .tech-card:hover, 
+        html:not([data-theme="light"]) .review-card:hover, 
+        html:not([data-theme="light"]) .privacy-card:hover {
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5), 
+                        0 0 25px rgba(99, 102, 241, 0.25); 
+            background: rgba(40, 55, 80, 0.6); 
+        }
+
+        /* Эффекты для СВЕТЛОЙ темы */
+        [data-theme="light"] .tech-card:hover, 
+        [data-theme="light"] .review-card:hover, 
+        [data-theme="light"] .privacy-card:hover {
+            box-shadow: 0 20px 40px rgba(99, 102, 241, 0.15),
+                        0 5px 15px rgba(0,0,0,0.05); 
+            background: rgba(255, 255, 255, 0.95); 
+        }
+
+        /* --- Кнопки --- */
+        .cta-button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            background: linear-gradient(135deg, var(--accent-safe) 0%, #059669 100%);
+            color: #FFFFFF;
+            padding: 18px 36px;
+            border-radius: 50px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 1.1rem;
+            transition: all 0.3s ease;
+            margin-top: 1.5rem;
+            box-shadow: 0 4px 20px rgba(16, 185, 129, 0.3);
+            border: 1px solid rgba(255,255,255,0.1);
+            cursor: pointer;
+        }
+
+        .cta-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 25px rgba(16, 185, 129, 0.5);
+            filter: brightness(1.1);
+        }
+
+        /* Кнопка "Загрузить еще" / "Оставить отзыв" (второстепенная) */
+        .secondary-button {
+            background: transparent;
+            border: 1px solid var(--accent-tech);
+            color: var(--text-cloud);
+            padding: 14px 28px;
+            border-radius: 50px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .secondary-button:hover {
+            background: rgba(99, 102, 241, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        /* Управление текстом кнопки */
+        .btn-text-mobile { display: none; }
+        
+        /* --- Hero Section --- */
+        .hero {
+            position: relative;
+            height: 100vh;
+            min-height: 700px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            overflow: hidden;
+            background-color: var(--bg-deep);
+            transition: background-color 0.4s ease;
+        }
+
+        .hero-video {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            min-width: 100%;
+            min-height: 100%;
+            width: auto;
+            height: auto;
+            z-index: 0;
+            transform: translate(-50%, -50%);
+            object-fit: cover;
+            transition: opacity 0.3s ease;
+        }
+
+        .hero::after {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--overlay-color);
+            z-index: 1;
+            backdrop-filter: blur(2px);
+            transition: background-color 0.4s ease;
+        }
+
+        .hero-content {
+            z-index: 3;
+            max-width: 800px;
+            padding: 20px;
+            /* УБРАЛИ opacity: 0 отсюда, чтобы контент был виден, если JS не сработает */
+        }
+
+        .hero h1 {
+            font-size: 3.5rem;
+            margin-bottom: 1.5rem;
+            color: var(--text-cloud);
+            background: none; 
+            text-shadow: none;
+        }
+
+        html:not([data-theme="light"]) .hero h1 {
+            background: linear-gradient(180deg, #FFFFFF 0%, #CBD5E1 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 20px 40px rgba(0,0,0,0.5);
+        }
+
+        [data-theme="light"] .hero h1 {
+            -webkit-text-fill-color: var(--text-cloud);
+            color: var(--text-cloud);
+        }
+        
+        .hero-subtitle {
+            font-size: 1.35rem;
+            margin-bottom: 2.5rem;
+            color: var(--text-cloud);
+            opacity: 0.9;
+            font-weight: 300;
+        }
+
+        /* Специальный класс для текста о шифровании в Hero */
+        .hero-security-text {
+            margin-top: 15px;
+            font-size: 0.9rem; /* Чуть крупнее */
+            opacity: 1; /* Полная непрозрачность для гарантии видимости */
+            transition: all 0.3s ease;
+            color: var(--text-cloud); /* Яркий цвет всегда */
+            text-shadow: 0 2px 5px rgba(0,0,0,0.7); /* Сильная тень для контраста */
+            font-weight: 600; /* Жирнее */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        
+        .hero-security-text i {
+            margin-right: 5px;
+            color: var(--accent-safe); /* Green in dark mode */
+            transition: color 0.3s ease;
+        }
+
+        /* Переопределение для светлой темы: белый с тенью */
+        [data-theme="light"] .hero-security-text {
+            color: #FFFFFF !important;
+            text-shadow: 0 1px 5px rgba(0,0,0,0.8);
+        }
+        
+        [data-theme="light"] .hero-security-text i {
+            color: #FFFFFF !important;
+        }
+
+        /* --- Scroll Indicator --- */
+        .scroll-indicator {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: var(--text-cloud);
+            font-size: 1.8rem;
+            cursor: pointer;
+            z-index: 10;
+            opacity: 0.8;
+            animation: bounce 2s infinite;
+            display: none; /* Скрыто по умолчанию */
+        }
+
+        @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% {transform: translateX(-50%) translateY(0);}
+            40% {transform: translateX(-50%) translateY(-10px);}
+            60% {transform: translateX(-50%) translateY(-5px);}
+        }
+
+        /* --- Section Styling --- */
+        .section {
+            padding: 60px 0;
+            position: relative;
+        }
+
+        /* --- Блок Радикальная Честность --- */
+        .honesty-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+            margin-top: 50px;
+        }
+
+        .honesty-card {
+            padding: 40px;
+        }
+
+        .honesty-card.green { 
+            border-top: 4px solid var(--accent-safe); 
+            box-shadow: 0 -10px 40px -10px rgba(16, 185, 129, 0.15), 0 8px 32px 0 rgba(0, 0, 0, 0.05);
+        }
+        
+        .honesty-card.red { 
+            border-top: 4px solid var(--accent-warn); 
+            box-shadow: 0 -10px 40px -10px rgba(239, 68, 68, 0.15), 0 8px 32px 0 rgba(0, 0, 0, 0.05);
+        }
+
+        .honesty-card h3 {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            font-size: 1.6rem;
+            margin-bottom: 25px;
+        }
+
+        .honesty-card ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .honesty-card li {
+            margin-bottom: 20px;
+            color: var(--text-cloud);
+            display: flex;
+            align-items: flex-start;
+            gap: 15px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid rgba(128, 128, 128, 0.1);
+        }
+        
+        .honesty-card li:last-child {
+            border-bottom: none;
+        }
+
+        .honesty-card.green i { color: var(--accent-safe); }
+        .honesty-card.red i { color: var(--accent-warn); }
+
+        /* --- Технологии --- */
+        .tech-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 30px;
+            margin-top: 50px;
+        }
+
+        .tech-card {
+            padding: 40px 30px;
+            text-align: left;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .tech-card:hover {
+            transform: translateY(-5px);
+            border-color: rgba(99, 102, 241, 0.3);
+        }
+
+        .tech-icon {
+            font-size: 2.2rem;
+            color: var(--accent-tech);
+            margin-bottom: 25px;
+            background: rgba(99, 102, 241, 0.1);
+            width: 64px;
+            height: 64px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 16px;
+        }
+
+        /* --- Интерфейс Чата --- */
+        .chat-showcase {
+            display: grid;
+            gap: 40px;
+            margin-top: 50px;
+        }
+
+        .chat-window {
+            background: var(--chat-bg);
+            border-radius: 24px;
+            padding: 25px;
+            border: 1px solid var(--glass-border);
+            max-width: 600px;
+            margin: 0 auto;
+            position: relative;
+            transition: background-color 0.4s ease;
+        }
+        
+        .chat-header {
+            font-size: 0.8rem;
+            text-align: center;
+            color: var(--text-muted);
+            margin-bottom: 20px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .message-row {
+            display: flex;
+            margin-bottom: 15px;
+            align-items: flex-end;
+        }
+
+        .message-row.user {
+            justify-content: flex-end;
+        }
+
+        .message-bubble {
+            padding: 12px 18px;
+            border-radius: 18px;
+            max-width: 80%;
+            font-size: 0.95rem;
+            position: relative;
+            line-height: 1.5;
+            transition: background-color 0.4s ease, color 0.4s ease;
+        }
+
+        .message-row.user .message-bubble {
+            background: var(--accent-tech);
+            color: #FFF;
+            border-bottom-right-radius: 4px;
+            box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);
+        }
+
+        .message-row.mira .message-bubble {
+            background: var(--chat-bubble-mira);
+            color: var(--text-cloud);
+            border-bottom-left-radius: 4px;
+        }
+        
+        .mira-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--accent-safe), var(--accent-tech));
+            margin-right: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.7rem;
+            color: white;
+            font-weight: bold;
+        }
+
+        .typing-indicator {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-left: 42px;
+            margin-bottom: 5px;
+            opacity: 0;
+        }
+
+        /* --- Отзывы (Reviews) --- */
+        .reviews-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 25px;
+            margin-top: 50px;
+        }
+
+        .review-card {
+            padding: 30px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            height: 100%;
+            display: none; /* Скрыты по умолчанию */
+        }
+
+        .review-text {
+            font-size: 1rem;
+            color: var(--text-cloud);
+            margin-bottom: 20px;
+            /* Убрана непрозрачность для четкости */
+            font-style: italic;
+            opacity: 1; 
+        }
+
+        .review-author {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 15px; 
+        }
+
+        .review-avatar {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid rgba(255, 255, 255, 0.1); 
+            background-color: var(--glass-bg); 
+        }
+
+        .load-more-container {
+            text-align: center;
+            margin-top: 40px;
+        }
+
+        /* --- FAQ Accordion --- */
+        .faq-wrapper {
+            max-width: 800px;
+            margin: 50px auto 0;
+        }
+
+        .accordion-item {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            margin-bottom: 15px;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .accordion-header {
+            padding: 20px 25px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+
+        .accordion-header:hover {
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        .accordion-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--text-cloud);
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .accordion-icon-emoji {
+            font-size: 1.4rem;
+        }
+
+        .accordion-arrow {
+            color: var(--text-muted);
+            transition: transform 0.3s ease;
+        }
+
+        .accordion-item.active .accordion-arrow {
+            transform: rotate(180deg);
+            color: var(--accent-tech);
+        }
+
+        .accordion-body {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.4s ease, padding 0.4s ease;
+            background: rgba(0, 0, 0, 0.1); /* Slight darken for body */
+        }
+
+        [data-theme="light"] .accordion-body {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .accordion-content {
+            padding: 0 25px 25px 65px; /* Indented to align with text */
+            color: var(--text-muted);
+            font-size: 1rem;
+            line-height: 1.6;
+            /* Убрана непрозрачность для четкости */
+            opacity: 1; 
+        }
+
+        /* --- Life Changes Section (Images in Accordion) --- */
+        .zoomable-image {
+            width: 100%;
+            border-radius: 12px;
+            cursor: zoom-in;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            border: 1px solid var(--glass-border);
+            margin-top: 10px;
+        }
+
+        .zoomable-image:hover {
+            transform: scale(1.02);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        /* --- Lightbox --- */
+        .lightbox-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            z-index: 3000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(5px);
+            cursor: zoom-out;
+        }
+
+        .lightbox-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .lightbox-img {
+            max-width: 90%;
+            max-height: 90vh;
+            border-radius: 8px;
+            box-shadow: 0 0 50px rgba(0,0,0,0.5);
+            transform: scale(0.9);
+            transition: transform 0.3s ease;
+        }
+
+        .lightbox-overlay.active .lightbox-img {
+            transform: scale(1);
+        }
+
+        .lightbox-close {
+            position: absolute;
+            top: 30px;
+            right: 30px;
+            color: white;
+            font-size: 2rem;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            transition: color 0.3s;
+        }
+
+        .lightbox-close:hover {
+            color: var(--accent-warn);
+        }
+
+        .faq-actions {
+            text-align: center;
+            margin-top: 30px;
+        }
+
+        /* --- Modal (Отзыв) --- */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 2000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+            backdrop-filter: blur(5px);
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal-content {
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            padding: 40px;
+            border-radius: 24px;
+            width: 90%;
+            max-width: 500px;
+            position: relative;
+            transform: translateY(30px);
+            transition: transform 0.3s ease;
+            box-shadow: 0 25px 50px rgba(0,0,0,0.3);
+        }
+
+        .modal-overlay.active .modal-content {
+            transform: translateY(0);
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            font-size: 1.5rem;
+            cursor: pointer;
+            transition: color 0.3s;
+        }
+
+        .modal-close:hover {
+            color: var(--accent-warn);
+        }
+
+        .modal-title {
+            text-align: center;
+            margin-bottom: 25px;
+            font-size: 1.8rem;
+            color: var(--text-cloud);
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            color: var(--text-cloud);
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+
+        .form-input, .form-textarea {
+            width: 100%;
+            padding: 14px 16px;
+            border-radius: 12px;
+            border: 1px solid var(--input-border);
+            background: var(--input-bg);
+            color: var(--text-cloud);
+            font-family: inherit;
+            font-size: 0.86rem;
+            transition: all 0.3s ease;
+        }
+
+        .form-input:focus, .form-textarea:focus {
+            outline: none;
+            border-color: var(--accent-tech);
+            background: var(--input-focus-bg);
+            box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
+        }
+
+        .submit-btn {
+            width: 100%;
+            background: var(--accent-safe); /* Зеленый цвет (Emerald) */
+            color: white;
+            border: none;
+            padding: 16px;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+
+        .submit-btn:hover {
+            background: #059669; /* Более темный зеленый при наведении */
+        }
+
+        /* Checkbox styles */
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 25px;
+            color: var(--text-cloud);
+            font-size: 0.9rem;
+        }
+
+        .form-checkbox {
+            accent-color: var(--accent-tech);
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+
+        .checkbox-group label {
+            cursor: pointer;
+            user-select: none;
+        }
+
+        /* --- CTA Section --- */
+        .cta-section-block {
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.2) 0%, rgba(16, 185, 129, 0.2) 100%);
+            border-radius: 30px;
+            padding: 60px 40px;
+            text-align: center;
+            margin-top: 80px;
+            border: 1px solid var(--glass-border);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .cta-section-block::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 60%);
+            animation: rotate 20s linear infinite;
+            pointer-events: none;
+        }
+
+        @keyframes rotate {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* --- Security Guarantee Block --- */
+        .security-guarantee {
+            background: rgba(16, 185, 129, 0.05); /* Very light green tint */
+            border: 1px solid rgba(16, 185, 129, 0.2);
+            border-radius: 20px;
+            padding: 30px;
+            margin-top: 50px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .security-guarantee h3 {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 20px;
+            color: var(--text-cloud);
+        }
+
+        .security-text {
+            font-size: 0.95rem;
+            color: var(--text-muted);
+            max-width: 700px;
+            margin: 0 auto 20px;
+            line-height: 1.6;
+        }
+
+        .security-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            background: rgb(33 189 137);
+            border-radius: 50px;
+            color: #ffffff;
+            font-weight: 600;
+            font-size: 0.9rem;
+            border: 1px solid rgba(16, 185, 129, 0.2);
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            background-color: var(--accent-safe);
+            border-radius: 50%;
+            display: inline-block;
+            box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+            animation: pulse-green 2s infinite;
+        }
+
+        @keyframes pulse-green {
+            0% {
+                transform: scale(0.95);
+                box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+            }
+            70% {
+                transform: scale(1);
+                box-shadow: 0 0 0 10px rgba(16, 185, 129, 0);
+            }
+            100% {
+                transform: scale(0.95);
+                box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+            }
+        }
+
+        /* --- Footer & Privacy --- */
+        .privacy-section {
+            background: linear-gradient(to top, rgba(0,0,0,0.2), transparent);
+            padding-top: 60px;
+            border-top: none;
+        }
+
+        .privacy-grid {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 30px;
+            margin-top: 40px;
+        }
+
+        .privacy-card {
+            flex: 1;
+            min-width: 280px;
+            max-width: 350px;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .privacy-icon {
+            font-size: 1.8rem;
+            color: var(--text-cloud);
+            margin-bottom: 20px;
+            width: 60px;
+            height: 60px;
+            line-height: 60px;
+            background: rgba(128, 128, 128, 0.1);
+            border-radius: 50%;
+            margin-left: auto;
+            margin-right: auto;
+            border: 1px solid var(--glass-border);
+        }
+
+        .footer {
+            background: rgba(0,0,0,0.2);
+            padding: 80px 0 40px;
+            text-align: center;
+            border-top: 1px solid var(--glass-border);
+        }
+        
+        /* Стили для ссылок в футере */
+        .footer a {
+            color: var(--text-cloud);
+            text-decoration: none;
+            border-bottom: 1px solid transparent;
+            transition: all 0.3s ease;
+        }
+
+        .footer a:hover {
+            color: var(--accent-safe);
+            border-bottom-color: var(--accent-safe);
+            opacity: 1; /* При наведении делаем непрозрачным */
+        }
+
+        /* Стили для юридической информации (маленький и полупрозрачный) */
+        .footer-legal {
+            font-size: 0.85rem;
+            opacity: 0.5;
+            margin-top: 15px;
+            transition: opacity 0.3s;
+        }
+        
+        .footer-legal:hover {
+            opacity: 0.8; /* Чуть ярче при наведении на блок */
+        }
+
+        .version {
+            font-size: 0.8rem; 
+            opacity: 0.3; 
+            margin-top: 10px;
+        }
+
+        /* --- Mobile --- */
+        @media (max-width: 768px) {
+            .hero-video {
+                position: absolute;
+                top: 0;
+                left: 0;
+                min-width: 100%;
+                min-height: 100%;
+                width: 100%;
+                height: 100vh;
+                /* z-index: 0; */
+                transform: translate(0%, 0%);
+                object-fit: cover;
+                transition: opacity 0.3s ease;
+            }
+            /* Скрываем липкую кнопку на мобильном */
+            .sticky-cta { display: none; }
+
+            .hero h1 { font-size: 2.2rem; }
+            .honesty-grid { grid-template-columns: 1fr; }
+            .message-bubble { font-size: 0.9rem; }
+            .hero-subtitle { font-size: 1.1rem; }
+            .glass-card { padding: 25px; }
+            .section { padding: 50px 0; }
+            
+            /* Показываем стрелку только на мобильном */
+            .scroll-indicator { display: block; }
+            
+            /* Дополнительные отступы для блоков честности */
+            .honesty-card {
+                padding: 30px 25px; 
+                margin: 0 5px 20px 5px; 
+            }
+
+            /* Добавляем отступы для остальных карточек */
+            .tech-card, 
+            .chat-window,
+            .privacy-card,
+            .review-card,
+            .cta-section-block,
+            .accordion-item,
+            .security-guarantee {
+                margin-left: 5px;
+                margin-right: 5px;
+                margin-bottom: 20px;
+            }
+            
+            .reviews-grid {
+                grid-template-columns: 1fr;
+            }
+
+            /* Смена текста кнопки на мобильном */
+            .btn-text-desktop { display: none; }
+            .btn-text-mobile { display: inline; }
+            
+            .modal-content {
+                padding: 30px 20px;
+            }
+            
+            /* Adjust navbar logo/menu on mobile */
+            .logo-container {
+                left: 20px;
+                font-size: 1.4rem;
+            }
+            .menu-btn-container {
+                right: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Preloader -->
+    <div id="preloader">
+        <div class="preloader-bg-pattern"></div>
+        <div class="preloader-content">
+            <div class="logo-container preloader-logo-style" style="position: static; margin-bottom: 20px;">
+                <span class="logo-part logo-accent" style="color: var(--accent-safe);">M</span><span class="logo-part" style="color: var(--text-cloud);">I</span><span class="logo-part" style="color: var(--text-cloud);">R</span><span class="logo-part" style="color: var(--text-cloud);">A</span><span class="logo-part logo-accent" style="color: var(--accent-safe);">.</span>
+            </div>
+            <div class="loader-bar-bg">
+                <div class="loader-bar-fill"></div>
+            </div>
+            <div class="loader-percentage">0%</div>
+        </div>
+    </div>
+
+    <!-- Background Pattern -->
+    <div id="bg-pattern"></div>
+
+    <!-- Logo (Left Top) -->
+    <div class="logo-container" onclick="scrollToTop()">
+        <span class="logo-part logo-accent">M</span><span class="logo-part">i</span><span class="logo-part">r</span><span class="logo-part">a</span><span class="logo-part logo-accent logo-dot">.</span>
+    </div>
+
+    <!-- Theme Toggle (Center Top) -->
+    <div class="theme-toggle-container" id="theme-toggle" title="Переключить тему">
+        <i class="fas fa-moon theme-icon" id="icon-moon"></i>
+        <i class="fas fa-sun theme-icon" id="icon-sun"></i>
+    </div>
+
+    <!-- Sticky CTA (Hidden on Hero, Appears on Scroll) -->
+    <a href="https://t.me/MiraDrug_bot?start=landing" class="sticky-cta" id="sticky-cta-btn">
+        <i class="fab fa-telegram-plane"></i> Написать Мире
+    </a>
+
+    <!-- Menu Button (Right Top) -->
+    <div class="menu-btn-container" onclick="toggleMenu()">
+        <i class="fas fa-bars"></i>
+    </div>
+
+    <!-- Fullscreen Menu Overlay -->
+    <div class="menu-overlay" id="menu-overlay">
+        <button class="menu-close-btn" onclick="toggleMenu()"><i class="fas fa-times"></i></button>
+        <nav class="menu-nav">
+            <a href="#capabilities" onclick="toggleMenu()">Возможности</a>
+            <a href="#technologies" onclick="toggleMenu()">Технологии</a>
+            <a href="#cases" onclick="toggleMenu()">Кейсы</a>
+            <a href="#reviews" onclick="toggleMenu()">Отзывы</a>
+            <a href="#faq" onclick="toggleMenu()">Вопросы</a>
+            
+            <!-- Кнопка "Начать диалог" в меню -->
+            <a href="https://t.me/MiraDrug_bot?start=landing" class="cta-button">
+                <i class="fab fa-telegram-plane"></i> Начать диалог
+            </a>
+        </nav>
+    </div>
+
+    <!-- Review Modal -->
+    <div class="modal-overlay" id="review-modal">
+        <div class="modal-content">
+            <button class="modal-close" id="close-modal"><i class="fas fa-times"></i></button>
+            <h3 class="modal-title">Оставить отзыв</h3>
+            <form id="review-form">
+                <div class="form-group">
+                    <label class="form-label" for="review-contact">Твой Telegram (для связи)</label>
+                    <input type="text" id="review-contact" class="form-input" placeholder="@username или телефон" required>
+                </div>
+                
+                <div style="display: flex; gap: 15px;">
+                    <div class="form-group" style="flex: 1;">
+                        <label class="form-label" for="review-age">Возраст</label>
+                        <input type="text" id="review-age" class="form-input" placeholder="Напр: 25">
+                    </div>
+                    <div class="form-group" style="flex: 2;">
+                        <label class="form-label" for="review-role">О себе (профессия)</label>
+                        <input type="text" id="review-role" class="form-input" placeholder="Например: Дизайнер">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="review-text">Твой отзыв</label>
+                    <textarea id="review-text" class="form-textarea" rows="4" placeholder="Расскажи, как Мира помогла тебе..." required></textarea>
+                </div>
+
+                <div class="checkbox-group">
+                    <input type="checkbox" id="review-permission" class="form-checkbox">
+                    <label for="review-permission">Разрешаю опубликовать отзыв</label>
+                </div>
+
+                <button type="submit" class="submit-btn">Отправить отзыв</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Lightbox for Images -->
+    <div class="lightbox-overlay" id="lightbox">
+        <button class="lightbox-close" id="lightbox-close"><i class="fas fa-times"></i></button>
+        <img src="" alt="Enlarged Image" class="lightbox-img" id="lightbox-img">
+    </div>
+
+    <header class="hero">
+        <!-- Видео фон с ID для JS (mp4 + jpg заглушка) -->
+        <video class="hero-video" id="hero-video" src="https://storage.googleapis.com/tgbots-images/mira-landing/v2/1.mp4" poster="https://storage.googleapis.com/tgbots-images/mira-landing/v2/1.jpg" autoplay muted loop playsinline></video>
+        
+        <div class="container hero-content">
+            <h1 class="hero-anim">Скорая эмоциональная помощь</h1>
+            <p class="hero-subtitle hero-anim">
+                Когда близкие спят, а терапевт недоступен. <br>
+                Персональный ИИ для работы с тревогой и мыслями.
+            </p>
+            <div class="hero-anim">
+                <a href="https://t.me/MiraDrug_bot?start=landing" class="cta-button">
+                    <i class="fab fa-telegram-plane"></i> 
+                    <!-- Адаптивный текст кнопки -->
+                    <span class="btn-text-desktop">Начать диалог анонимно</span>
+                    <span class="btn-text-mobile">Начать диалог</span>
+                </a>
+            </div>
+            <!-- Сделано ярким и с тенью -->
+            <p class="hero-anim hero-security-text">
+                <i class="fas fa-shield-alt"></i>
+                Шифрование данных • Без регистрации
+            </p>
+        </div>
+
+        <!-- Scroll Down Indicator (Mobile Only) -->
+        <div class="scroll-indicator" onclick="scrollOneScreen()">
+            <i class="fas fa-chevron-down"></i>
+        </div>
+    </header>
+
+    <section class="section container" id="capabilities">
+        <h2 class="section-title" style="text-align: center; font-size: 2.2rem;">Честно о возможностях</h2>
+        <p class="section-subtitle" style="text-align: center; max-width: 600px; margin: 0 auto; color: var(--text-muted);">
+            Мы визуализируем границу между психологической поддержкой и медицинской терапией.
+        </p>
+
+        <div class="honesty-grid">
+            <!-- Green Column: Support -->
+            <div class="glass-card honesty-card green scroll-reveal-left">
+                <h3><i class="fas fa-check-circle"></i> Mira эффективна</h3>
+                <ul>
+                    <li>
+                        <i class="fas fa-wind"></i>
+                        <span><strong>Снятие острого стресса:</strong> Техники заземления и дыхания при панических атаках.</span>
+                    </li>
+                    <li>
+                        <i class="fas fa-moon"></i>
+                        <span><strong>Бессонница:</strong> Сопровождение перед сном, выгрузка навязчивых мыслей.</span>
+                    </li>
+                    <li>
+                        <i class="fas fa-brain"></i>
+                        <span><strong>Рефлексия:</strong> Структурирование хаоса в голове с помощью вопросов КПТ.</span>
+                    </li>
+                </ul>
+            </div>
+            
+            <!-- Red Column: Therapy -->
+            <div class="glass-card honesty-card red scroll-reveal-right">
+                <h3><i class="fas fa-exclamation-circle"></i> Mira не подходит</h3>
+                <ul>
+                    <li>
+                        <i class="fas fa-pills"></i>
+                        <span><strong>Клиническая терапия:</strong> Мы не ставим диагнозы, не выписываем рецепты и БАДы.</span>
+                    </li>
+                    <li>
+                        <i class="fas fa-ambulance"></i>
+                        <span><strong>Острые кризисы:</strong> При угрозе жизни или психозе необходимо звонить 112.</span>
+                    </li>
+                    <li>
+                        <i class="fas fa-user-md"></i>
+                        <span><strong>Замена врача:</strong> ИИ — это инструмент гигиены, а не лечения расстройств.</span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </section>
+
+    <section class="section container" id="technologies">
+        <h2 class="section-title" style="text-align: center;">Технологии спокойствия</h2>
+        <div class="tech-grid">
+            <div class="glass-card tech-card scroll-reveal-up">
+                <div class="tech-icon"><i class="fas fa-fingerprint"></i></div>
+                <h3>Анализ паттернов</h3>
+                <p>Mira запоминает контекст. Система анализирует ваши записи, чтобы подсветить повторяющиеся триггеры, которые вы можете не замечать.</p>
+            </div>
+            <div class="glass-card tech-card scroll-reveal-up">
+                <div class="tech-icon"><i class="fas fa-cube"></i></div>
+                <h3>Протоколы КПТ</h3>
+                <p>Не просто «разговор». В основе лежат алгоритмы когнитивно-поведенческой терапии для работы с когнитивными искажениями.</p>
+            </div>
+            <div class="glass-card tech-card scroll-reveal-up">
+                <div class="tech-icon"><i class="fas fa-wave-square"></i></div>
+                <h3>Мультимодальность</h3>
+                <p>Анализ голоса для считывания интонаций и эмоций, когда у вас нет сил печатать текст. Просто отправьте аудио.</p>
+            </div>
+        </div>
+    </section>
+
+    <section class="section container" id="cases">
+        <h2 class="section-title" style="text-align: center; margin-bottom: 40px;">Как это работает (Кейсы)</h2>
+        
+        <div class="chat-showcase">
+            <!-- Case 1 -->
+            <div class="chat-window scroll-reveal-up">
+                <div class="chat-header">Кейс: Тревога перед сном (03:15)</div>
+                
+                <div class="message-row user msg-anim-1">
+                    <div class="message-bubble">
+                        Я снова не могу уснуть. Голова кругом идет от мыслей о завтрашнем совещании. Сердце колотится.
+                    </div>
+                </div>
+
+                <div class="typing-indicator indicator-anim-1">Mira печатает...</div>
+                
+                <div class="message-row mira msg-anim-1">
+                    <div class="mira-avatar">M</div>
+                    <div class="message-bubble">
+                        Слышу, что тревога сильная. Давай сначала замедлим пульс. Попробуем технику «Дыхание 4-7-8»? Вдохни на 4 счета...
+                    </div>
+                </div>
+                
+                <div class="message-row user msg-anim-1">
+                    <div class="message-bubble">
+                        Стало чуть легче. Но мысли все равно лезут.
+                    </div>
+                </div>
+
+                 <div class="message-row mira msg-anim-1">
+                    <div class="mira-avatar">M</div>
+                    <div class="message-bubble">
+                        Это нормально. Давай сделаем упражнение «Выгрузка». Напиши мне списком все, что беспокоит, чтобы не держать это в голове.
+                    </div>
+                </div>
+            </div>
+
+            <!-- Case 2 -->
+             <div class="chat-window scroll-reveal-up" style="margin-top: 30px;">
+                <div class="chat-header">Кейс: Социальная изоляция</div>
+                
+                <div class="message-row user msg-anim-2">
+                    <div class="message-bubble">
+                        Мы поругались. Кажется, я никому не нужен. Хочется просто закрыться в комнате.
+                    </div>
+                </div>
+                
+                <div class="message-row mira msg-anim-2">
+                    <div class="mira-avatar">M</div>
+                    <div class="message-bubble">
+                        Звучит очень болезненно. Чувство отверженности сейчас говорит громче фактов. Ты хочешь обсудить саму ссору или поддержать себя?
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- REVIEWS SECTION -->
+    <section class="section container" id="reviews">
+        <h2 class="section-title" style="text-align: center;">Отзывы</h2>
+        <p class="section-subtitle" style="text-align: center; max-width: 600px; margin: 0 auto; color: var(--text-muted);">
+            Что говорят те, кто общается с Мирой
+        </p>
+
+        <div class="reviews-grid" id="reviews-container">
+            <!-- Отзывы вставляются JS -->
+        </div>
+
+        <div class="load-more-container">
+            <button class="secondary-button" id="load-more-btn">
+                Посмотреть все отзывы <i class="fas fa-angle-down"></i>
+            </button>
+            <button class="secondary-button hidden" id="leave-review-btn">
+                Оставить отзыв <i class="fas fa-pen"></i>
+            </button>
+        </div>
+    </section>
+
+    <!-- FAQ SECTION -->
+    <section class="section container" id="faq">
+        <h2 class="section-title" style="text-align: center;">Частые вопросы</h2>
+        <div class="faq-wrapper" id="faq-container">
+            <!-- FAQ items render here -->
+        </div>
+        <div class="faq-actions">
+            <button class="secondary-button" id="show-all-faq-btn">
+                Показать все вопросы <i class="fas fa-angle-down"></i>
+            </button>
+            <a href="https://t.me/MiraDrugSupport_bot" target="_blank" class="cta-button hidden" id="ask-question-btn" style="margin-top: 0; text-decoration: none;">
+                Задать вопрос <i class="fas fa-arrow-right"></i>
+            </a>
+        </div>
+    </section>
+
+    <!-- NEW SECTION: LIFE CHANGES -->
+    <section class="section container" id="life-changes">
+        <h2 class="section-title" style="text-align: center;">Как Мира меняет жизнь</h2>
+        <div class="faq-wrapper"> <!-- Using same wrapper style as FAQ for consistency -->
+            
+            <!-- Step 1 -->
+            <div class="accordion-item life-step">
+                <div class="accordion-header">
+                    <div class="accordion-title">
+                        <span class="accordion-icon-emoji">📊</span>
+                        Шаг 1: Обретение спокойствия
+                    </div>
+                    <i class="fas fa-chevron-down accordion-arrow"></i>
+                </div>
+                <div class="accordion-body">
+                    <div class="accordion-content">
+                        <img src="https://storage.googleapis.com/tgbots-images/mira-landing/v2/infograph.webp" alt="Обретение спокойствия" class="zoomable-image" loading="lazy">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 2 -->
+            <div class="accordion-item life-step">
+                <div class="accordion-header">
+                    <div class="accordion-title">
+                        <span class="accordion-icon-emoji">🌱</span>
+                        Шаг 2: Глубокая проработка
+                    </div>
+                    <i class="fas fa-chevron-down accordion-arrow"></i>
+                </div>
+                <div class="accordion-body">
+                    <div class="accordion-content">
+                        <img src="https://storage.googleapis.com/tgbots-images/mira-landing/v2/infograph1.webp" alt="Глубокая проработка" class="zoomable-image" loading="lazy">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 3 -->
+            <div class="accordion-item life-step">
+                <div class="accordion-header">
+                    <div class="accordion-title">
+                        <span class="accordion-icon-emoji">📈</span>
+                        Шаг 3: Закрепление результата
+                    </div>
+                    <i class="fas fa-chevron-down accordion-arrow"></i>
+                </div>
+                <div class="accordion-body">
+                    <div class="accordion-content">
+                        <img src="https://storage.googleapis.com/tgbots-images/mira-landing/v2/infograph2.webp" alt="Закрепление результата" class="zoomable-image" loading="lazy">
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </section>
+
+    <!-- CALL TO ACTION -->
+    <section class="container">
+        <div class="cta-section-block glass-card scroll-reveal-up">
+            <h2 style="margin-bottom: 15px;">Попробуйте прямо сейчас</h2>
+            <p style="margin-bottom: 30px; font-size: 1.1rem; color: var(--text-cloud);">
+                Это бесплатно, анонимно и всегда под рукой.
+            </p>
+            <a href="https://t.me/MiraDrug_bot?start=landing" class="cta-button">
+                <i class="fab fa-telegram-plane"></i> Начать диалог в Telegram
+            </a>
+        </div>
+    </section>
+
+    <section class="section privacy-section">
+        <div class="container">
+            <h2 class="section-title" style="text-align: center;">Безопасное пространство</h2>
+            <p class="section-subtitle" style="text-align: center;">0% человеческого фактора. 100% конфиденциальности.</p>
+            
+            <div class="privacy-grid">
+                <div class="glass-card privacy-card scroll-reveal-up">
+                    <div class="privacy-icon"><i class="fas fa-eye-slash"></i></div>
+                    <h3>Никто не читает</h3>
+                    <p style="font-size: 0.95rem;">У Mira нет админки для чтения переписок. Диалог зашифрован и доступен только вам.</p>
+                </div>
+                <div class="glass-card privacy-card scroll-reveal-up">
+                    <div class="privacy-icon"><i class="fas fa-robot"></i></div>
+                    <h3>ИИ не осуждает</h3>
+                    <p style="font-size: 0.95rem;">Алгоритм не умеет закатывать глаза или морализировать. Полное принятие.</p>
+                </div>
+                <div class="glass-card privacy-card scroll-reveal-up">
+                    <div class="privacy-icon"><i class="fas fa-ghost"></i></div>
+                    <h3>Анонимность</h3>
+                    <p style="font-size: 0.95rem;">Начните без имени и телефона. Удалите переписку в любой момент одной командой.</p>
+                </div>
+            </div>
+
+            <!-- SECURITY GUARANTEE BLOCK -->
+            <div class="security-guarantee glass-card scroll-reveal-up">
+                <h3>🔐 Твоя конфиденциальность защищена</h3>
+                <div class="security-text">
+                    <p>Все наши разговоры зашифрованы с использованием твоего личного ключа Telegram. Это означает, что <strong>только ты</strong> можешь прочитать историю наших переписок.</p>
+                    <p style="margin-bottom: 0;">Я не храню твои сообщения на внешних серверах. Всё, что мы обсуждаем, существует только в защищённом пространстве и никогда не попадёт к третьим лицам.</p>
+                </div>
+                <div class="security-status">
+                    <span class="status-dot"></span> 🔒 Сквозное шифрование активно
+                </div>
+            </div>
+
+        </div>
+    </section>
+
+    <footer class="footer">
+        <div class="container">
+            <p>С заботой о тебе 💛</p>
+            <p class="footer-legal"><a href="/privacy" target="_blank">Политика конфиденциальности</a> • <a href="https://t.me/uspeshnyy">Aleksandr Uspeshnyy</a></p>
+            <p class="version">Версия 2.2.6 • Январь 2026</p>
+        </div>
+    </footer>
+
+    <!-- Scripts -->
+    <script>
+        // --- Navigation Functions ---
+        function scrollToTop() {
+            window.scrollTo({
+                top: 0,
+                behavior: 'smooth'
+            });
+        }
+
+        let menuAnimation = null; // Store animation instance
+
+        function toggleMenu() {
+            const menuOverlay = document.getElementById('menu-overlay');
+            const isActive = menuOverlay.classList.contains('active');
+            const links = menuOverlay.querySelectorAll('.menu-nav a');
+            const closeBtn = menuOverlay.querySelector('.menu-close-btn');
+
+            if (!isActive) {
+                // OPEN
+                menuOverlay.classList.add('active');
+                
+                // Kill previous if exists
+                if(menuAnimation) menuAnimation.kill();
+
+                menuAnimation = gsap.timeline();
+                
+                // 1. Overlay fade in
+                menuAnimation.to(menuOverlay, { 
+                    opacity: 1, 
+                    visibility: 'visible',
+                    duration: 0.4, 
+                    ease: "power2.out" 
+                })
+                // 2. Links stagger in
+                .fromTo(links, 
+                    { y: 50, opacity: 0 },
+                    { y: 0, opacity: 1, duration: 0.5, stagger: 0.1, ease: "back.out(1.7)" },
+                    "-=0.2"
+                )
+                // 3. Close button spin/fade
+                .fromTo(closeBtn,
+                    { rotation: -90, opacity: 0 },
+                    { rotation: 0, opacity: 1, duration: 0.4, ease: "power2.out" },
+                    "-=0.6"
+                );
+
+            } else {
+                // CLOSE
+                if(menuAnimation) menuAnimation.kill();
+                
+                menuAnimation = gsap.timeline({
+                    onComplete: () => {
+                        menuOverlay.classList.remove('active');
+                        gsap.set(menuOverlay, { clearProps: "all" }); // Reset for CSS handling if needed
+                    }
+                });
+
+                // 1. Links fade out up
+                menuAnimation.to(links, {
+                    y: -20,
+                    opacity: 0,
+                    duration: 0.3,
+                    stagger: 0.05,
+                    ease: "power2.in"
+                })
+                // 2. Overlay fade out
+                .to(menuOverlay, {
+                    opacity: 0,
+                    visibility: 'hidden',
+                    duration: 0.3,
+                    ease: "power2.in"
+                }, "-=0.2");
+            }
+        }
+
+        // --- Scroll Down Function ---
+        function scrollOneScreen() {
+            window.scrollBy({
+                top: window.innerHeight,
+                behavior: 'smooth'
+            });
+        }
+
+        // --- Logic for Theme Switching & Random Video ---
+        const themeToggle = document.getElementById('theme-toggle');
+        const iconMoon = document.getElementById('icon-moon');
+        const iconSun = document.getElementById('icon-sun');
+        const html = document.documentElement;
+        
+        const heroVideoNum = Math.floor(Math.random() * 3) + 1;
+
+        // --- Ref Parameter Logic (NEW) ---
+        function updateTelegramLinks() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const ref = urlParams.get('ref');
+
+            if (ref) {
+                // Находим все ссылки на основного бота
+                const tgLinks = document.querySelectorAll('a[href*="t.me/MiraDrug_bot"]');
+                
+                tgLinks.forEach(link => {
+                    try {
+                        const url = new URL(link.href);
+                        // Заменяем или устанавливаем параметр start на значение ref
+                        url.searchParams.set('start', ref);
+                        link.href = url.toString();
+                    } catch (e) {
+                        console.error("Error updating link:", link.href, e);
+                    }
+                });
+            }
+        }
+
+        function updateHeroVideoSource() {
+            const videoElement = document.getElementById('hero-video');
+            if (!videoElement) return;
+
+            const isLight = html.getAttribute('data-theme') === 'light';
+            const isMobile = window.innerWidth <= 768;
+
+            const prefix = isLight ? 'w' : '';
+            const suffix = isMobile ? 'm' : '';
+            
+            const fileName = `${prefix}${heroVideoNum}${suffix}`;
+            const newSrc = `https://storage.googleapis.com/tgbots-images/mira-landing/v2/${fileName}.mp4`;
+            const newPoster = `https://storage.googleapis.com/tgbots-images/mira-landing/v2/${fileName}.jpg`;
+            
+            // Проверка на текущий источник (по имени файла)
+            if (!videoElement.src.endsWith(newSrc)) {
+                videoElement.src = newSrc;
+                videoElement.poster = newPoster;
+                
+                // Явное указание свойств для автоплея
+                videoElement.muted = true;
+                videoElement.playsInline = true;
+                videoElement.loop = true;
+                videoElement.autoplay = true;
+                
+                videoElement.load();
+                
+                const playPromise = videoElement.play();
+                if (playPromise !== undefined) {
+                    playPromise.catch(error => {
+                        console.log("Автовоспроизведение заблокировано:", error);
+                    });
+                }
+            }
+        }
+
+        function setTheme(theme) {
+            if (theme === 'light') {
+                html.setAttribute('data-theme', 'light');
+                iconSun.classList.add('active');
+                iconMoon.classList.remove('active');
+            } else {
+                html.removeAttribute('data-theme');
+                iconMoon.classList.add('active');
+                iconSun.classList.remove('active');
+            }
+            localStorage.setItem('theme', theme);
+            updateHeroVideoSource();
+        }
+
+        function initTheme() {
+            const savedTheme = localStorage.getItem('theme');
+            const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+
+            if (savedTheme) {
+                setTheme(savedTheme);
+            } else {
+                setTheme(systemPrefersDark ? 'dark' : 'light');
+            }
+        }
+
+        themeToggle.addEventListener('click', () => {
+            const currentTheme = html.getAttribute('data-theme') === 'light' ? 'light' : 'dark';
+            const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+            setTheme(newTheme);
+        });
+
+        let resizeTimeout;
+        window.addEventListener('resize', () => {
+            clearTimeout(resizeTimeout);
+            resizeTimeout = setTimeout(updateHeroVideoSource, 200);
+        });
+
+        // Run Init
+        initTheme();
+        updateTelegramLinks(); // Запускаем обновление ссылок при инициализации
+
+
+        // --- REVIEWS LOGIC ---
+        const reviewsData = [
+            { text: "Мира помогла мне разобраться с тревожностью, которая мучила годами. Теперь я понимаю свои триггеры и знаю, как с ними работать. Это как иметь друга, который всегда рядом и всегда понимает.", author: "Анна, 34 года, Руководитель проектов", image: "https://storage.googleapis.com/tgbots-images/mira-landing/v2/user/1.jpg" },
+            { text: "После развода мне было очень тяжело. Мира стала тем безопасным пространством, где я могла выплеснуть эмоции без страха осуждения. Особенно ценю возможность говорить голосом — иногда просто нет сил писать.", author: "Елена, 38 лет, Дизайнер", image: "https://storage.googleapis.com/tgbots-images/mira-landing/v2/user/2.jpg" },
+            { text: "Материнство — это прекрасно, но иногда чувствуешь себя на грани. Мира помогает мне не выгореть, поддерживает, когда особенно тяжело. Использую уже полгода, и это действительно работает.", author: "Мария, 32 года, Мама двоих детей", image: "https://storage.googleapis.com/tgbots-images/mira-landing/v2/user/3.jpg" },
+            { text: "Сначала я скептически относилась к идее общения, но Мира оказалась на удивление эмпатичной. Она помогла мне пережить сложный период на работе без срывов.", author: "Ольга, 29 лет, Маркетолог", image: "https://storage.googleapis.com/tgbots-images/mira-landing/v2/user/4.jpg" },
+            { text: "Программа '7 дней заботы' просто чудесная! Маленькие шаги, которые реально меняют самочувствие. Я стала лучше спать и меньше тревожиться по пустякам.", author: "Татьяна, 41 год, Учитель", image: "https://storage.googleapis.com/tgbots-images/mira-landing/v2/user/5.jpg" },
+            { text: "Для меня очень важна анонимность. Я не готова идти к живому психологу, а с Мирой мне легко и комфортно. Она всегда находит нужные слова поддержки.", author: "Виктория, 26 лет, Студентка", image: "https://storage.googleapis.com/tgbots-images/mira-landing/v2/user/6.jpg" },
+            { text: "Голосовые ответы — это что-то невероятное. Ощущение, что говоришь с подругой, которая действительно заботится. Голос очень приятный и успокаивающий.", author: "Ирина, 35 лет, HR-менеджер", image: "https://storage.googleapis.com/tgbots-images/mira-landing/v2/user/7.jpg" },
+            { text: "Я использую Миру для отслеживания своих целей. Она не дает мне сойти с пути и всегда напоминает о моих планах, но делает это очень мягко и без давления.", author: "Наталья, 30 лет, Фрилансер", image: "https://storage.googleapis.com/tgbots-images/mira-landing/v2/user/8.jpg" },
+            { text: "Мира помогла мне справиться с панической атакой посреди ночи. Техники дыхания, которые она предложила, сработали мгновенно. Не знаю, что бы я делала без нее.", author: "Светлана, 27 лет, Администратор", image: "https://storage.googleapis.com/tgbots-images/mira-landing/v2/user/9.jpg" },
+            { text: "Мне нравится, что Мира помнит контекст. Мне не нужно каждый раз рассказывать всё заново. Она помнит имена, ситуации и мои чувства по этому поводу.", author: "Дарья, 33 года, Аналитик", image: "https://storage.googleapis.com/tgbots-images/mira-landing/v2/user/10.jpg" },
+            { text: "Отличный сервис для тех, кто хочет лучше понять себя. Я стала вести дневник настроения с помощью Миры и заметила интересные закономерности.", author: "Екатерина, 39 лет, Бухгалтер", image: "https://storage.googleapis.com/tgbots-images/mira-landing/v2/user/11.jpg" },
+            { text: "Иногда просто нужно выговориться, чтобы тебя кто-то послушал без советов 'просто не грусти'. Мира — идеальный слушатель. Спасибо создателям!", author: "Алина, 24 года, Бариста", image: "https://storage.googleapis.com/tgbots-images/mira-landing/v2/user/12.jpg" },
+            { text: "Я подарила подписку маме, и она в восторге. Ей часто одиноко, а Мира всегда готова поговорить и поддержать. Это очень ценно.", author: "Кристина, 31 год, Врач", image: "https://storage.googleapis.com/tgbots-images/mira-landing/v2/user/13.jpg" }
+        ];
+
+        const reviewsContainer = document.getElementById('reviews-container');
+        const loadMoreBtn = document.getElementById('load-more-btn');
+        const leaveReviewBtn = document.getElementById('leave-review-btn');
+        let visibleReviews = 3;
+
+        function renderReviews() {
+            reviewsContainer.innerHTML = '';
+            for (let i = 0; i < Math.min(visibleReviews, reviewsData.length); i++) {
+                const review = reviewsData[i];
+                const card = document.createElement('div');
+                card.className = 'glass-card review-card';
+                card.style.display = 'flex'; 
+                card.innerHTML = `
+                    <p class="review-text">"${review.text}"</p>
+                    <div class="review-author">
+                        <img src="${review.image}" alt="${review.author}" class="review-avatar" loading="lazy">
+                        <span>${review.author}</span>
+                    </div>
+                `;
+                reviewsContainer.appendChild(card);
+                
+                if (i >= visibleReviews - 3 && visibleReviews > 3) {
+                    gsap.from(card, { opacity: 0, y: 20, duration: 0.5, delay: (i % 3) * 0.1 });
+                }
+            }
+
+            if (visibleReviews >= reviewsData.length) {
+                loadMoreBtn.style.display = 'none';
+                leaveReviewBtn.classList.remove('hidden');
+                gsap.fromTo(leaveReviewBtn, {opacity: 0, y: 10}, {opacity: 1, y: 0, duration: 0.5, display: "inline-flex"});
+            } else {
+                loadMoreBtn.style.display = 'inline-flex';
+                leaveReviewBtn.classList.add('hidden');
+            }
+        }
+
+        renderReviews();
+
+        loadMoreBtn.addEventListener('click', () => {
+            visibleReviews += 3;
+            renderReviews();
+        });
+
+        // --- Modal Logic ---
+        const modal = document.getElementById('review-modal');
+        const closeModal = document.getElementById('close-modal');
+        const reviewForm = document.getElementById('review-form');
+
+        leaveReviewBtn.addEventListener('click', () => {
+            modal.classList.add('active');
+        });
+
+        closeModal.addEventListener('click', () => {
+            modal.classList.remove('active');
+        });
+
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) modal.classList.remove('active');
+        });
+
+        reviewForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            // In a real app, send data to server
+            alert('Спасибо! Ваш отзыв отправлен на модерацию.');
+            modal.classList.remove('active');
+            reviewForm.reset();
+        });
+
+
+        // --- FAQ LOGIC ---
+        const faqData = [
+            { 
+                icon: "🛡️", 
+                question: "Это безопасно?", 
+                answer: "Абсолютно. Я использую сквозное шифрование Telegram. Никакие третьи лица, рекламодатели или компании не имеют доступа к твоим тайнам. Даже я не храню историю сообщений на внешних серверах — она только в твоем чате." 
+            },
+            { 
+                icon: "💊", 
+                question: "Ты даешь медицинские советы?", 
+                answer: "Я — твой друг для эмоциональной поддержки, а не врач. У меня есть \"Медицинский фильтр\": я не назначаю лекарства и не ставлю диагнозы. Если я замечу, что тебе нужна помощь специалиста, я мягко подскажу обратиться к врачу." 
+            },
+            { 
+                icon: "🧘", 
+                question: "Как именно ты помогаешь?", 
+                answer: "В моем арсенале 12 научно обоснованных техник первой помощи при стрессе:<br>🌬️ Дыхательные практики (квадратное дыхание, 4-7-8)<br>🌍 Техники заземления (5-4-3-2-1) при тревоге<br>🧠 Когнитивные упражнения для работы с навязчивыми мыслями<br>Я предложу подходящую технику именно в тот момент, когда она тебе нужна." 
+            },
+            { 
+                icon: "💳", 
+                question: "Сколько это стоит?", 
+                answer: "Я доступна бесплатно для базового общения. Для тех, кто хочет больше — голосовые ответы, глубокие программы и безлимитное общение — есть подписка Premium по цене чашки кофе." 
+            },
+            { 
+                icon: "🤖", 
+                question: "Ты настоящий человек?", 
+                answer: "Нет, я — искусственный интеллект. Это позволяет мне быть на связи 24/7, никогда не уставать и не осуждать. Но я обучена психологами, чтобы быть максимально эмпатичной и полезной." 
+            },
+            { 
+                icon: "🗑️", 
+                question: "Я могу удалить нашу переписку?", 
+                answer: "Конечно. Твои данные принадлежат тебе. Ты можешь очистить историю в Telegram или сбросить мой контекст командой /reset в любой момент." 
+            },
+            { 
+                icon: "🎙️", 
+                question: "Как работают голосовые сообщения?", 
+                answer: "Ты можешь записывать мне голосовые, как подруге. Я послушаю и отвечу текстом или голосом (в Premium версии). Это удобно, когда не хочется печатать." 
+            },
+            { 
+                icon: "🚑", 
+                question: "Что делать в экстренной ситуации?", 
+                answer: "Если ты чувствуешь, что не справляешься или есть угроза жизни — пожалуйста, позвони в экстренные службы (112 или 103). Я могу поддержать словом, но не заменю скорую помощь." 
+            }
+        ];
+
+        const faqContainer = document.getElementById('faq-container');
+        const showAllFaqBtn = document.getElementById('show-all-faq-btn');
+        const askQuestionBtn = document.getElementById('ask-question-btn');
+        let isFaqExpanded = false;
+
+        function renderFaq() {
+            faqContainer.innerHTML = '';
+            // Determine limit: 3 if collapsed, all if expanded
+            const limit = isFaqExpanded ? faqData.length : 3;
+
+            for (let i = 0; i < limit; i++) {
+                const item = faqData[i];
+                const faqEl = document.createElement('div');
+                faqEl.className = 'accordion-item';
+                // First item opened by default
+                const isActive = i === 0 ? 'active' : '';
+                
+                faqEl.innerHTML = `
+                    <div class="accordion-header">
+                        <div class="accordion-title">
+                            <span class="accordion-icon-emoji">${item.icon}</span>
+                            ${item.question}
+                        </div>
+                        <i class="fas fa-chevron-down accordion-arrow"></i>
+                    </div>
+                    <div class="accordion-body" style="${isActive ? 'max-height: 500px;' : ''}">
+                        <div class="accordion-content">
+                            ${item.answer}
+                        </div>
+                    </div>
+                `;
+                
+                // Add click event for toggle
+                const header = faqEl.querySelector('.accordion-header');
+                const body = faqEl.querySelector('.accordion-body');
+                
+                header.addEventListener('click', () => {
+                    const isNowActive = faqEl.classList.contains('active');
+                    
+                    // Close all others (optional - standard accordion behavior)
+                    document.querySelectorAll('.accordion-item').forEach(el => {
+                        el.classList.remove('active');
+                        el.querySelector('.accordion-body').style.maxHeight = null;
+                    });
+
+                    if (!isNowActive) {
+                        faqEl.classList.add('active');
+                        body.style.maxHeight = body.scrollHeight + "px";
+                    }
+                });
+
+                if (isActive) {
+                    faqEl.classList.add('active');
+                }
+
+                faqContainer.appendChild(faqEl);
+                
+                // Animate new items if expanded
+                if (isFaqExpanded && i >= 3) {
+                    gsap.from(faqEl, { opacity: 0, y: 15, duration: 0.4, delay: (i-3) * 0.1 });
+                }
+            }
+        }
+
+        renderFaq();
+
+        showAllFaqBtn.addEventListener('click', () => {
+            isFaqExpanded = true;
+            renderFaq();
+            showAllFaqBtn.classList.add('hidden');
+            askQuestionBtn.classList.remove('hidden');
+            // Slight animation for button appearance
+            gsap.fromTo(askQuestionBtn, {opacity: 0, y: 10}, {opacity: 1, y: 0, duration: 0.5, display: "inline-flex"});
+        });
+
+        // --- LIFE CHANGES ACCORDION LOGIC ---
+        const lifeSteps = document.querySelectorAll('.life-step');
+        
+        lifeSteps.forEach(step => {
+            const header = step.querySelector('.accordion-header');
+            const body = step.querySelector('.accordion-body');
+            
+            header.addEventListener('click', () => {
+                const isActive = step.classList.contains('active');
+                
+                // Optional: Close others
+                lifeSteps.forEach(s => {
+                    s.classList.remove('active');
+                    s.querySelector('.accordion-body').style.maxHeight = null;
+                });
+
+                if (!isActive) {
+                    step.classList.add('active');
+                    body.style.maxHeight = body.scrollHeight + "px";
+                }
+            });
+        });
+
+        // --- LIGHTBOX LOGIC ---
+        const lightbox = document.getElementById('lightbox');
+        const lightboxImg = document.getElementById('lightbox-img');
+        const lightboxClose = document.getElementById('lightbox-close');
+        const zoomableImages = document.querySelectorAll('.zoomable-image');
+
+        zoomableImages.forEach(img => {
+            img.addEventListener('click', (e) => {
+                e.stopPropagation(); // Prevent accordion toggle when clicking image
+                lightboxImg.src = img.src;
+                lightbox.classList.add('active');
+            });
+        });
+
+        function closeLightbox() {
+            lightbox.classList.remove('active');
+        }
+
+        lightboxClose.addEventListener('click', closeLightbox);
+        lightbox.addEventListener('click', closeLightbox);
+
+
+        // --- GSAP Animations (Existing + Preloader Logic) ---
+        document.addEventListener("DOMContentLoaded", (event) => {
+            gsap.registerPlugin(ScrollTrigger);
+
+            // Preloader Simulation
+            const preloader = document.getElementById('preloader');
+            const percentEl = preloader.querySelector('.loader-percentage');
+            const barEl = preloader.querySelector('.loader-bar-fill');
+            
+            // Initial states for header elements (hide them so they don't appear before preloader finishes)
+            // Actually, the existing GSAP 'from' animations handle opacity: 0, but let's be safe.
+            
+            let loadProgress = { val: 0 };
+            
+            const loaderTl = gsap.timeline({
+                onComplete: () => {
+                    // Slide up loader
+                    gsap.to(preloader, {
+                        yPercent: -100,
+                        duration: 1, // Smooth exit
+                        ease: "power4.inOut",
+                        onComplete: () => {
+                            preloader.style.visibility = 'hidden'; // Ensure it's gone
+                            startMainAnimations();
+                        }
+                    });
+                }
+            });
+
+            loaderTl.to(loadProgress, {
+                val: 100,
+                duration: 2.5,
+                ease: "power2.inOut",
+                onUpdate: () => {
+                    let v = Math.floor(loadProgress.val);
+                    percentEl.textContent = v + "%";
+                    barEl.style.width = v + "%";
+                }
+            });
+
+            function startMainAnimations() {
+                // --- HEADER ANIMATIONS ---
+                const headerTl = gsap.timeline();
+
+                // Логотип (побуквенно)
+                headerTl.from(".logo-part", {
+                    opacity: 0,
+                    y: -10, 
+                    duration: 0.8,
+                    stagger: 0.1,
+                    ease: "power2.out",
+                    onComplete: () => {
+                         document.querySelector('.logo-dot').classList.add('blinking');
+                    }
+                }, "header")
+                // Меню справа
+                .from(".menu-btn-container", {
+                    x: 50,
+                    opacity: 0,
+                    duration: 1.2,
+                    ease: "power3.out"
+                }, "header")
+                // Переключатель темы сверху
+                .from(".theme-toggle-container", {
+                    y: -50,
+                    opacity: 0,
+                    duration: 1.2,
+                    ease: "power3.out"
+                }, "header");
+
+
+                // --- HERO ANIMATIONS ---
+                const heroTimeline = gsap.timeline({ delay: 0.3 }); 
+
+                heroTimeline.from(".hero-anim", {
+                    y: 50,
+                    opacity: 0, 
+                    duration: 1.2,
+                    stagger: 0.2,
+                    ease: "power3.out"
+                });
+
+                gsap.utils.toArray(".section-title").forEach(title => {
+                    gsap.from(title, {
+                        scrollTrigger: {
+                            trigger: title,
+                            start: "top 85%",
+                            toggleActions: "play none none reverse"
+                        },
+                        y: 30,
+                        opacity: 0,
+                        duration: 1,
+                        ease: "power2.out"
+                    });
+                });
+                 
+                 gsap.utils.toArray(".section-subtitle").forEach(sub => {
+                    gsap.from(sub, {
+                        scrollTrigger: {
+                            trigger: sub,
+                            start: "top 85%",
+                            toggleActions: "play none none reverse"
+                        },
+                        y: 20,
+                        opacity: 0,
+                        duration: 1,
+                        delay: 0.2,
+                        ease: "power2.out"
+                    });
+                });
+
+                gsap.from(".scroll-reveal-left", {
+                    scrollTrigger: {
+                        trigger: ".honesty-grid",
+                        start: "top 80%"
+                    },
+                    x: -50,
+                    opacity: 0,
+                    duration: 1.2,
+                    ease: "power3.out"
+                });
+
+                gsap.from(".scroll-reveal-right", {
+                    scrollTrigger: {
+                        trigger: ".honesty-grid",
+                        start: "top 80%"
+                    },
+                    x: 50,
+                    opacity: 0,
+                    duration: 1.2,
+                    ease: "power3.out",
+                    delay: 0.2
+                });
+
+                gsap.utils.toArray(".tech-grid .scroll-reveal-up").forEach((card, i) => {
+                    gsap.from(card, {
+                        scrollTrigger: {
+                            trigger: card,
+                            start: "top 90%"
+                        },
+                        y: 50,
+                        opacity: 0,
+                        duration: 1,
+                        delay: i * 0.15, 
+                        ease: "back.out(1.2)"
+                    });
+                });
+
+                gsap.from(".reviews-grid", {
+                    scrollTrigger: {
+                        trigger: ".reviews-grid",
+                        start: "top 85%"
+                    },
+                    y: 30,
+                    opacity: 0,
+                    duration: 0.8,
+                    ease: "power2.out"
+                });
+
+                // Animate FAQ wrapper
+                gsap.from(".faq-wrapper", {
+                    scrollTrigger: {
+                        trigger: ".faq-wrapper",
+                        start: "top 85%"
+                    },
+                    y: 30,
+                    opacity: 0,
+                    duration: 0.8,
+                    ease: "power2.out"
+                });
+
+                // Animate Life Changes items
+                gsap.utils.toArray(".life-step").forEach((step, i) => {
+                    gsap.from(step, {
+                        scrollTrigger: {
+                            trigger: step,
+                            start: "top 90%"
+                        },
+                        y: 20,
+                        opacity: 0,
+                        duration: 0.6,
+                        delay: i * 0.1,
+                        ease: "power2.out"
+                    });
+                });
+
+                gsap.from(".cta-section-block", {
+                    scrollTrigger: {
+                        trigger: ".cta-section-block",
+                        start: "top 85%"
+                    },
+                    scale: 0.9,
+                    opacity: 0,
+                    duration: 0.8,
+                    ease: "back.out(1.2)"
+                });
+
+                gsap.utils.toArray(".privacy-grid .scroll-reveal-up").forEach((card, i) => {
+                    gsap.from(card, {
+                        scrollTrigger: {
+                            trigger: ".privacy-grid",
+                            start: "top 85%"
+                        },
+                        y: 40,
+                        opacity: 0,
+                        duration: 0.8,
+                        delay: i * 0.15,
+                        ease: "power2.out"
+                    });
+                });
+
+                const chatTl1 = gsap.timeline({
+                    scrollTrigger: {
+                        trigger: ".chat-showcase",
+                        start: "top 70%"
+                    }
+                });
+
+                chatTl1.from(".chat-window", {
+                    y: 30,
+                    opacity: 0,
+                    duration: 0.8,
+                    stagger: 0.3,
+                    ease: "power2.out"
+                });
+
+                const msgs1 = gsap.utils.toArray(".msg-anim-1");
+                const indicator1 = document.querySelector(".indicator-anim-1");
+
+                msgs1.forEach((msg, i) => {
+                    if (msg.classList.contains("mira")) {
+                        chatTl1.to(indicator1, { opacity: 1, duration: 0.3, y: 0 }) 
+                               .to(indicator1, { opacity: 0, duration: 0.2, delay: 1 }) 
+                               .from(msg, { opacity: 0, y: 10, duration: 0.5, ease: "power2.out" }); 
+                    } else {
+                        chatTl1.from(msg, { opacity: 0, y: 10, duration: 0.5, ease: "power2.out", delay: 0.5 });
+                    }
+                });
+                
+                const msgs2 = gsap.utils.toArray(".msg-anim-2");
+                 msgs2.forEach((msg, i) => {
+                    gsap.from(msg, {
+                        scrollTrigger: {
+                            trigger: msg,
+                            start: "top 90%"
+                        },
+                        opacity: 0, 
+                        y: 10, 
+                        duration: 0.5, 
+                        delay: i * 0.8,
+                        ease: "power2.out" 
+                    });
+                });
+
+                // --- Sticky CTA Animation ---
+                gsap.to("#sticky-cta-btn", {
+                    scrollTrigger: {
+                        trigger: ".hero",
+                        start: "bottom top", 
+                        toggleActions: "play none none reverse" 
+                    },
+                    y: 0, 
+                    opacity: 1,
+                    visibility: "visible",
+                    duration: 0.4,
+                    ease: "power2.out"
+                });
+            }
+
+        });
+    </script>
+</body>
+</html>

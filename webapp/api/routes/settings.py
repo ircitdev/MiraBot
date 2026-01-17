@@ -186,3 +186,55 @@ async def disable_ritual(
         await cancel_user_ritual(user.id, ritual_map.get(ritual_type, ritual_type))
 
     return {"status": "ok", "ritual": ritual_type, "enabled": False}
+
+
+@router.post("/delete")
+async def request_account_deletion(current_user: dict = Depends(get_current_user)):
+    """
+    Запросить удаление аккаунта.
+
+    Аккаунт помечается на удаление и будет удалён через 3 дня.
+    Пользователь может восстановить аккаунт в течение этого периода.
+    """
+    from datetime import timedelta
+    from database.repositories.admin_log import AdminLogRepository
+    from loguru import logger
+
+    user = await user_repo.get_by_telegram_id(current_user["user_id"])
+
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    # Помечаем аккаунт на удаление через 3 дня
+    deletion_date = datetime.utcnow() + timedelta(days=3)
+
+    await user_repo.update(
+        user.id,
+        deletion_requested_at=datetime.utcnow(),
+        deletion_scheduled_for=deletion_date,
+    )
+
+    # Логируем в admin logs
+    try:
+        admin_log_repo = AdminLogRepository()
+        await admin_log_repo.create(
+            admin_user_id=1,  # Системное событие
+            action="account_deletion_request",
+            resource_type="user",
+            resource_id=user.telegram_id,
+            details={
+                "deletion_scheduled_for": deletion_date.isoformat(),
+                "requested_via": "webapp",
+                "username": user.username,
+                "first_name": user.first_name,
+            },
+            success=True,
+        )
+    except Exception as e:
+        logger.warning(f"Failed to log account deletion request: {e}")
+
+    return {
+        "success": True,
+        "message": "Аккаунт помечен на удаление. У тебя есть 3 дня для восстановления.",
+        "deletion_date": deletion_date.isoformat(),
+    }

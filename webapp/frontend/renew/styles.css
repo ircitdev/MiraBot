@@ -1,0 +1,972 @@
+/* ==========================================================================
+   Telegram WebApp Modern Material Theme (Blue Gradient Edition)
+   ========================================================================== */
+
+:root {
+    /* Core Telegram Variables */
+    --tg-theme-bg-color: #ffffff;
+    --tg-theme-text-color: #000000;
+    --tg-theme-hint-color: #999999;
+    --tg-theme-link-color: #2481cc;
+    --tg-theme-button-color: #2481cc;
+    --tg-theme-button-text-color: #ffffff;
+    --tg-theme-secondary-bg-color: #f4f4f5;
+    /* Custom Design Tokens */
+    --ui-radius-sm: 8px;
+    --ui-radius-md: 12px;
+    --ui-radius-lg: 16px;
+    --ui-radius-xl: 24px;
+    --ui-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
+    --ui-shadow-md: 0 4px 12px rgba(0, 0, 0, 0.06);
+    --ui-shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.08);
+    /* Blue Palette */
+    --ui-blue-light: #5eb5f7;
+    --ui-blue-main: #2481cc;
+    --ui-blue-dark: #1a5f96;
+    --ui-gradient-blue: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    --ui-gradient-deep-blue: linear-gradient(135deg, #2481cc 0%, #1565c0 100%);
+    --ui-gradient-card: linear-gradient(135deg, rgba(36, 129, 204, 0.03) 0%, rgba(36, 129, 204, 0.1) 100%);
+    --ui-transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    --ui-transition-fast: all 0.15s ease-out;
+}
+
+
+/* ==========================================================================
+   Reset & Base
+   ========================================================================== */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    background-color: var(--tg-theme-bg-color);
+    color: var(--tg-theme-text-color);
+    padding: 0;
+    margin: 0;
+    overflow-x: hidden;
+    width: 100%;
+    line-height: 1.5;
+    font-size: 16px;
+    text-rendering: optimizeLegibility;
+}
+
+#app {
+    max-width: 600px;
+    margin: 0 auto;
+    padding-bottom: 40px;
+    width: 100%;
+    min-height: 100vh;
+}
+
+
+/* ==========================================================================
+   Typography
+   ========================================================================== */
+
+h2 {
+    font-size: 24px;
+    font-weight: 700;
+    margin-bottom: 20px;
+    letter-spacing: -0.5px;
+}
+
+h3 {
+    font-size: 13px;
+    /* Material style label */
+    font-weight: 600;
+    margin-bottom: 12px;
+    color: var(--tg-theme-hint-color);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+a {
+    color: var(--tg-theme-link-color);
+    text-decoration: none;
+    font-weight: 500;
+    transition: opacity 0.2s;
+}
+
+a:active {
+    opacity: 0.7;
+}
+
+
+/* ==========================================================================
+   Components: Tabs (Glassmorphism)
+   ========================================================================== */
+
+.tabs {
+    display: flex;
+    background: var(--tg-theme-secondary-bg-color);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    padding: 10px 12px;
+    gap: 8px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    margin-bottom: 10px;
+    background: rgba(244, 244, 245, 0.85);
+}
+
+@media (prefers-color-scheme: dark) {
+    .tabs {
+        background: rgba(30, 30, 30, 0.8);
+    }
+}
+
+.tab {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 10px 16px;
+    border: none;
+    background: transparent;
+    color: var(--tg-theme-hint-color);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    border-radius: var(--ui-radius-lg);
+    transition: var(--ui-transition);
+    position: relative;
+    overflow: hidden;
+}
+
+.tab:active {
+    transform: scale(0.95);
+}
+
+.tab.active {
+    background: var(--tg-theme-button-color);
+    /* Fallback */
+    background: var(--ui-gradient-deep-blue);
+    /* Gradient for active tab */
+    color: var(--tg-theme-button-text-color);
+    flex: 1;
+    box-shadow: 0 4px 12px rgba(36, 129, 204, 0.3);
+}
+
+.tab.tab-privacy {
+    flex: 0;
+    padding: 10px;
+    min-width: 44px;
+    width: 44px;
+    border-radius: 50%;
+}
+
+.tab.tab-privacy.active {
+    width: auto;
+    border-radius: var(--ui-radius-lg);
+    padding: 10px 16px;
+}
+
+.tab:hover:not(.active) {
+    background: rgba(36, 129, 204, 0.08);
+    /* Light blue tint on hover */
+    color: var(--tg-theme-text-color);
+}
+
+.tab-text {
+    display: none;
+    white-space: nowrap;
+}
+
+.tab.active .tab-text {
+    display: inline;
+    animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(2px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.tab-content {
+    display: none;
+    width: 100%;
+    padding: 8px 16px;
+    animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.tab-content.active {
+    display: block;
+}
+
+
+/* ==========================================================================
+   Components: Cards & Sections
+   ========================================================================== */
+
+.section {
+    padding: 0;
+    margin-bottom: 24px;
+}
+
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+    padding: 0 4px;
+}
+
+
+/* Common Card Styles */
+
+.stat-card,
+.program-card,
+.accordion-item,
+.referral-section,
+.referral-bonus-card,
+.tariff-card,
+.payment-status-card {
+    background: var(--tg-theme-bg-color);
+    border: 1px solid rgba(0, 0, 0, 0.04);
+    box-shadow: var(--ui-shadow-md);
+    border-radius: var(--ui-radius-lg);
+    overflow: hidden;
+    transition: var(--ui-transition);
+}
+
+
+/* Specific overrides for secondary bg cards */
+
+.stat-card,
+.program-card,
+.accordion-item,
+.referral-bonus-card {
+    background: var(--tg-theme-secondary-bg-color);
+    border: none;
+    box-shadow: none;
+}
+
+
+/* Stats Grid */
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.stat-card {
+    padding: 24px 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.stat-value {
+    font-size: 36px;
+    font-weight: 800;
+    color: var(--tg-theme-button-color);
+    background: var(--ui-gradient-deep-blue);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    line-height: 1.1;
+    margin-bottom: 4px;
+}
+
+.stat-label {
+    font-size: 14px;
+    color: var(--tg-theme-hint-color);
+    font-weight: 500;
+}
+
+
+/* Subscription Card - Blue Gradient */
+
+.subscription-card {
+    background: var(--ui-gradient-deep-blue);
+    color: white;
+    padding: 24px;
+    border-radius: var(--ui-radius-xl);
+    margin-bottom: 20px;
+    box-shadow: 0 10px 20px -5px rgba(36, 129, 204, 0.4);
+    position: relative;
+    overflow: hidden;
+}
+
+.subscription-card::after {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: linear-gradient(rgba(255, 255, 255, 0.15), transparent);
+    transform: rotate(30deg);
+    pointer-events: none;
+}
+
+.subscription-card h3 {
+    color: white;
+}
+
+
+/* ==========================================================================
+   Buttons & Inputs
+   ========================================================================== */
+
+
+/* Primary Button with Gradient */
+
+.btn-primary {
+    width: 100%;
+    padding: 16px;
+    background: var(--ui-gradient-deep-blue);
+    color: var(--tg-theme-button-text-color);
+    border: none;
+    border-radius: var(--ui-radius-md);
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+    transition: var(--ui-transition-fast);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    box-shadow: 0 4px 15px rgba(36, 129, 204, 0.25);
+    margin-top: 20px;
+}
+
+.invite-friends-btn {
+    width: 100%;
+    padding: 16px;
+    background: rgba(36, 129, 204, 0.08);
+    color: var(--tg-theme-button-color);
+    border: 1px solid rgba(36, 129, 204, 0.2);
+    border-radius: var(--ui-radius-md);
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--ui-transition-fast);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-bottom: 20px;
+}
+
+.btn-primary:active,
+.invite-friends-btn:active {
+    transform: scale(0.97);
+    opacity: 0.9;
+}
+
+
+/* Secondary Button */
+
+.btn-secondary {
+    background: var(--tg-theme-secondary-bg-color);
+    color: var(--tg-theme-text-color);
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    padding: 12px 20px;
+    border-radius: var(--ui-radius-md);
+    font-weight: 500;
+    cursor: pointer;
+    transition: var(--ui-transition-fast);
+}
+
+.btn-secondary:active {
+    background: rgba(0, 0, 0, 0.1);
+}
+
+
+/* Inputs */
+
+input[type="text"],
+input[type="date"],
+input[type="time"],
+select,
+textarea {
+    width: 100%;
+    padding: 14px 16px;
+    border: 1px solid transparent;
+    border-radius: var(--ui-radius-md);
+    font-size: 16px;
+    font-family: inherit;
+    background: var(--tg-theme-secondary-bg-color);
+    color: var(--tg-theme-text-color);
+    margin-bottom: 12px;
+    transition: var(--ui-transition-fast);
+    outline: none;
+    appearance: none;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+    background: var(--tg-theme-bg-color);
+    border-color: var(--tg-theme-button-color);
+    box-shadow: 0 0 0 4px rgba(36, 129, 204, 0.15);
+}
+
+
+/* Layout for inputs */
+
+.date-input-group {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.date-input-group>div {
+    flex: 1;
+}
+
+.time-range-group {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    margin: 12px 0;
+}
+
+.time-separator {
+    color: var(--tg-theme-hint-color);
+    font-weight: 500;
+}
+
+.setting-group {
+    margin-bottom: 24px;
+}
+
+
+/* Checkboxes */
+
+.checkbox-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin: 12px 0;
+}
+
+.checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    cursor: pointer;
+    padding: 12px;
+    border-radius: var(--ui-radius-md);
+    transition: background 0.2s;
+}
+
+.checkbox-label:hover {
+    background: var(--tg-theme-secondary-bg-color);
+}
+
+.checkbox-label input[type="checkbox"] {
+    width: 24px;
+    height: 24px;
+    margin: 0;
+    cursor: pointer;
+    accent-color: var(--tg-theme-button-color);
+}
+
+.small-label,
+.hint {
+    font-size: 13px;
+    color: var(--tg-theme-hint-color);
+    margin-top: 6px;
+    display: block;
+}
+
+
+/* ==========================================================================
+   Lists & Accordions
+   ========================================================================== */
+
+#topics-list,
+#emotions-list {
+    gap: 10px;
+    display: flex;
+    flex-direction: column;
+}
+
+.topic-item,
+.emotion-item {
+    background: var(--tg-theme-secondary-bg-color);
+    padding: 16px;
+    border-radius: var(--ui-radius-md);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: transform 0.2s ease;
+}
+
+.topic-item:active {
+    transform: scale(0.99);
+}
+
+.topic-name,
+.emotion-name {
+    font-weight: 600;
+}
+
+
+/* Accordion */
+
+.accordion-item {
+    background: var(--tg-theme-secondary-bg-color);
+    box-shadow: none;
+    margin-bottom: 16px;
+}
+
+.accordion-header {
+    padding: 16px;
+    background: transparent;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+}
+
+.accordion-header span:first-child {
+    font-weight: 600;
+}
+
+.accordion-icon {
+    transition: transform 0.3s ease;
+    color: var(--tg-theme-hint-color);
+    font-size: 12px;
+}
+
+.accordion-header.active .accordion-icon {
+    transform: rotate(-180deg);
+}
+
+.accordion-content {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease, padding 0.3s ease;
+    padding: 0 16px;
+}
+
+.accordion-content.active {
+    padding: 0 16px 20px 16px;
+}
+
+
+/* ==========================================================================
+   Charts & Period Toggles
+   ========================================================================== */
+
+#mood-chart {
+    width: 100%;
+    height: 220px;
+    background: var(--tg-theme-secondary-bg-color);
+    border-radius: var(--ui-radius-lg);
+    padding: 10px;
+    margin-bottom: 24px;
+}
+
+.mood-summary {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.mood-stat {
+    background: var(--tg-theme-secondary-bg-color);
+    padding: 8px 16px;
+    border-radius: var(--ui-radius-sm);
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.mood-stat .value {
+    color: var(--tg-theme-button-color);
+    font-weight: 700;
+    margin-left: 4px;
+}
+
+.period-toggle {
+    background: var(--tg-theme-secondary-bg-color);
+    padding: 4px;
+    border-radius: var(--ui-radius-md);
+    display: inline-flex;
+    margin-bottom: 16px;
+}
+
+.period-btn {
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    border: none;
+    background: transparent;
+    color: var(--tg-theme-hint-color);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.period-btn.active {
+    background: var(--tg-theme-bg-color);
+    color: var(--tg-theme-button-color);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+
+/* ==========================================================================
+   Program Cards (Progress)
+   ========================================================================== */
+
+.program-card {
+    padding: 20px;
+    background: var(--tg-theme-secondary-bg-color);
+    border: none;
+}
+
+.program-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.program-name {
+    font-weight: 600;
+    font-size: 15px;
+}
+
+.program-status {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 6px 10px;
+    border-radius: 20px;
+    font-weight: 600;
+}
+
+.program-status.active {
+    background: rgba(36, 129, 204, 0.1);
+    color: var(--tg-theme-button-color);
+}
+
+.program-status.completed {
+    background: rgba(76, 175, 80, 0.1);
+    color: #4caf50;
+}
+
+.program-status.paused {
+    background: rgba(255, 152, 0, 0.1);
+    color: #f57c00;
+}
+
+.program-progress-bar {
+    background: rgba(0, 0, 0, 0.05);
+    height: 10px;
+    border-radius: 5px;
+    width: 100%;
+    margin: 8px 0;
+    overflow: hidden;
+}
+
+.program-progress-fill {
+    border-radius: 5px;
+    height: 100%;
+    background: linear-gradient(90deg, #5eb5f7 0%, #2481cc 100%);
+    transition: width 0.3s ease;
+}
+
+.program-days {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 16px;
+}
+
+.day-indicator {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 600;
+    transition: var(--ui-transition);
+}
+
+.day-indicator.completed {
+    background: #4caf50;
+    color: white;
+}
+
+.day-indicator.pending {
+    background: rgba(0, 0, 0, 0.05);
+    color: var(--tg-theme-hint-color);
+}
+
+.day-indicator.current {
+    transform: scale(1.1);
+    background: var(--tg-theme-button-color);
+    color: white;
+    box-shadow: 0 0 0 3px rgba(36, 129, 204, 0.2);
+}
+
+
+/* ==========================================================================
+   Referral & Promo
+   ========================================================================== */
+
+.referral-section {
+    /* Subtle blue gradient background */
+    background: var(--ui-gradient-card);
+    border: 1px solid rgba(36, 129, 204, 0.2);
+    border-radius: var(--ui-radius-lg);
+    padding: 16px;
+    margin: 16px 0;
+}
+
+.referral-section h3 {
+    color: var(--tg-theme-text-color);
+    margin-bottom: 8px;
+}
+
+.referral-code-box {
+    margin: 16px 0;
+}
+
+.referral-code-box input {
+    font-family: monospace;
+    font-size: 14px;
+    text-align: center;
+    background: var(--tg-theme-bg-color);
+    border: 1px dashed var(--tg-theme-link-color);
+}
+
+.referral-buttons {
+    display: flex;
+    gap: 12px;
+    margin-top: 12px;
+}
+
+.referral-buttons button {
+    flex: 1;
+    min-height: 44px;
+}
+
+.referral-stats {
+    background: var(--tg-theme-secondary-bg-color);
+    padding: 16px;
+    border-radius: var(--ui-radius-md);
+    margin-top: 16px;
+}
+
+.stat-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 8px;
+    font-size: 14px;
+}
+
+.stat-row strong {
+    color: var(--tg-theme-link-color);
+}
+
+.referral-bonus-card {
+    background: var(--tg-theme-secondary-bg-color);
+    padding: 16px;
+}
+
+.referral-bonus-stats {
+    display: flex;
+    gap: 12px;
+}
+
+.bonus-stat {
+    flex: 1;
+    text-align: center;
+    background: var(--tg-theme-bg-color);
+    padding: 12px;
+    border-radius: var(--ui-radius-md);
+    box-shadow: var(--ui-shadow-sm);
+}
+
+.bonus-value {
+    display: block;
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--tg-theme-button-color);
+}
+
+.promo-input-group {
+    display: flex;
+    gap: 12px;
+}
+
+.promo-input-group input {
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.promo-input-group .btn-primary {
+    width: auto;
+    margin-top: 0;
+    padding: 0 24px;
+}
+
+
+/* ==========================================================================
+   Tariffs & Payments
+   ========================================================================== */
+
+.payment-status-card {
+    background: var(--ui-gradient-deep-blue);
+    color: white;
+    padding: 24px;
+    border-radius: var(--ui-radius-xl);
+    margin-bottom: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.payment-status-card.free {
+    background: var(--tg-theme-secondary-bg-color);
+    color: var(--tg-theme-text-color);
+}
+
+.payment-status-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.payment-plan-icon {
+    font-size: 32px;
+}
+
+.days-circle {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 50%;
+    width: 64px;
+    height: 64px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(4px);
+}
+
+.days-number {
+    font-size: 20px;
+    font-weight: 700;
+    line-height: 1;
+}
+
+.days-label {
+    font-size: 10px;
+    opacity: 0.9;
+}
+
+.tariffs-list {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.tariff-card {
+    background: var(--tg-theme-bg-color);
+    padding: 20px;
+    border: 2px solid var(--tg-theme-secondary-bg-color);
+    position: relative;
+    cursor: pointer;
+}
+
+.tariff-card:hover {
+    border-color: var(--tg-theme-button-color);
+    transform: translateY(-2px);
+    box-shadow: var(--ui-shadow-lg);
+}
+
+.tariff-card.tariff-popular {
+    border-color: #5eb5f7;
+    background: linear-gradient(to bottom, rgba(36, 129, 204, 0.05), transparent);
+}
+
+.tariff-badge {
+    position: absolute;
+    top: -10px;
+    right: 16px;
+    background: var(--ui-gradient-deep-blue);
+    color: white;
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    box-shadow: 0 4px 10px rgba(36, 129, 204, 0.3);
+}
+
+.tariff-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.tariff-price {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--tg-theme-button-color);
+}
+
+.tariff-old-price {
+    font-size: 13px;
+    color: var(--tg-theme-hint-color);
+    text-decoration: line-through;
+    text-align: right;
+    display: block;
+}
+
+
+/* ==========================================================================
+   Privacy & Settings
+   ========================================================================== */
+
+.privacy-section {
+    background: var(--tg-theme-bg-color);
+    padding: 0;
+    margin-bottom: 30px;
+    border-bottom: 1px solid var(--tg-theme-secondary-bg-color);
+}
+
+.privacy-list li {
+    padding: 12px 0;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    font-size: 14px;
+}
+
+.privacy-list li strong {
+    color: var(--tg-theme-button-color);
+}
